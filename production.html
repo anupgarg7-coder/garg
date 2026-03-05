@@ -26,10 +26,9 @@
 </script>
 </head>
 <body>
-
 <div id="pw-screen">
   <div class="pw-logo">PRODUCTION<br>MANAGEMENT</div>
-  <div class="pw-sub">// PRODUCTION MODULE</div>
+  <div class="pw-sub">// MODULE 01</div>
   <div class="pw-box">
     <div class="pw-label">Enter Password</div>
     <input class="pw-input" id="pw-input" type="password" placeholder="••••••" maxlength="30" autocomplete="off">
@@ -37,7 +36,7 @@
     <div class="pw-err" id="pw-err"></div>
   </div>
 </div>
-
+<a id="back-to-hub" href="index.html">← HUB</a>
 <div id="root"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -207,7 +206,6 @@ function App(){
     <div style={{minHeight:"100vh",background:"#2C2416",paddingBottom:80}}>
       <style>
 
-/* ── PASSWORD SCREEN ── */
 #pw-screen{position:fixed;inset:0;z-index:99999;background:#2C2416;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;}
 #pw-screen .pw-logo{font-family:'Bebas Neue',sans-serif;font-size:2.8rem;letter-spacing:6px;color:#F5EDD8;text-align:center;line-height:1.1;margin-bottom:6px;}
 #pw-screen .pw-sub{font-size:0.55rem;letter-spacing:3px;color:#A89070;text-align:center;margin-bottom:40px;}
@@ -217,8 +215,11 @@ function App(){
 #pw-screen .pw-input:focus{border-color:#C47A20;}
 #pw-screen .pw-btn{width:100%;margin-top:14px;padding:15px;border:none;border-radius:10px;background:#C47A20;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;font-weight:700;letter-spacing:3px;cursor:pointer;transition:opacity .15s;}
 #pw-screen .pw-btn:hover{opacity:.88;}
-#pw-screen .pw-err{margin-top:12px;text-align:center;font-size:0.6rem;color:#c0392b;letter-spacing:1px;min-height:18px;}
-{CSS}</style>
+#pw-screen .pw-err{margin-top:12px;text-align:center;font-size:0.6rem;color:#EF4444;letter-spacing:1px;min-height:18px;}
+{CSS}
+#back-to-hub{position:fixed;top:10px;left:10px;z-index:1000;background:#1a1508;border:1px solid #3a2810;border-radius:8px;color:#c47a20;font-family:'IBM Plex Mono',monospace;font-size:0.6rem;font-weight:700;letter-spacing:1px;padding:8px 14px;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:6px;transition:all .15s;}
+#back-to-hub:hover{background:#3a2810;border-color:#c47a20;}
+</style>
       <Toast msg={toast}/>
       <div style={{background:"#3D3020",padding:"14px 16px 12px",display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:40,borderBottom:"2px solid #5A4830"}}>
         <div style={{width:40,height:40,background:"linear-gradient(135deg,#2563EB,#7C3AED)",borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>🧵</div>
@@ -881,34 +882,30 @@ function PostStatusPick({item,onPick,onClose}){
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
-
 <script>
 (function(){
-  // Check if already authenticated this session
   if(sessionStorage.getItem('ops_auth')==='1'){
-    document.getElementById('pw-screen').style.display='none';
+    var s=document.getElementById('pw-screen');
+    if(s) s.style.display='none';
     return;
   }
-  // Show password screen, hide main content
-  document.getElementById('pw-screen').style.display='flex';
 })();
 function checkPassword(){
-  const val = document.getElementById('pw-input').value;
-  if(val === 'garg'){
+  var val=document.getElementById('pw-input').value;
+  if(val==='garg'){
     sessionStorage.setItem('ops_auth','1');
     document.getElementById('pw-screen').style.display='none';
   } else {
     document.getElementById('pw-err').textContent='✕ Incorrect password';
     document.getElementById('pw-input').value='';
     document.getElementById('pw-input').focus();
-    setTimeout(()=>document.getElementById('pw-err').textContent='', 2000);
+    setTimeout(function(){document.getElementById('pw-err').textContent='';},2000);
   }
 }
-document.addEventListener('DOMContentLoaded',()=>{
-  const inp = document.getElementById('pw-input');
-  if(inp) inp.addEventListener('keydown', e=>{ if(e.key==='Enter') checkPassword(); });
+document.addEventListener('DOMContentLoaded',function(){
+  var inp=document.getElementById('pw-input');
+  if(inp) inp.addEventListener('keydown',function(e){if(e.key==='Enter')checkPassword();});
 });
 </script>
-
 </body>
 </html>

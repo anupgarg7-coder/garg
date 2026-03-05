@@ -28,7 +28,6 @@
 
 <style>
 
-/* ── PASSWORD SCREEN ── */
 #pw-screen{position:fixed;inset:0;z-index:99999;background:#1a1410;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;}
 #pw-screen .pw-logo{font-family:'Bebas Neue',sans-serif;font-size:2.8rem;letter-spacing:6px;color:#fdfaf4;text-align:center;line-height:1.1;margin-bottom:6px;}
 #pw-screen .pw-sub{font-size:0.55rem;letter-spacing:3px;color:#8a7f70;text-align:center;margin-bottom:40px;}
@@ -40,8 +39,11 @@
 #pw-screen .pw-btn:hover{opacity:.88;}
 #pw-screen .pw-err{margin-top:12px;text-align:center;font-size:0.6rem;color:#c0392b;letter-spacing:1px;min-height:18px;}
 
-:root{
 
+#back-to-hub{position:fixed;top:10px;left:10px;z-index:1000;background:#fdfaf4;border:1px solid #d4c9b0;border-radius:8px;color:#c0392b;font-family:'IBM Plex Mono',monospace;font-size:0.6rem;font-weight:700;letter-spacing:1px;padding:8px 14px;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:6px;transition:all .15s;}
+#back-to-hub:hover{background:#d4c9b0;border-color:#c0392b;}
+
+:root{
   --bg:#f5f0e8;--paper:#fdfaf4;--ink:#1a1410;--muted:#8a7f70;--border:#d4c9b0;
   --out-color:#c0392b;--out-light:#fdf0ee;--out-border:#e8b5b0;
   --in-color:#1a6b3a;--in-light:#eef8f2;--in-border:#a8d8b8;
@@ -392,10 +394,9 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
 </style>
 </head>
 <body>
-
 <div id="pw-screen">
   <div class="pw-logo">STOCK<br>MANAGEMENT</div>
-  <div class="pw-sub">// STOCK MODULE</div>
+  <div class="pw-sub">// MODULE 02</div>
   <div class="pw-box">
     <div class="pw-label">Enter Password</div>
     <input class="pw-input" id="pw-input" type="password" placeholder="••••••" maxlength="30" autocomplete="off">
@@ -403,8 +404,7 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
     <div class="pw-err" id="pw-err"></div>
   </div>
 </div>
-
-
+<a id="back-to-hub" href="index.html">← HUB</a>
 
 <!-- FIREBASE LOADING -->
 <div id="firebase-loading">
@@ -1708,34 +1708,30 @@ renderOutputList = function(){
 };
 
 </script>
-
 <script>
 (function(){
-  // Check if already authenticated this session
   if(sessionStorage.getItem('ops_auth')==='1'){
-    document.getElementById('pw-screen').style.display='none';
+    var s=document.getElementById('pw-screen');
+    if(s) s.style.display='none';
     return;
   }
-  // Show password screen, hide main content
-  document.getElementById('pw-screen').style.display='flex';
 })();
 function checkPassword(){
-  const val = document.getElementById('pw-input').value;
-  if(val === 'garg'){
+  var val=document.getElementById('pw-input').value;
+  if(val==='garg'){
     sessionStorage.setItem('ops_auth','1');
     document.getElementById('pw-screen').style.display='none';
   } else {
     document.getElementById('pw-err').textContent='✕ Incorrect password';
     document.getElementById('pw-input').value='';
     document.getElementById('pw-input').focus();
-    setTimeout(()=>document.getElementById('pw-err').textContent='', 2000);
+    setTimeout(function(){document.getElementById('pw-err').textContent='';},2000);
   }
 }
-document.addEventListener('DOMContentLoaded',()=>{
-  const inp = document.getElementById('pw-input');
-  if(inp) inp.addEventListener('keydown', e=>{ if(e.key==='Enter') checkPassword(); });
+document.addEventListener('DOMContentLoaded',function(){
+  var inp=document.getElementById('pw-input');
+  if(inp) inp.addEventListener('keydown',function(e){if(e.key==='Enter')checkPassword();});
 });
 </script>
-
 </body>
 </html>

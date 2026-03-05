@@ -28,7 +28,6 @@
 
 <style>
 
-/* ── PASSWORD SCREEN ── */
 #pw-screen{position:fixed;inset:0;z-index:99999;background:#0e0c08;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;}
 #pw-screen .pw-logo{font-family:'Bebas Neue',sans-serif;font-size:2.8rem;letter-spacing:6px;color:#f0e8d4;text-align:center;line-height:1.1;margin-bottom:6px;}
 #pw-screen .pw-sub{font-size:0.55rem;letter-spacing:3px;color:#4a3a20;text-align:center;margin-bottom:40px;}
@@ -96,7 +95,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
 </style>
 </head>
 <body>
-
 <div id="pw-screen">
   <div class="pw-logo">OPERATIONS<br>HUB</div>
   <div class="pw-sub">// TEXTILE MANAGEMENT SYSTEM</div>
@@ -107,7 +105,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
     <div class="pw-err" id="pw-err"></div>
   </div>
 </div>
-
 
 <div class="shell">
   <div class="header">
@@ -165,71 +162,44 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
   <div class="footer">Textile Operations · Cloud Sync · v4.0</div>
 </div>
 
-<!-- PRODUCTION OVERLAY -->
-<div class="overlay" id="ov-prod">
-  <div class="obar">
-    <button class="obk" onclick="closeApp('prod')">← BACK</button>
-    <span class="otitle">🧵 PRODUCTION MANAGEMENT</span>
-  </div>
-  <iframe class="oframe" id="fr-prod" src="" title="Production Management"></iframe>
-</div>
-
-<!-- STOCK OVERLAY -->
-<div class="overlay" id="ov-stock">
-  <div class="obar">
-    <button class="obk" onclick="closeApp('stock')">← BACK</button>
-    <span class="otitle">📦 STOCK MANAGEMENT</span>
-  </div>
-  <iframe class="oframe" id="fr-stock" src="" title="Stock Management"></iframe>
-</div>
+<!-- Modules open as full pages -->
 
 <script>
 function openApp(app) {
-  const ov = document.getElementById('ov-' + app);
-  const fr = document.getElementById('fr-' + app);
-  if (!fr.getAttribute('data-loaded')) {
-    fr.src = app === 'prod' ? 'production.html' : 'stock.html';
-    fr.setAttribute('data-loaded','1');
+  // Save auth session so password isn't asked again on module page
+  sessionStorage.setItem('ops_auth', '1');
+  if (app === 'prod') {
+    window.location.href = 'production.html';
+  } else {
+    window.location.href = 'stock.html';
   }
-  ov.classList.add('open');
-  document.body.style.overflow = 'hidden';
 }
-function closeApp(app) {
-  document.getElementById('ov-' + app).classList.remove('open');
-  document.body.style.overflow = '';
-}
-window.addEventListener('message', e => {
-  if (e.data === 'goBack') { closeApp('prod'); closeApp('stock'); }
-});
+function closeApp(app) {}
 </script>
-
 <script>
 (function(){
-  // Check if already authenticated this session
   if(sessionStorage.getItem('ops_auth')==='1'){
-    document.getElementById('pw-screen').style.display='none';
+    var s=document.getElementById('pw-screen');
+    if(s) s.style.display='none';
     return;
   }
-  // Show password screen, hide main content
-  document.getElementById('pw-screen').style.display='flex';
 })();
 function checkPassword(){
-  const val = document.getElementById('pw-input').value;
-  if(val === 'garg'){
+  var val=document.getElementById('pw-input').value;
+  if(val==='garg'){
     sessionStorage.setItem('ops_auth','1');
     document.getElementById('pw-screen').style.display='none';
   } else {
     document.getElementById('pw-err').textContent='✕ Incorrect password';
     document.getElementById('pw-input').value='';
     document.getElementById('pw-input').focus();
-    setTimeout(()=>document.getElementById('pw-err').textContent='', 2000);
+    setTimeout(function(){document.getElementById('pw-err').textContent='';},2000);
   }
 }
-document.addEventListener('DOMContentLoaded',()=>{
-  const inp = document.getElementById('pw-input');
-  if(inp) inp.addEventListener('keydown', e=>{ if(e.key==='Enter') checkPassword(); });
+document.addEventListener('DOMContentLoaded',function(){
+  var inp=document.getElementById('pw-input');
+  if(inp) inp.addEventListener('keydown',function(e){if(e.key==='Enter')checkPassword();});
 });
 </script>
-
 </body>
 </html>
