@@ -104,7 +104,29 @@ label{font-size:13px;font-weight:700;color:#A89070;letter-spacing:.04em;text-tra
 .sub-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#2E1065;color:#C4B5FD}
 .divider-line{height:1px;background:#5A4830;flex:1}.divider-label{font-size:11px;color:#8C7A5E;font-weight:700;letter-spacing:.05em}
 .scan-drop{background:#2C2416;border:2px dashed #6B5A3E;border-radius:14px;padding:28px 16px;text-align:center;cursor:pointer}
-@media(min-width:580px){.modal-overlay{align-items:center;padding:20px}.modal-sheet{border-radius:24px}.m-grid{grid-template-columns:repeat(8,1fr)}}`;
+@media(min-width:580px){.modal-overlay{align-items:center;padding:20px}.modal-sheet{border-radius:24px}.m-grid{grid-template-columns:repeat(8,1fr)}}
+#back-to-hub{position:fixed;top:10px;left:10px;z-index:9999;background:rgba(44,36,22,0.95);border:1px solid #5A4830;border-radius:8px;color:#D4A853;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;padding:8px 14px;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:6px;letter-spacing:1px;}
+#back-to-hub:hover{background:#3D3020;}
+
+#pw-screen{position:fixed;inset:0;z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;font-family:'IBM Plex Mono',monospace;}
+#pw-screen .pw-logo{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;letter-spacing:6px;text-align:center;line-height:1.1;margin-bottom:6px;}
+#pw-screen .pw-sub{font-size:0.55rem;letter-spacing:3px;text-align:center;margin-bottom:36px;}
+#pw-screen .pw-box{border-radius:18px;padding:28px 24px;width:100%;max-width:320px;}
+#pw-screen .pw-label{font-size:0.52rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;}
+#pw-screen .pw-input{width:100%;border-radius:10px;font-family:'IBM Plex Mono',monospace;font-size:1rem;padding:13px 16px;outline:none;transition:border-color .2s;letter-spacing:4px;border-width:1px;border-style:solid;}
+#pw-screen .pw-btn{width:100%;margin-top:12px;padding:14px;border:none;border-radius:10px;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;font-weight:700;letter-spacing:3px;cursor:pointer;transition:opacity .15s;}
+#pw-screen .pw-btn:hover{opacity:.85;}
+#pw-screen .pw-err{margin-top:10px;text-align:center;font-size:0.6rem;color:#ef4444;letter-spacing:1px;min-height:18px;}
+
+#pw-screen{background:#2C2416;}
+#pw-screen .pw-logo{color:#F5EDD8;}
+#pw-screen .pw-sub{color:#A89070;}
+#pw-screen .pw-box{background:#3D3020;border:1px solid #5A4830;}
+#pw-screen .pw-label{color:#A89070;}
+#pw-screen .pw-input{background:#2C2416;border-color:#5A4830;color:#F5EDD8;}
+#pw-screen .pw-input:focus{border-color:#D4A853;}
+#pw-screen .pw-btn{background:#C47A20;color:#fff;}
+`;
 
 function Toast({msg}){if(!msg)return null;return <div className="toast">✓ {msg}</div>;}
 function ModalShell({title,subtitle,onClose,children}){return(<div className="modal-overlay" onClick={onClose}><div className="modal-sheet" onClick={e=>e.stopPropagation()}><div className="modal-handle"/><div className="modal-title">{title}</div>{subtitle&&<div className="modal-sub">{subtitle}</div>}{children}<div style={{height:14}}/><button className="big-btn btn-gray" onClick={onClose}>✕ Cancel</button></div></div>);}
@@ -179,29 +201,7 @@ function App(){
 
   return(
     <div style={{minHeight:"100vh",background:"#2C2416",paddingBottom:80}}>
-      <style>{CSS}
-#back-to-hub{position:fixed;top:10px;left:10px;z-index:9999;background:rgba(44,36,22,0.95);border:1px solid #5A4830;border-radius:8px;color:#D4A853;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;padding:8px 14px;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:6px;letter-spacing:1px;}
-#back-to-hub:hover{background:#3D3020;}
-
-#pw-screen{position:fixed;inset:0;z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;font-family:'IBM Plex Mono',monospace;}
-#pw-screen .pw-logo{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;letter-spacing:6px;text-align:center;line-height:1.1;margin-bottom:6px;}
-#pw-screen .pw-sub{font-size:0.55rem;letter-spacing:3px;text-align:center;margin-bottom:36px;}
-#pw-screen .pw-box{border-radius:18px;padding:28px 24px;width:100%;max-width:320px;}
-#pw-screen .pw-label{font-size:0.52rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;}
-#pw-screen .pw-input{width:100%;border-radius:10px;font-family:'IBM Plex Mono',monospace;font-size:1rem;padding:13px 16px;outline:none;transition:border-color .2s;letter-spacing:4px;border-width:1px;border-style:solid;}
-#pw-screen .pw-btn{width:100%;margin-top:12px;padding:14px;border:none;border-radius:10px;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;font-weight:700;letter-spacing:3px;cursor:pointer;transition:opacity .15s;}
-#pw-screen .pw-btn:hover{opacity:.85;}
-#pw-screen .pw-err{margin-top:10px;text-align:center;font-size:0.6rem;color:#ef4444;letter-spacing:1px;min-height:18px;}
-
-#pw-screen{background:#2C2416;}
-#pw-screen .pw-logo{color:#F5EDD8;}
-#pw-screen .pw-sub{color:#A89070;}
-#pw-screen .pw-box{background:#3D3020;border:1px solid #5A4830;}
-#pw-screen .pw-label{color:#A89070;}
-#pw-screen .pw-input{background:#2C2416;border-color:#5A4830;color:#F5EDD8;}
-#pw-screen .pw-input:focus{border-color:#D4A853;}
-#pw-screen .pw-btn{background:#C47A20;color:#fff;}
-</style>
+      <style>{CSS}</style>
       <Toast msg={toast}/>
       <div style={{background:"#3D3020",padding:"14px 16px 12px",display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:40,borderBottom:"2px solid #5A4830"}}>
         <div style={{width:40,height:40,background:"linear-gradient(135deg,#2563EB,#7C3AED)",borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>🧵</div>
