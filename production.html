@@ -150,70 +150,22 @@ function App(){
   const saveTimerRef = useRef(null);
   const isFirstLoad = useRef(true);
 
-  // Load data from Firestore on mount
-  useEffect(() => {
-    const fb = window._prodFirebase;
-    if (!fb) {
-      // Firebase not ready yet — wait for event
-      const handler = async () => {
-        const { db, doc, getDoc } = window._prodFirebase;
-        try {
-          const snap = await getDoc(doc(db, 'production', 'main'));
-          if (snap.exists()) {
-            const saved = snap.data();
-            setData(d => ({...INIT, ...saved}));
-          }
-        } catch(e) { console.warn('Load error:', e); }
-        isFirstLoad.current = false;
-      };
-      window.addEventListener('prod-firebase-ready', handler, { once: true });
-      return;
-    }
-    (async () => {
-      try {
-        const { db, doc, getDoc } = fb;
-        const snap = await getDoc(doc(db, 'production', 'main'));
-        if (snap.exists()) setData(d => ({...INIT, ...snap.data()}));
-      } catch(e) { console.warn('Load error:', e); }
-      isFirstLoad.current = false;
-    })();
-  }, []);
-
-  // Auto-save to Firestore whenever data changes (debounced 800ms)
-  useEffect(() => {
-    if (isFirstLoad.current) return;
-    const fb = window._prodFirebase;
-    if (!fb) return;
-    clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(async () => {
-      try {
-        const { db, doc, setDoc } = fb;
-        await setDoc(doc(db, 'production', 'main'), {
-          ...data,
-          _savedAt: new Date().toISOString()
-        });
-      } catch(e) { console.warn('Save error:', e); }
-    }, 800);
-  }, [data]);
-
-
-  const saveTimerRef = useRef(null);
-  const isFirstLoad = useRef(true);
-
+  // Load from Firestore on mount
   useEffect(()=>{
-    if(!window._prodDBReady) return;
     (async()=>{
       try{
+        if(!window._prodDB) return;
         const snap = await window._prodDB.doc('production/main').get();
-        if(snap.exists){ const d=snap.data(); setData(prev=>({...prev,...d})); }
+        if(snap.exists){ setData(prev=>({...INIT,...snap.data()})); }
       }catch(e){ console.warn('Load err:',e); }
-      isFirstLoad.current=false;
+      finally{ isFirstLoad.current=false; }
     })();
   },[]);
 
+  // Auto-save on data change (debounced)
   useEffect(()=>{
     if(isFirstLoad.current) return;
-    if(!window._prodDBReady) return;
+    if(!window._prodDB) return;
     clearTimeout(saveTimerRef.current);
     saveTimerRef.current=setTimeout(async()=>{
       try{ await window._prodDB.doc('production/main').set({...data,_savedAt:new Date().toISOString()},{merge:true}); }
