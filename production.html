@@ -162,7 +162,7 @@ function App(){
     })();
   },[]);
 
-  // Auto-save on data change (debounced)
+  // Auto-save on data change (debounced 800ms)
   useEffect(()=>{
     if(isFirstLoad.current) return;
     if(!window._prodDB) return;
