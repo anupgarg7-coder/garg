@@ -6,38 +6,28 @@
 <title>Operations Hub</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
 
-<!-- ── FIREBASE SDK ── -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-  import { getAnalytics }  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-analytics.js";
 
-  const firebaseConfig = {
-    apiKey:            "AIzaSyA5-PW6H6BIFQr1x6YI2Hy8PTu_kTI12Rc",
-    authDomain:        "giproductionandstock.firebaseapp.com",
-    projectId:         "giproductionandstock",
-    storageBucket:     "giproductionandstock.firebasestorage.app",
-    messagingSenderId: "628734351948",
-    appId:             "1:628734351948:web:769e3e5385ed183785f2e9",
-    measurementId:     "G-JYYYDRYM4G"
-  };
-
-  const app       = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-  window._firebaseApp = app;
-</script>
 
 <style>
 
-#pw-screen{position:fixed;inset:0;z-index:99999;background:#0e0c08;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;}
-#pw-screen .pw-logo{font-family:'Bebas Neue',sans-serif;font-size:2.8rem;letter-spacing:6px;color:#f0e8d4;text-align:center;line-height:1.1;margin-bottom:6px;}
-#pw-screen .pw-sub{font-size:0.55rem;letter-spacing:3px;color:#4a3a20;text-align:center;margin-bottom:40px;}
-#pw-screen .pw-box{background:#1a1508;border:1px solid #3a2810;border-radius:18px;padding:28px 24px;width:100%;max-width:340px;}
-#pw-screen .pw-label{font-size:0.52rem;letter-spacing:2px;text-transform:uppercase;color:#6a5a3a;margin-bottom:10px;}
-#pw-screen .pw-input{width:100%;background:#0e0c08;border:1px solid #3a2810;border-radius:10px;color:#f0e8d4;font-family:'IBM Plex Mono',monospace;font-size:1.1rem;padding:14px 16px;outline:none;transition:border-color .2s;letter-spacing:4px;}
+#pw-screen{position:fixed;inset:0;z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;font-family:'IBM Plex Mono',monospace;}
+#pw-screen .pw-logo{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;letter-spacing:6px;text-align:center;line-height:1.1;margin-bottom:6px;}
+#pw-screen .pw-sub{font-size:0.55rem;letter-spacing:3px;text-align:center;margin-bottom:36px;}
+#pw-screen .pw-box{border-radius:18px;padding:28px 24px;width:100%;max-width:320px;}
+#pw-screen .pw-label{font-size:0.52rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;}
+#pw-screen .pw-input{width:100%;border-radius:10px;font-family:'IBM Plex Mono',monospace;font-size:1rem;padding:13px 16px;outline:none;transition:border-color .2s;letter-spacing:4px;border-width:1px;border-style:solid;}
+#pw-screen .pw-btn{width:100%;margin-top:12px;padding:14px;border:none;border-radius:10px;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;font-weight:700;letter-spacing:3px;cursor:pointer;transition:opacity .15s;}
+#pw-screen .pw-btn:hover{opacity:.85;}
+#pw-screen .pw-err{margin-top:10px;text-align:center;font-size:0.6rem;color:#ef4444;letter-spacing:1px;min-height:18px;}
+
+#pw-screen{background:#0e0c08;}
+#pw-screen .pw-logo{color:#f0e8d4;}
+#pw-screen .pw-sub{color:#6a5a3a;}
+#pw-screen .pw-box{background:#1a1508;border:1px solid #3a2810;}
+#pw-screen .pw-label{color:#8a7a5a;}
+#pw-screen .pw-input{background:#0e0c08;border-color:#3a2810;color:#f0e8d4;}
 #pw-screen .pw-input:focus{border-color:#c47a20;}
-#pw-screen .pw-btn{width:100%;margin-top:14px;padding:15px;border:none;border-radius:10px;background:#c47a20;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;font-weight:700;letter-spacing:3px;cursor:pointer;transition:opacity .15s;}
-#pw-screen .pw-btn:hover{opacity:.88;}
-#pw-screen .pw-err{margin-top:12px;text-align:center;font-size:0.6rem;color:#c0392b;letter-spacing:1px;min-height:18px;}
+#pw-screen .pw-btn{background:#c47a20;color:#fff;}
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;background:#0e0c08;color:#f0e8d4;font-family:'IBM Plex Mono',monospace;-webkit-tap-highlight-color:transparent;overflow:hidden;}
@@ -100,7 +90,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
   <div class="pw-sub">// TEXTILE MANAGEMENT SYSTEM</div>
   <div class="pw-box">
     <div class="pw-label">Enter Password</div>
-    <input class="pw-input" id="pw-input" type="password" placeholder="••••••" maxlength="30" autocomplete="off">
+    <input class="pw-input" id="pw-input" type="password" placeholder="••••" maxlength="30" autocomplete="off">
     <button class="pw-btn" onclick="checkPassword()">ENTER →</button>
     <div class="pw-err" id="pw-err"></div>
   </div>
@@ -162,26 +152,21 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
   <div class="footer">Textile Operations · Cloud Sync · v4.0</div>
 </div>
 
-<!-- Modules open as full pages -->
+<iframe class="oframe" id="fr-stock" src="" title="Stock Management"></iframe>
+</div>
 
 <script>
 function openApp(app) {
-  // Save auth session so password isn't asked again on module page
-  sessionStorage.setItem('ops_auth', '1');
-  if (app === 'prod') {
-    window.location.href = 'production.html';
-  } else {
-    window.location.href = 'stock.html';
-  }
+  sessionStorage.setItem('ops_auth','1');
+  window.location.href = (app==='prod') ? 'production.html' : 'stock.html';
 }
-function closeApp(app) {}
 </script>
+
 <script>
 (function(){
   if(sessionStorage.getItem('ops_auth')==='1'){
     var s=document.getElementById('pw-screen');
-    if(s) s.style.display='none';
-    return;
+    if(s)s.style.display='none';
   }
 })();
 function checkPassword(){
@@ -189,7 +174,7 @@ function checkPassword(){
   if(val==='garg'){
     sessionStorage.setItem('ops_auth','1');
     document.getElementById('pw-screen').style.display='none';
-  } else {
+  }else{
     document.getElementById('pw-err').textContent='✕ Incorrect password';
     document.getElementById('pw-input').value='';
     document.getElementById('pw-input').focus();
@@ -197,8 +182,8 @@ function checkPassword(){
   }
 }
 document.addEventListener('DOMContentLoaded',function(){
-  var inp=document.getElementById('pw-input');
-  if(inp) inp.addEventListener('keydown',function(e){if(e.key==='Enter')checkPassword();});
+  var i=document.getElementById('pw-input');
+  if(i)i.addEventListener('keydown',function(e){if(e.key==='Enter')checkPassword();});
 });
 </script>
 </body>

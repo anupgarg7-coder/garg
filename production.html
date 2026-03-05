@@ -5,24 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Production Management</title>
 <!-- ── FIREBASE SDK ── -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey:            "AIzaSyA5-PW6H6BIFQr1x6YI2Hy8PTu_kTI12Rc",
-    authDomain:        "giproductionandstock.firebaseapp.com",
-    projectId:         "giproductionandstock",
-    storageBucket:     "giproductionandstock.firebasestorage.app",
-    messagingSenderId: "628734351948",
-    appId:             "1:628734351948:web:769e3e5385ed183785f2e9",
-    measurementId:     "G-JYYYDRYM4G"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db  = getFirestore(app);
-  window._prodFirebase = { db, doc, getDoc, setDoc };
-  window.dispatchEvent(new Event('prod-firebase-ready'));
+<!-- Firebase Compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+try {
+  firebase.initializeApp({
+    apiKey:"AIzaSyA5-PW6H6BIFQr1x6YI2Hy8PTu_kTI12Rc",
+    authDomain:"giproductionandstock.firebaseapp.com",
+    projectId:"giproductionandstock",
+    storageBucket:"giproductionandstock.firebasestorage.app",
+    messagingSenderId:"628734351948",
+    appId:"1:628734351948:web:769e3e5385ed183785f2e9"
+  });
+  window._prodDB = firebase.firestore();
+  window._prodDBReady = true;
+} catch(e){ console.error('Firebase init error:',e); }
 </script>
 </head>
 <body>
@@ -31,7 +29,7 @@
   <div class="pw-sub">// MODULE 01</div>
   <div class="pw-box">
     <div class="pw-label">Enter Password</div>
-    <input class="pw-input" id="pw-input" type="password" placeholder="••••••" maxlength="30" autocomplete="off">
+    <input class="pw-input" id="pw-input" type="password" placeholder="••••" maxlength="30" autocomplete="off">
     <button class="pw-btn" onclick="checkPassword()">ENTER →</button>
     <div class="pw-err" id="pw-err"></div>
   </div>
@@ -198,27 +196,59 @@ function App(){
     }, 800);
   }, [data]);
 
+
+  const saveTimerRef = useRef(null);
+  const isFirstLoad = useRef(true);
+
+  useEffect(()=>{
+    if(!window._prodDBReady) return;
+    (async()=>{
+      try{
+        const snap = await window._prodDB.doc('production/main').get();
+        if(snap.exists){ const d=snap.data(); setData(prev=>({...prev,...d})); }
+      }catch(e){ console.warn('Load err:',e); }
+      isFirstLoad.current=false;
+    })();
+  },[]);
+
+  useEffect(()=>{
+    if(isFirstLoad.current) return;
+    if(!window._prodDBReady) return;
+    clearTimeout(saveTimerRef.current);
+    saveTimerRef.current=setTimeout(async()=>{
+      try{ await window._prodDB.doc('production/main').set({...data,_savedAt:new Date().toISOString()},{merge:true}); }
+      catch(e){ console.warn('Save err:',e); }
+    },800);
+  },[data]);
+
   const running=data.programs.filter(p=>p.status==="Running").length;
   const completed=data.programs.filter(p=>p.status==="Completed").length;
   const toDispatch=data.postProcessing.filter(p=>p.status!=="Dispatched").length;
 
   return(
     <div style={{minHeight:"100vh",background:"#2C2416",paddingBottom:80}}>
-      <style>
+      <style>{CSS}
+#back-to-hub{position:fixed;top:10px;left:10px;z-index:9999;background:rgba(44,36,22,0.95);border:1px solid #5A4830;border-radius:8px;color:#D4A853;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;padding:8px 14px;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:6px;letter-spacing:1px;}
+#back-to-hub:hover{background:#3D3020;}
 
-#pw-screen{position:fixed;inset:0;z-index:99999;background:#2C2416;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;}
-#pw-screen .pw-logo{font-family:'Bebas Neue',sans-serif;font-size:2.8rem;letter-spacing:6px;color:#F5EDD8;text-align:center;line-height:1.1;margin-bottom:6px;}
-#pw-screen .pw-sub{font-size:0.55rem;letter-spacing:3px;color:#A89070;text-align:center;margin-bottom:40px;}
-#pw-screen .pw-box{background:#3D3020;border:1px solid #5A4830;border-radius:18px;padding:28px 24px;width:100%;max-width:340px;}
-#pw-screen .pw-label{font-size:0.52rem;letter-spacing:2px;text-transform:uppercase;color:#A89070;margin-bottom:10px;}
-#pw-screen .pw-input{width:100%;background:#2C2416;border:1px solid #5A4830;border-radius:10px;color:#F5EDD8;font-family:'IBM Plex Mono',monospace;font-size:1.1rem;padding:14px 16px;outline:none;transition:border-color .2s;letter-spacing:4px;}
-#pw-screen .pw-input:focus{border-color:#C47A20;}
-#pw-screen .pw-btn{width:100%;margin-top:14px;padding:15px;border:none;border-radius:10px;background:#C47A20;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;font-weight:700;letter-spacing:3px;cursor:pointer;transition:opacity .15s;}
-#pw-screen .pw-btn:hover{opacity:.88;}
-#pw-screen .pw-err{margin-top:12px;text-align:center;font-size:0.6rem;color:#EF4444;letter-spacing:1px;min-height:18px;}
-{CSS}
-#back-to-hub{position:fixed;top:10px;left:10px;z-index:1000;background:#1a1508;border:1px solid #3a2810;border-radius:8px;color:#c47a20;font-family:'IBM Plex Mono',monospace;font-size:0.6rem;font-weight:700;letter-spacing:1px;padding:8px 14px;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:6px;transition:all .15s;}
-#back-to-hub:hover{background:#3a2810;border-color:#c47a20;}
+#pw-screen{position:fixed;inset:0;z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;font-family:'IBM Plex Mono',monospace;}
+#pw-screen .pw-logo{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;letter-spacing:6px;text-align:center;line-height:1.1;margin-bottom:6px;}
+#pw-screen .pw-sub{font-size:0.55rem;letter-spacing:3px;text-align:center;margin-bottom:36px;}
+#pw-screen .pw-box{border-radius:18px;padding:28px 24px;width:100%;max-width:320px;}
+#pw-screen .pw-label{font-size:0.52rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;}
+#pw-screen .pw-input{width:100%;border-radius:10px;font-family:'IBM Plex Mono',monospace;font-size:1rem;padding:13px 16px;outline:none;transition:border-color .2s;letter-spacing:4px;border-width:1px;border-style:solid;}
+#pw-screen .pw-btn{width:100%;margin-top:12px;padding:14px;border:none;border-radius:10px;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;font-weight:700;letter-spacing:3px;cursor:pointer;transition:opacity .15s;}
+#pw-screen .pw-btn:hover{opacity:.85;}
+#pw-screen .pw-err{margin-top:10px;text-align:center;font-size:0.6rem;color:#ef4444;letter-spacing:1px;min-height:18px;}
+
+#pw-screen{background:#2C2416;}
+#pw-screen .pw-logo{color:#F5EDD8;}
+#pw-screen .pw-sub{color:#A89070;}
+#pw-screen .pw-box{background:#3D3020;border:1px solid #5A4830;}
+#pw-screen .pw-label{color:#A89070;}
+#pw-screen .pw-input{background:#2C2416;border-color:#5A4830;color:#F5EDD8;}
+#pw-screen .pw-input:focus{border-color:#D4A853;}
+#pw-screen .pw-btn{background:#C47A20;color:#fff;}
 </style>
       <Toast msg={toast}/>
       <div style={{background:"#3D3020",padding:"14px 16px 12px",display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:40,borderBottom:"2px solid #5A4830"}}>
@@ -882,12 +912,12 @@ function PostStatusPick({item,onPick,onClose}){
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
+
 <script>
 (function(){
   if(sessionStorage.getItem('ops_auth')==='1'){
     var s=document.getElementById('pw-screen');
-    if(s) s.style.display='none';
-    return;
+    if(s)s.style.display='none';
   }
 })();
 function checkPassword(){
@@ -895,7 +925,7 @@ function checkPassword(){
   if(val==='garg'){
     sessionStorage.setItem('ops_auth','1');
     document.getElementById('pw-screen').style.display='none';
-  } else {
+  }else{
     document.getElementById('pw-err').textContent='✕ Incorrect password';
     document.getElementById('pw-input').value='';
     document.getElementById('pw-input').focus();
@@ -903,8 +933,8 @@ function checkPassword(){
   }
 }
 document.addEventListener('DOMContentLoaded',function(){
-  var inp=document.getElementById('pw-input');
-  if(inp) inp.addEventListener('keydown',function(e){if(e.key==='Enter')checkPassword();});
+  var i=document.getElementById('pw-input');
+  if(i)i.addEventListener('keydown',function(e){if(e.key==='Enter')checkPassword();});
 });
 </script>
 </body>

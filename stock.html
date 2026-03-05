@@ -28,20 +28,27 @@
 
 <style>
 
-#pw-screen{position:fixed;inset:0;z-index:99999;background:#1a1410;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;}
-#pw-screen .pw-logo{font-family:'Bebas Neue',sans-serif;font-size:2.8rem;letter-spacing:6px;color:#fdfaf4;text-align:center;line-height:1.1;margin-bottom:6px;}
-#pw-screen .pw-sub{font-size:0.55rem;letter-spacing:3px;color:#8a7f70;text-align:center;margin-bottom:40px;}
-#pw-screen .pw-box{background:#fdfaf4;border:1px solid #d4c9b0;border-radius:18px;padding:28px 24px;width:100%;max-width:340px;}
-#pw-screen .pw-label{font-size:0.52rem;letter-spacing:2px;text-transform:uppercase;color:#8a7f70;margin-bottom:10px;}
-#pw-screen .pw-input{width:100%;background:#1a1410;border:1px solid #d4c9b0;border-radius:10px;color:#fdfaf4;font-family:'IBM Plex Mono',monospace;font-size:1.1rem;padding:14px 16px;outline:none;transition:border-color .2s;letter-spacing:4px;}
+#pw-screen{position:fixed;inset:0;z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;font-family:'IBM Plex Mono',monospace;}
+#pw-screen .pw-logo{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;letter-spacing:6px;text-align:center;line-height:1.1;margin-bottom:6px;}
+#pw-screen .pw-sub{font-size:0.55rem;letter-spacing:3px;text-align:center;margin-bottom:36px;}
+#pw-screen .pw-box{border-radius:18px;padding:28px 24px;width:100%;max-width:320px;}
+#pw-screen .pw-label{font-size:0.52rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;}
+#pw-screen .pw-input{width:100%;border-radius:10px;font-family:'IBM Plex Mono',monospace;font-size:1rem;padding:13px 16px;outline:none;transition:border-color .2s;letter-spacing:4px;border-width:1px;border-style:solid;}
+#pw-screen .pw-btn{width:100%;margin-top:12px;padding:14px;border:none;border-radius:10px;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;font-weight:700;letter-spacing:3px;cursor:pointer;transition:opacity .15s;}
+#pw-screen .pw-btn:hover{opacity:.85;}
+#pw-screen .pw-err{margin-top:10px;text-align:center;font-size:0.6rem;color:#ef4444;letter-spacing:1px;min-height:18px;}
+
+#pw-screen{background:#f5f0e8;}
+#pw-screen .pw-logo{color:#1a1410;}
+#pw-screen .pw-sub{color:#8a7f70;}
+#pw-screen .pw-box{background:#fdfaf4;border:1px solid #d4c9b0;}
+#pw-screen .pw-label{color:#8a7f70;}
+#pw-screen .pw-input{background:#f5f0e8;border-color:#d4c9b0;color:#1a1410;}
 #pw-screen .pw-input:focus{border-color:#c0392b;}
-#pw-screen .pw-btn{width:100%;margin-top:14px;padding:15px;border:none;border-radius:10px;background:#c0392b;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;font-weight:700;letter-spacing:3px;cursor:pointer;transition:opacity .15s;}
-#pw-screen .pw-btn:hover{opacity:.88;}
-#pw-screen .pw-err{margin-top:12px;text-align:center;font-size:0.6rem;color:#c0392b;letter-spacing:1px;min-height:18px;}
+#pw-screen .pw-btn{background:#c0392b;color:#fff;}
 
-
-#back-to-hub{position:fixed;top:10px;left:10px;z-index:1000;background:#fdfaf4;border:1px solid #d4c9b0;border-radius:8px;color:#c0392b;font-family:'IBM Plex Mono',monospace;font-size:0.6rem;font-weight:700;letter-spacing:1px;padding:8px 14px;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:6px;transition:all .15s;}
-#back-to-hub:hover{background:#d4c9b0;border-color:#c0392b;}
+#back-to-hub{position:fixed;top:10px;left:10px;z-index:9999;background:#fdfaf4;border:1px solid #d4c9b0;border-radius:8px;color:#c0392b;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;padding:7px 13px;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:5px;letter-spacing:1px;}
+#back-to-hub:hover{background:#fdf0ee;}
 
 :root{
   --bg:#f5f0e8;--paper:#fdfaf4;--ink:#1a1410;--muted:#8a7f70;--border:#d4c9b0;
@@ -399,7 +406,7 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
   <div class="pw-sub">// MODULE 02</div>
   <div class="pw-box">
     <div class="pw-label">Enter Password</div>
-    <input class="pw-input" id="pw-input" type="password" placeholder="••••••" maxlength="30" autocomplete="off">
+    <input class="pw-input" id="pw-input" type="password" placeholder="••••" maxlength="30" autocomplete="off">
     <button class="pw-btn" onclick="checkPassword()">ENTER →</button>
     <div class="pw-err" id="pw-err"></div>
   </div>
@@ -687,9 +694,9 @@ function setSyncStatus(status) {
 let db, fbDoc, fbGetDoc, fbSetDoc, fbOnSnapshot, storage, fbSRef, fbUploadString, fbGetDownloadURL;
 
 async function initFirebaseSync() {
-  if (!window._fbReady) { setSyncStatus('error'); return; }
+  if (!window._db) { setSyncStatus('error'); return; }
   db      = window._db;
-  storage = window._storage;
+  storage = window._storage || null;
   fbDoc        = (_, ...path) => db.doc(path.join('/'));
   fbGetDoc     = (ref) => ref.get();
   fbSetDoc     = (ref, data) => ref.set(data, {merge:true});
@@ -728,19 +735,30 @@ function showLogin() {
 
 // Auto-login with fixed shared user — skips login screen
 async function autoLogin() {
-  document.getElementById('firebase-loading').style.display = 'none';
   const SHARED_USER = 'shared';
-  setSyncStatus('syncing');
   currentUser = SHARED_USER;
+
+  // 1. Wire up Firebase first
+  await initFirebaseSync();
+
+  // 2. Load data from cloud
   data = await loadUserData(SHARED_USER);
+
+  // 3. Show app
+  document.getElementById('firebase-loading').style.display = 'none';
   document.getElementById('login-screen').classList.remove('visible');
   document.getElementById('app-shell').style.display = 'block';
-  document.getElementById('header-user-badge').style.display = 'none';
-  setSyncStatus('synced');
+  const badge = document.getElementById('header-user-badge');
+  if(badge) badge.style.display = 'none';
+
+  // 4. Start real-time sync
   startRealtimeSync(SHARED_USER);
+
+  // 5. Render UI
   setTodayDates();
   addOutItem();
-  renderOutputList(); renderInputList();
+  renderOutputList();
+  renderInputList();
 }
 
 // ── User list stored in Firestore meta doc ──
@@ -761,7 +779,7 @@ function getUserDocRef(uid) { return window._db ? window._db.doc('users/'+uid+'/
 
 async function loadUserData(uid) {
   try {
-    const snap = await getUserDocRef(uid).get();
+    const ref = getUserDocRef(uid); if(!ref){ throw new Error('no-db'); } const snap = await ref.get();
     if (snap.exists) {
       const d = snap.data();
       return { outputs:d.outputs||[], inputs:d.inputs||[], stock:d.stock||[], salesReports:d.salesReports||[] };
@@ -773,7 +791,7 @@ async function loadUserData(uid) {
 }
 
 function save() {
-  if (!currentUser || !window._db) return;
+  if (!currentUser) return; if (!window._db) { console.warn('DB not ready'); return; }
   // Debounce saves — wait 800ms after last change
   clearTimeout(saveTimer);
   setSyncStatus('syncing');
@@ -802,7 +820,7 @@ function save() {
 function startRealtimeSync(uid) {
   if (unsubscribe) { unsubscribe(); unsubscribe = null; }
   try {
-    const _ref = getUserDocRef(uid); if(!_ref) return; unsubscribe = _ref.onSnapshot( (snap) => {
+    const _ref = getUserDocRef(uid); if(!_ref){ console.warn('No DB for realtime sync'); return; } unsubscribe = _ref.onSnapshot( (snap) => {
       if (!snap.exists()) return;
       const d = snap.data();
       // Only update if we're not mid-save (avoid feedback loops)
@@ -1708,12 +1726,12 @@ renderOutputList = function(){
 };
 
 </script>
+
 <script>
 (function(){
   if(sessionStorage.getItem('ops_auth')==='1'){
     var s=document.getElementById('pw-screen');
-    if(s) s.style.display='none';
-    return;
+    if(s)s.style.display='none';
   }
 })();
 function checkPassword(){
@@ -1721,7 +1739,7 @@ function checkPassword(){
   if(val==='garg'){
     sessionStorage.setItem('ops_auth','1');
     document.getElementById('pw-screen').style.display='none';
-  } else {
+  }else{
     document.getElementById('pw-err').textContent='✕ Incorrect password';
     document.getElementById('pw-input').value='';
     document.getElementById('pw-input').focus();
@@ -1729,8 +1747,8 @@ function checkPassword(){
   }
 }
 document.addEventListener('DOMContentLoaded',function(){
-  var inp=document.getElementById('pw-input');
-  if(inp) inp.addEventListener('keydown',function(e){if(e.key==='Enter')checkPassword();});
+  var i=document.getElementById('pw-input');
+  if(i)i.addEventListener('keydown',function(e){if(e.key==='Enter')checkPassword();});
 });
 </script>
 </body>
