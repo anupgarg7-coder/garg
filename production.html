@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Production Management</title>
+<!-- ── FIREBASE SDK ── -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyA5-PW6H6BIFQr1x6YI2Hy8PTu_kTI12Rc",
+    authDomain:        "giproductionandstock.firebaseapp.com",
+    projectId:         "giproductionandstock",
+    storageBucket:     "giproductionandstock.firebasestorage.app",
+    messagingSenderId: "628734351948",
+    appId:             "1:628734351948:web:769e3e5385ed183785f2e9",
+    measurementId:     "G-JYYYDRYM4G"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+  window._prodFirebase = { db, doc, getDoc, setDoc };
+  window.dispatchEvent(new Event('prod-firebase-ready'));
+</script>
+</head>
+<body>
+
+<div id="pw-screen">
+  <div class="pw-logo">PRODUCTION<br>MANAGEMENT</div>
+  <div class="pw-sub">// PRODUCTION MODULE</div>
+  <div class="pw-box">
+    <div class="pw-label">Enter Password</div>
+    <input class="pw-input" id="pw-input" type="password" placeholder="••••••" maxlength="30" autocomplete="off">
+    <button class="pw-btn" onclick="checkPassword()">ENTER →</button>
+    <div class="pw-err" id="pw-err"></div>
+  </div>
+</div>
+
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const WARP_TYPES = ["Gorget Warp (60/24-2000tpm Viscose)","Sizing Warp (50/24 Sizing Viscose)","Poly Kota","50/600 Chickoo","40/800 Black","Gold Zari Warp","Nylon 44/24 Warp","Nylon Kotal Warp","60/24 Low TPM (1000tpm)"];
+const PROGRAM_STATUSES = [{key:"Pending",emoji:"⏳",color:"#F59E0B",bg:"#451A03"},{key:"Running",emoji:"▶️",color:"#3B82F6",bg:"#1E3A5F"},{key:"Completed",emoji:"✅",color:"#10B981",bg:"#064E3B"},{key:"Design Error",emoji:"❌",color:"#EF4444",bg:"#450A0A"},{key:"On Hold",emoji:"⏸️",color:"#8B5CF6",bg:"#2E1065"}];
+const POST_STAGES = [{key:"Butta Cutting",emoji:"✂️"},{key:"RFD",emoji:"🧴"},{key:"Border Cutting",emoji:"📐"},{key:"Deka",emoji:"🏭"},{key:"Direct Dispatch",emoji:"🚚"}];
+const POST_STATUSES = [{key:"Pending",emoji:"⏳",color:"#F59E0B"},{key:"In Process",emoji:"⚙️",color:"#3B82F6"},{key:"Completed",emoji:"✅",color:"#10B981"},{key:"Dispatched",emoji:"🚚",color:"#8B5CF6"}];
+const DEFAULT_OPERATORS = [{id:"OP1",name:"Operator 1"},{id:"OP2",name:"Operator 2"},{id:"OP3",name:"Operator 3"},{id:"OP4",name:"Operator 4"},{id:"OP5",name:"Operator 5"},{id:"OP6",name:"Operator 6"},{id:"OP7",name:"Operator 7"},{id:"OP8",name:"Operator 8"}];
+const DEFAULT_MACHINES = Array.from({length:8},(_,i)=>({id:i+1,name:`M-${i+1}`,warp:WARP_TYPES[i]||WARP_TYPES[0]}));
+const EMPTY_FEEDERS = Array.from({length:10},(_,i)=>({no:i+1,yarn:""}));
+const genId = () => Math.random().toString(36).substr(2,9);
+const todayStr = () => new Date().toISOString().split("T")[0];
+const fmtDate = s => s ? new Date(s).toLocaleDateString("en-IN",{day:"2-digit",month:"short"}) : "";
+const INIT = {machines:DEFAULT_MACHINES,operators:DEFAULT_OPERATORS,warpTypes:[...WARP_TYPES],yarns:[],warpQualities:{},programs:[],productionLogs:[],postProcessing:[]};
+const getPS = k => PROGRAM_STATUSES.find(s=>s.key===k)||PROGRAM_STATUSES[0];
+const getPPS = k => POST_STATUSES.find(s=>s.key===k)||POST_STATUSES[0];
+const NAV = [{key:"dashboard",icon:"🏠",label:"Home"},{key:"library",icon:"📚",label:"Library"},{key:"programs",icon:"📋",label:"Run"},{key:"production",icon:"📊",label:"Report"},{key:"postprocess",icon:"✂️",label:"Post"},{key:"yarns",icon:"🧶",label:"Yarns"},{key:"settings",icon:"⚙️",label:"Settings"}];
+
+const CSS = `@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#2C2416;font-family:'Nunito',sans-serif;color:#F5EDD8;-webkit-tap-highlight-color:transparent}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:#6B5A3E;border-radius:4px}
+input,select,textarea{font-family:'Nunito',sans-serif;background:#3D3020;color:#F5EDD8;border:2px solid #6B5A3E;border-radius:14px;padding:14px 16px;font-size:16px;width:100%;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;appearance:none}
+input:focus,select:focus,textarea:focus{border-color:#D4A853;box-shadow:0 0 0 3px rgba(212,168,83,.18)}
+input::placeholder,textarea::placeholder{color:#8C7A5E}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%238C7A5E' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:40px}
+select option{background:#3D3020;color:#F5EDD8}
+label{font-size:13px;font-weight:700;color:#A89070;letter-spacing:.04em;text-transform:uppercase;display:block;margin-bottom:6px}
+.card{background:#3D3020;border-radius:20px;padding:18px;border:1px solid #5A4830}
+.big-btn{width:100%;padding:18px;border-radius:16px;border:none;font-family:'Nunito',sans-serif;font-size:17px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:transform .12s}
+.big-btn:active{transform:scale(.97)}
+.btn-blue{background:#2563EB;color:#fff}.btn-green{background:#059669;color:#fff}.btn-gray{background:#5A4830;color:#D4C4A8}.btn-amber{background:#C47A20;color:#fff}.btn-violet{background:#7C3AED;color:#fff}.btn-red{background:#DC2626;color:#fff}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:100;display:flex;align-items:flex-end;justify-content:center}
+.modal-sheet{background:#3D3020;border-radius:24px 24px 0 0;width:100%;max-width:640px;max-height:95vh;overflow-y:auto;padding:20px 18px 52px;border:1px solid #6B5A3E}
+.modal-handle{width:40px;height:4px;background:#6B5A3E;border-radius:2px;margin:0 auto 18px}
+.modal-title{font-size:21px;font-weight:900;margin-bottom:4px;color:#F5EDD8}
+.modal-sub{font-size:13px;color:#A89070;font-weight:600;margin-bottom:20px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.frow{display:flex;gap:10px;align-items:center}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#3D3020;border-top:2px solid #5A4830;display:flex;z-index:50}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 2px 12px;gap:3px;border:none;background:transparent;cursor:pointer}
+.nav-icon{font-size:20px;line-height:1}.nav-label{font-family:'Nunito',sans-serif;font-size:9px;font-weight:700;letter-spacing:.01em}
+.igrp{margin-bottom:16px}
+.m-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px}
+.m-btn{border:2px solid #6B5A3E;border-radius:12px;padding:12px 4px;text-align:center;cursor:pointer;background:#2C2416;transition:all .13s}
+.m-btn.sel{border-color:#D4A853;background:#4A3820}.m-btn:active{transform:scale(.93)}
+.shift-tog{display:flex;background:#2C2416;border-radius:12px;padding:4px;gap:4px}
+.sh-btn{flex:1;padding:12px;border:none;border-radius:9px;font-family:'Nunito',sans-serif;font-weight:800;font-size:15px;cursor:pointer;transition:all .15s}
+.icon-btn{width:44px;height:44px;border-radius:12px;border:none;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;flex-shrink:0;transition:transform .12s}
+.icon-btn:active{transform:scale(.88)}
+.section-title{font-size:20px;font-weight:900;margin-bottom:14px;color:#F5EDD8}
+.prog-card{background:#2C2416;border-radius:16px;padding:15px;margin-bottom:10px;border:1px solid #5A4830}
+.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#1A3A2A;border:2px solid #10B981;color:#6EE7B7;padding:11px 22px;border-radius:40px;font-weight:800;font-size:14px;z-index:300;white-space:nowrap;pointer-events:none;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateX(-50%) translateY(-8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.slide-up{animation:slideUp .22s ease}
+.feeder-row{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:center;margin-bottom:10px}
+.feeder-num{width:44px;height:44px;border-radius:12px;background:#2C2416;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:#A89070;flex-shrink:0;border:2px solid #6B5A3E}
+.feeder-num.active{border-color:#7C3AED;color:#C4B5FD;background:#2E1065}
+.param-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;background:#2C2416;border-radius:14px;padding:14px;margin-bottom:16px;border:1px solid #5A4830}
+.param-item{text-align:center}.param-label{font-size:10px;color:#A89070;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}.param-value{font-size:15px;font-weight:800;color:#F5EDD8}
+.sub-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#2E1065;color:#C4B5FD}
+.divider-line{height:1px;background:#5A4830;flex:1}.divider-label{font-size:11px;color:#8C7A5E;font-weight:700;letter-spacing:.05em}
+.scan-drop{background:#2C2416;border:2px dashed #6B5A3E;border-radius:14px;padding:28px 16px;text-align:center;cursor:pointer}
+@media(min-width:580px){.modal-overlay{align-items:center;padding:20px}.modal-sheet{border-radius:24px}.m-grid{grid-template-columns:repeat(8,1fr)}}`;
+
+function Toast({msg}){if(!msg)return null;return <div className="toast">✓ {msg}</div>;}
+function ModalShell({title,subtitle,onClose,children}){return(<div className="modal-overlay" onClick={onClose}><div className="modal-sheet" onClick={e=>e.stopPropagation()}><div className="modal-handle"/><div className="modal-title">{title}</div>{subtitle&&<div className="modal-sub">{subtitle}</div>}{children}<div style={{height:14}}/><button className="big-btn btn-gray" onClick={onClose}>✕ Cancel</button></div></div>);}
+function Divider({label}){return(<div style={{display:"flex",alignItems:"center",gap:10,margin:"18px 0"}}><div className="divider-line"/>{label&&<div className="divider-label">{label}</div>}<div className="divider-line"/></div>);}
+
+function App(){
+  const [tab,setTab]=useState("dashboard");
+  const [data,setData]=useState(INIT);
+  const [toast,setToast]=useState("");
+  const [modal,setModal]=useState(null);
+  const notify=msg=>{setToast(msg);setTimeout(()=>setToast(""),2400);};
+  const openModal=(type,payload={})=>setModal({type,payload});
+  const closeModal=()=>setModal(null);
+
+  const addYarn=y=>setData(d=>({...d,yarns:[...d.yarns,{...y,id:genId()}]}));
+  const updateYarn=(id,u)=>setData(d=>({...d,yarns:d.yarns.map(y=>y.id===id?{...y,...u}:y)}));
+  const deleteYarn=id=>{if(!window.confirm("Delete this yarn?"))return;setData(d=>({...d,yarns:d.yarns.filter(y=>y.id!==id)}));};
+  const updateMachineWarp=(id,warp)=>setData(d=>({...d,machines:d.machines.map(m=>m.id===id?{...m,warp}:m)}));
+  const addMachine=(name,warp)=>setData(d=>({...d,machines:[...d.machines,{id:genId(),name:name.trim(),warp}]}));
+  const updateMachine=(id,u)=>setData(d=>({...d,machines:d.machines.map(m=>m.id===id?{...m,...u}:m)}));
+  const deleteMachine=id=>{if(!window.confirm("Delete this machine?"))return;setData(d=>({...d,machines:d.machines.filter(m=>m.id!==id)}));notify("Machine removed");};
+  const updateOperator=(opId,name)=>setData(d=>({...d,operators:d.operators.map(op=>op.id===opId?{...op,name}:op)}));
+  const addOperator=name=>setData(d=>({...d,operators:[...d.operators,{id:genId(),name}]}));
+  const deleteOperator=opId=>setData(d=>({...d,operators:d.operators.filter(op=>op.id!==opId)}));
+  const addWarpType=name=>{if(!name.trim()||data.warpTypes.includes(name.trim()))return;setData(d=>({...d,warpTypes:[...d.warpTypes,name.trim()]}));notify("Warp type added ✓");};
+  const updateWarpType=(o,n)=>{if(!n.trim())return;setData(d=>({...d,warpTypes:d.warpTypes.map(w=>w===o?n.trim():w),machines:d.machines.map(m=>m.warp===o?{...m,warp:n.trim()}:m),warpQualities:Object.fromEntries(Object.entries(d.warpQualities).map(([k,v])=>[k===o?n.trim():k,v]))}));notify("Warp type updated ✓");};
+  const deleteWarpType=name=>{if(!window.confirm(`Delete warp type "${name}"?`))return;setData(d=>{const nWQ={...d.warpQualities};delete nWQ[name];return{...d,warpTypes:d.warpTypes.filter(w=>w!==name),machines:d.machines.map(m=>m.warp===name?{...m,warp:d.warpTypes.find(w=>w!==name)||""}:m),warpQualities:nWQ};});notify("Warp type deleted");};
+  const addQuality=(wt,q)=>{setData(d=>{const ex=d.warpQualities[wt]||[];return{...d,warpQualities:{...d.warpQualities,[wt]:[...ex,{...q,id:genId(),programs:[]}]}};});notify("Quality added ✓");closeModal();};
+  const updateQuality=(wt,qid,u)=>{setData(d=>{const list=(d.warpQualities[wt]||[]).map(q=>q.id===qid?{...q,...u}:q);return{...d,warpQualities:{...d.warpQualities,[wt]:list}};});notify("Quality updated ✓");};
+  const deleteQuality=(wt,qid)=>{setData(d=>{const list=(d.warpQualities[wt]||[]).filter(q=>q.id!==qid);return{...d,warpQualities:{...d.warpQualities,[wt]:list}};});notify("Quality deleted");};
+  const addSubProgram=(wt,qid,sp)=>{setData(d=>{const list=(d.warpQualities[wt]||[]).map(q=>q.id===qid?{...q,programs:[...(q.programs||[]),{...sp,id:genId(),createdAt:todayStr()}]}:q);return{...d,warpQualities:{...d.warpQualities,[wt]:list}};});notify("Program saved ✓");closeModal();};
+  const updateSubProgram=(wt,qid,sid,u)=>{setData(d=>{const list=(d.warpQualities[wt]||[]).map(q=>q.id===qid?{...q,programs:(q.programs||[]).map(p=>p.id===sid?{...p,...u}:p)}:q);return{...d,warpQualities:{...d.warpQualities,[wt]:list}};});notify("Program updated ✓");closeModal();};
+  const deleteSubProgram=(wt,qid,sid)=>{setData(d=>{const list=(d.warpQualities[wt]||[]).map(q=>q.id===qid?{...q,programs:(q.programs||[]).filter(p=>p.id!==sid)}:q);return{...d,warpQualities:{...d.warpQualities,[wt]:list}};});notify("Program deleted");};
+  const addProgram=prog=>{setData(d=>({...d,programs:[{...prog,id:genId(),createdAt:todayStr()},...d.programs]}));notify("Program added ✓");closeModal();};
+  const updateProgramStatus=(id,status)=>{setData(d=>({...d,programs:d.programs.map(p=>p.id===id?{...p,status}:p)}));notify("Status updated ✓");};
+  const deleteProgram=id=>{if(!window.confirm("Delete this run entry?"))return;setData(d=>({...d,programs:d.programs.filter(p=>p.id!==id)}));notify("Deleted");};
+  const addLog=log=>{setData(d=>({...d,productionLogs:[{...log,id:genId()},...d.productionLogs]}));notify("Production logged ✓");closeModal();};
+  const addPost=pp=>{setData(d=>({...d,postProcessing:[{...pp,id:genId(),createdAt:todayStr(),status:"Pending"},...d.postProcessing]}));notify("Entry added ✓");closeModal();};
+  const updatePostStatus=(id,status)=>{setData(d=>({...d,postProcessing:d.postProcessing.map(p=>p.id===id?{...p,status}:p)}));notify("Status updated ✓");};
+
+
+  // ── Firebase cloud sync ──
+  const saveTimerRef = useRef(null);
+  const isFirstLoad = useRef(true);
+
+  // Load data from Firestore on mount
+  useEffect(() => {
+    const fb = window._prodFirebase;
+    if (!fb) {
+      // Firebase not ready yet — wait for event
+      const handler = async () => {
+        const { db, doc, getDoc } = window._prodFirebase;
+        try {
+          const snap = await getDoc(doc(db, 'production', 'main'));
+          if (snap.exists()) {
+            const saved = snap.data();
+            setData(d => ({...INIT, ...saved}));
+          }
+        } catch(e) { console.warn('Load error:', e); }
+        isFirstLoad.current = false;
+      };
+      window.addEventListener('prod-firebase-ready', handler, { once: true });
+      return;
+    }
+    (async () => {
+      try {
+        const { db, doc, getDoc } = fb;
+        const snap = await getDoc(doc(db, 'production', 'main'));
+        if (snap.exists()) setData(d => ({...INIT, ...snap.data()}));
+      } catch(e) { console.warn('Load error:', e); }
+      isFirstLoad.current = false;
+    })();
+  }, []);
+
+  // Auto-save to Firestore whenever data changes (debounced 800ms)
+  useEffect(() => {
+    if (isFirstLoad.current) return;
+    const fb = window._prodFirebase;
+    if (!fb) return;
+    clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      try {
+        const { db, doc, setDoc } = fb;
+        await setDoc(doc(db, 'production', 'main'), {
+          ...data,
+          _savedAt: new Date().toISOString()
+        });
+      } catch(e) { console.warn('Save error:', e); }
+    }, 800);
+  }, [data]);
+
+  const running=data.programs.filter(p=>p.status==="Running").length;
+  const completed=data.programs.filter(p=>p.status==="Completed").length;
+  const toDispatch=data.postProcessing.filter(p=>p.status!=="Dispatched").length;
+
+  return(
+    <div style={{minHeight:"100vh",background:"#2C2416",paddingBottom:80}}>
+      <style>
+
+/* ── PASSWORD SCREEN ── */
+#pw-screen{position:fixed;inset:0;z-index:99999;background:#2C2416;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;}
+#pw-screen .pw-logo{font-family:'Bebas Neue',sans-serif;font-size:2.8rem;letter-spacing:6px;color:#F5EDD8;text-align:center;line-height:1.1;margin-bottom:6px;}
+#pw-screen .pw-sub{font-size:0.55rem;letter-spacing:3px;color:#A89070;text-align:center;margin-bottom:40px;}
+#pw-screen .pw-box{background:#3D3020;border:1px solid #5A4830;border-radius:18px;padding:28px 24px;width:100%;max-width:340px;}
+#pw-screen .pw-label{font-size:0.52rem;letter-spacing:2px;text-transform:uppercase;color:#A89070;margin-bottom:10px;}
+#pw-screen .pw-input{width:100%;background:#2C2416;border:1px solid #5A4830;border-radius:10px;color:#F5EDD8;font-family:'IBM Plex Mono',monospace;font-size:1.1rem;padding:14px 16px;outline:none;transition:border-color .2s;letter-spacing:4px;}
+#pw-screen .pw-input:focus{border-color:#C47A20;}
+#pw-screen .pw-btn{width:100%;margin-top:14px;padding:15px;border:none;border-radius:10px;background:#C47A20;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;font-weight:700;letter-spacing:3px;cursor:pointer;transition:opacity .15s;}
+#pw-screen .pw-btn:hover{opacity:.88;}
+#pw-screen .pw-err{margin-top:12px;text-align:center;font-size:0.6rem;color:#c0392b;letter-spacing:1px;min-height:18px;}
+{CSS}</style>
+      <Toast msg={toast}/>
+      <div style={{background:"#3D3020",padding:"14px 16px 12px",display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:40,borderBottom:"2px solid #5A4830"}}>
+        <div style={{width:40,height:40,background:"linear-gradient(135deg,#2563EB,#7C3AED)",borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>🧵</div>
+        <div>
+          <div style={{fontWeight:900,fontSize:16,lineHeight:1.15}}>Production Management</div>
+          <div style={{fontSize:11,color:"#A89070",fontWeight:600}}>Textile Operations</div>
+        </div>
+        <div style={{marginLeft:"auto"}}>
+          {tab==="library"&&<button className="big-btn btn-violet" style={{width:"auto",padding:"10px 14px",fontSize:13}} onClick={()=>openModal("addQuality")}>+ Quality</button>}
+          {tab==="programs"&&<button className="big-btn btn-blue" style={{width:"auto",padding:"10px 14px",fontSize:13}} onClick={()=>openModal("program")}>+ Run</button>}
+          {tab==="production"&&<button className="big-btn btn-green" style={{width:"auto",padding:"10px 14px",fontSize:13}} onClick={()=>openModal("production")}>+ Log</button>}
+          {tab==="postprocess"&&<button className="big-btn btn-amber" style={{width:"auto",padding:"10px 14px",fontSize:13}} onClick={()=>openModal("postprocess")}>+ Entry</button>}
+          {tab==="yarns"&&<button className="big-btn btn-green" style={{width:"auto",padding:"10px 14px",fontSize:13}} onClick={()=>openModal("addYarn")}>+ Yarn</button>}
+        </div>
+      </div>
+      <div style={{padding:"16px 14px 0"}}>
+        {tab==="dashboard"&&<DashboardPage data={data} running={running} completed={completed} toDispatch={toDispatch} openModal={openModal}/>}
+        {tab==="library"&&<LibraryPage data={data} openModal={openModal} deleteQuality={deleteQuality} deleteSubProgram={deleteSubProgram}/>}
+        {tab==="programs"&&<ProgramsPage data={data} updateProgramStatus={updateProgramStatus} deleteProgram={deleteProgram} openModal={openModal}/>}
+        {tab==="production"&&<ProductionPage data={data}/>}
+        {tab==="postprocess"&&<PostProcessPage data={data} openModal={openModal}/>}
+        {tab==="yarns"&&<YarnsPage data={data} addYarn={addYarn} updateYarn={updateYarn} deleteYarn={deleteYarn} notify={notify}/>}
+        {tab==="settings"&&<SettingsPage data={data} updateMachineWarp={updateMachineWarp} addMachine={addMachine} updateMachine={updateMachine} deleteMachine={deleteMachine} addWarpType={addWarpType} updateWarpType={updateWarpType} deleteWarpType={deleteWarpType} updateOperator={updateOperator} addOperator={addOperator} deleteOperator={deleteOperator} notify={notify}/>}
+      </div>
+      <nav className="bottom-nav">
+        {NAV.map(n=>(
+          <button key={n.key} className="nav-item" onClick={()=>setTab(n.key)} style={{color:tab===n.key?"#7C3AED":"#64748B"}}>
+            <span className="nav-icon">{n.icon}</span>
+            <span className="nav-label">{n.label}</span>
+          </button>
+        ))}
+      </nav>
+      {modal?.type==="addYarn"&&<YarnModal onSave={y=>{addYarn(y);notify("Yarn saved ✓");}} onClose={closeModal}/>}
+      {modal?.type==="editYarn"&&<YarnModal yarn={modal.payload} onSave={y=>{updateYarn(modal.payload.id,y);notify("Yarn updated ✓");}} onClose={closeModal} editMode/>}
+      {modal?.type==="addQuality"&&<AddQualityModal data={data} onSave={addQuality} onClose={closeModal} prefill={modal.payload}/>}
+      {modal?.type==="editQuality"&&<AddQualityModal data={data} onSave={(wt,q)=>{updateQuality(wt,modal.payload.quality.id,q);closeModal();}} onClose={closeModal} prefill={modal.payload} editMode/>}
+      {modal?.type==="addSubProgram"&&<AddSubProgramModal payload={modal.payload} yarns={data.yarns} onSave={addSubProgram} onClose={closeModal}/>}
+      {modal?.type==="editSubProgram"&&<AddSubProgramModal payload={modal.payload} yarns={data.yarns} onSave={(wt,qid,sp)=>updateSubProgram(wt,qid,modal.payload.subProgram.id,sp)} onClose={closeModal} editMode/>}
+      {modal?.type==="viewSubProgram"&&<ViewSubProgramModal payload={modal.payload} onClose={closeModal} openModal={openModal}/>}
+      {modal?.type==="program"&&<ProgramModal data={data} onSave={addProgram} onClose={closeModal}/>}
+      {modal?.type==="production"&&<ProductionModal data={data} onSave={addLog} onClose={closeModal}/>}
+      {modal?.type==="postprocess"&&<PostModal data={data} onSave={addPost} onClose={closeModal} prefill={modal.payload}/>}
+      {modal?.type==="statusPick"&&<StatusPickModal prog={modal.payload} onPick={(id,s)=>{updateProgramStatus(id,s);closeModal();}} onClose={closeModal}/>}
+      {modal?.type==="postStatusPick"&&<PostStatusPick item={modal.payload} onPick={(id,s)=>{updatePostStatus(id,s);closeModal();}} onClose={closeModal}/>}
+    </div>
+  );
+}
+
+function DashboardPage({data,running,completed,toDispatch,openModal}){
+  const today=todayStr();
+  const todayPcs=data.productionLogs.filter(l=>l.date===today).reduce((a,b)=>a+(b.totalCards||0),0);
+  const totalSubProgs=Object.values(data.warpQualities).reduce((a,arr)=>a+arr.reduce((b,q)=>b+(q.programs?.length||0),0),0);
+  return(<div className="slide-up">
+    <div className="section-title">📊 Today's Overview</div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+      {[{label:"Today's Cards",value:todayPcs,icon:"🧵",color:"#3B82F6"},{label:"Running",value:running,icon:"▶️",color:"#10B981"},{label:"Pending Dispatch",value:toDispatch,icon:"📦",color:"#F59E0B"},{label:"Saved Programs",value:totalSubProgs,icon:"📚",color:"#7C3AED"}].map(s=>(
+        <div key={s.label} className="card" style={{borderLeft:`4px solid ${s.color}`}}>
+          <div style={{fontSize:26,marginBottom:4}}>{s.icon}</div>
+          <div style={{fontSize:32,fontWeight:900,color:s.color,lineHeight:1}}>{s.value}</div>
+          <div style={{fontSize:11,color:"#64748B",fontWeight:700,marginTop:2}}>{s.label}</div>
+        </div>
+      ))}
+    </div>
+    <div className="section-title">🏭 Machine Status</div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:18}}>
+      {data.machines.map(m=>{
+        const prog=data.programs.find(p=>p.machineId===m.id&&p.status==="Running");
+        return(<div key={m.id} className="card" style={{borderTop:`3px solid ${prog?"#3B82F6":"#334155"}`}}>
+          <div className="frow" style={{marginBottom:6}}>
+            <div style={{fontWeight:900,fontSize:16,color:prog?"#3B82F6":"#94A3B8"}}>{m.name}</div>
+            <div style={{marginLeft:"auto",width:10,height:10,borderRadius:"50%",background:prog?"#3B82F6":"#334155",boxShadow:prog?"0 0 8px #3B82F6":"none"}}/>
+          </div>
+          {prog?<><div style={{fontSize:13,fontWeight:700,marginBottom:2}}>{prog.itemName}</div><div style={{fontSize:11,color:"#64748B"}}>{prog.shift==="day"?"☀️":"🌙"} {prog.qualityName||""}</div></>:<div style={{fontSize:11,color:"#475569"}}>Idle</div>}
+        </div>);
+      })}
+    </div>
+    <div className="section-title">⚡ Quick Actions</div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+      <button className="big-btn btn-violet" onClick={()=>openModal("addQuality")}>📚 Add Quality</button>
+      <button className="big-btn btn-blue" onClick={()=>openModal("program")}>▶️ Run Program</button>
+    </div>
+  </div>);
+}
+
+function LibraryPage({data,openModal,deleteQuality,deleteSubProgram}){
+  const warpTypes=data.warpTypes||WARP_TYPES;
+  const [selW,setSelW]=useState(warpTypes[0]||"");
+  const [expQ,setExpQ]=useState(null);
+  const qualities=data.warpQualities[selW]||[];
+  return(<div className="slide-up">
+    <div className="section-title">📚 Quality Library</div>
+    <div className="igrp"><label>Select Warp Type</label>
+      <select value={selW} onChange={e=>{setSelW(e.target.value);setExpQ(null);}}>
+        {warpTypes.map(w=><option key={w} value={w}>{w}</option>)}
+      </select>
+    </div>
+    <div style={{fontSize:13,color:"#A89070",fontWeight:600,marginBottom:14}}>
+      {qualities.length===0?"No qualities yet — tap + Quality to add one":`${qualities.length} qualit${qualities.length>1?"ies":"y"} · ${qualities.reduce((a,q)=>a+(q.programs?.length||0),0)} programs saved`}
+    </div>
+    {qualities.map(q=>(
+      <div key={q.id} className="card" style={{marginBottom:12,padding:0,overflow:"hidden"}}>
+        <div style={{padding:"16px 16px 14px"}}>
+          <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
+            <div style={{flex:1}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                <div style={{fontWeight:900,fontSize:17}}>{q.name}</div>
+                <span className="sub-badge">📋 {q.programs?.length||0} program{q.programs?.length!==1?"s":""}</span>
+              </div>
+              <div className="param-grid" style={{marginTop:10}}>
+                {[{label:"Reed",value:q.reed||"—"},{label:"Pick",value:q.pick||"—"},{label:"Weft Ground",value:q.weftGround||"—"},{label:"Zari",value:q.zari||"—"},{label:"Tar (threads)",value:q.tar||"—"},{label:"Yarn Cost/kg",value:q.yarnCost?`₹${q.yarnCost}`:"—"}].map(p=>(
+                  <div key={p.label} className="param-item"><div className="param-label">{p.label}</div><div className="param-value">{p.value}</div></div>
+                ))}
+              </div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
+              <button className="icon-btn" style={{background:"#2C2416",color:"#D4A853"}} onClick={()=>openModal("editQuality",{defaultWarp:selW,quality:q})}>✏️</button>
+              <button className="icon-btn" style={{background:"#2C2416",color:"#EF4444"}} onClick={()=>{if(window.confirm(`Delete quality "${q.name}"?`))deleteQuality(selW,q.id);}}>🗑️</button>
+            </div>
+          </div>
+          <button style={{marginTop:12,background:"transparent",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:10,padding:0,fontFamily:"Nunito",color:"#F5EDD8"}} onClick={()=>setExpQ(expQ===q.id?null:q.id)}>
+            <span style={{fontSize:13,fontWeight:700,color:"#7C3AED"}}>{expQ===q.id?"▾ Hide Programs":"▸ Show Programs"}</span>
+          </button>
+        </div>
+        {expQ===q.id&&(
+          <div style={{background:"#2C2416",padding:"0 14px 14px"}}>
+            {(q.programs||[]).length===0&&<div style={{textAlign:"center",padding:"20px 0",color:"#8C7A5E",fontSize:13}}>No programs yet</div>}
+            {(q.programs||[]).map(sp=>{
+              const af=sp.feeders.filter(f=>f.yarn?.trim());
+              const cols=sp.weftColours||[];
+              return(<div key={sp.id} style={{background:"#3D3020",border:"1px solid #5A4830",borderRadius:14,padding:14,marginTop:10}}>
+                <div style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:10}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:800,fontSize:15}}>{sp.name}</div>
+                    <div style={{fontSize:12,color:"#A89070",marginTop:2}}>🧵 {af.length} feeders {cols.length>0&&`· 🎨 ${cols.length} colours`} · {fmtDate(sp.createdAt)}</div>
+                  </div>
+                  <div style={{display:"flex",gap:4}}>
+                    <button className="icon-btn" style={{background:"#0F172A",color:"#7C3AED",width:38,height:38}} onClick={()=>openModal("viewSubProgram",{warpType:selW,quality:q,subProgram:sp})}>👁️</button>
+                    <button className="icon-btn" style={{background:"#0F172A",color:"#3B82F6",width:38,height:38}} onClick={()=>openModal("editSubProgram",{warpType:selW,quality:q,subProgram:sp})}>✏️</button>
+                    <button className="icon-btn" style={{background:"#0F172A",color:"#EF4444",width:38,height:38}} onClick={()=>{if(window.confirm(`Delete "${sp.name}"?`))deleteSubProgram(selW,q.id,sp.id);}}>🗑️</button>
+                  </div>
+                </div>
+                {af.length>0&&<div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{af.map(f=><span key={f.no} className="tag" style={{background:"#2E1065",color:"#A78BFA",fontSize:11}}>F{f.no}: {f.yarn}</span>)}</div>}
+                {cols.length>0&&<div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:6}}>{cols.map((c,i)=><span key={c.id||i} className="tag" style={{background:"#064E3B",color:"#6EE7B7",fontSize:11}}>{c.colour||"?"}{c.shade?` #${c.shade}`:""} ×{c.repeats}</span>)}</div>}
+              </div>);
+            })}
+            <button className="big-btn btn-violet" style={{marginTop:14,fontSize:14,padding:"14px"}} onClick={()=>openModal("addSubProgram",{warpType:selW,quality:q})}>➕ Add Program to {q.name}</button>
+          </div>
+        )}
+      </div>
+    ))}
+    <button className="big-btn btn-violet" style={{marginTop:8}} onClick={()=>openModal("addQuality",{defaultWarp:selW})}>➕ Add New Quality</button>
+  </div>);
+}
+
+function ProgramsPage({data,updateProgramStatus,deleteProgram,openModal}){
+  const [filter,setFilter]=useState("All");
+  const shown=filter==="All"?data.programs:data.programs.filter(p=>p.status===filter);
+  return(<div className="slide-up">
+    <div className="section-title">▶️ Machine Run Log</div>
+    <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:8,marginBottom:14}}>
+      {["All",...PROGRAM_STATUSES.map(s=>s.key)].map(f=>{
+        const st=PROGRAM_STATUSES.find(s=>s.key===f);
+        const cnt=f==="All"?data.programs.length:data.programs.filter(p=>p.status===f).length;
+        return(<button key={f} onClick={()=>setFilter(f)} style={{flexShrink:0,padding:"8px 14px",borderRadius:20,border:`2px solid ${filter===f?(st?.color||"#3B82F6"):"#334155"}`,background:filter===f?(st?.bg||"#1E3A5F"):"transparent",color:filter===f?(st?.color||"#3B82F6"):"#64748B",fontFamily:"Nunito",fontWeight:700,fontSize:13,cursor:"pointer"}}>
+          {st?.emoji||"📋"} {f} ({cnt})
+        </button>);
+      })}
+    </div>
+    {shown.length===0&&<div className="card" style={{textAlign:"center",padding:40,color:"#475569"}}><div style={{fontSize:48,marginBottom:10}}>📭</div><div style={{fontWeight:700}}>No run entries</div></div>}
+    {shown.map(p=>{
+      const st=getPS(p.status);
+      const machine=data.machines.find(m=>m.id===p.machineId);
+      return(<div key={p.id} className="prog-card">
+        <div style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:10}}>
+          <div style={{width:46,height:46,borderRadius:12,background:"#1E293B",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,color:"#3B82F6",fontSize:14,border:"2px solid #3B82F6",flexShrink:0}}>{machine?.name}</div>
+          <div style={{flex:1}}>
+            <div style={{fontWeight:800,fontSize:15}}>{p.itemName}</div>
+            <div style={{fontSize:12,color:"#64748B",marginTop:2}}>{p.qualityName&&<span style={{color:"#A78BFA"}}>{p.qualityName} · </span>}{p.designNo&&`${p.designNo} · `}{fmtDate(p.createdAt)}</div>
+          </div>
+          <button className="icon-btn" style={{background:"#1E293B",color:"#EF4444"}} onClick={()=>deleteProgram(p.id)}>🗑️</button>
+        </div>
+        <button onClick={()=>openModal("statusPick",p)} style={{width:"100%",padding:"13px",borderRadius:12,border:`2px solid ${st.color}`,background:st.bg,color:st.color,fontFamily:"Nunito",fontWeight:800,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+          {st.emoji} {p.status} <span style={{marginLeft:"auto",fontSize:12,opacity:0.7}}>Tap to change →</span>
+        </button>
+        {p.status==="Completed"&&<button className="big-btn btn-amber" style={{marginTop:8,fontSize:14,padding:"12px"}} onClick={()=>openModal("postprocess",{machineId:p.machineId,itemName:p.itemName,qty:0})}>✂️ Move to Post-Process</button>}
+      </div>);
+    })}
+  </div>);
+}
+
+function ProductionPage({data}){
+  const [dateFilter,setDateFilter]=useState(todayStr());
+  const [shiftFilter,setShiftFilter]=useState("all");
+  let filtered=dateFilter?data.productionLogs.filter(l=>l.date===dateFilter):data.productionLogs;
+  if(shiftFilter!=="all")filtered=filtered.filter(l=>l.shift===shiftFilter);
+  const totalCards=filtered.reduce((a,l)=>a+(l.totalCards||0),0);
+  const dayCards=filtered.filter(l=>l.shift==="day").reduce((a,l)=>a+(l.totalCards||0),0);
+  const nightCards=filtered.filter(l=>l.shift==="night").reduce((a,l)=>a+(l.totalCards||0),0);
+  return(<div className="slide-up">
+    <div className="section-title">📊 Production Reports</div>
+    <div className="row2" style={{marginBottom:14}}>
+      <div className="igrp" style={{marginBottom:0}}><label>Date</label><input type="date" value={dateFilter} onChange={e=>setDateFilter(e.target.value)}/></div>
+      <div className="igrp" style={{marginBottom:0}}><label>Shift</label><select value={shiftFilter} onChange={e=>setShiftFilter(e.target.value)}><option value="all">All Shifts</option><option value="day">☀️ Day</option><option value="night">🌙 Night</option></select></div>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:16}}>
+      {[{v:totalCards,c:"#3B82F6",l:"TOTAL"},{v:dayCards,c:"#F59E0B",l:"☀️ DAY"},{v:nightCards,c:"#60A5FA",l:"🌙 NIGHT"}].map(s=>(
+        <div key={s.l} className="card" style={{textAlign:"center",padding:14,borderTop:`3px solid ${s.c}`}}>
+          <div style={{fontSize:28,fontWeight:900,color:s.c}}>{s.v}</div>
+          <div style={{fontSize:10,color:"#64748B",fontWeight:700}}>{s.l}</div>
+        </div>
+      ))}
+    </div>
+    {filtered.length===0&&<div className="card" style={{textAlign:"center",padding:40,color:"#475569"}}><div style={{fontSize:48,marginBottom:10}}>📭</div><div style={{fontWeight:700}}>No production logs</div></div>}
+    {filtered.map(log=>(
+      <div key={log.id} className="prog-card" style={{marginBottom:12}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+          <div style={{width:44,height:44,borderRadius:12,background:log.shift==="day"?"#451A03":"#1E3A5F",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{log.shift==="day"?"☀️":"🌙"}</div>
+          <div style={{flex:1}}><div style={{fontWeight:900,fontSize:15}}>{log.operator||"—"}</div><div style={{fontSize:12,color:"#64748B",marginTop:1}}>{log.shift==="day"?"Day":"Night"} Shift · {log.date}</div></div>
+          <div style={{textAlign:"right"}}><div style={{fontSize:28,fontWeight:900,color:"#10B981",lineHeight:1}}>{log.totalCards}</div><div style={{fontSize:10,color:"#64748B",fontWeight:700}}>TOTAL</div></div>
+        </div>
+        {(log.entries||[]).length>0&&<div style={{background:"#1E293B",borderRadius:12,overflow:"hidden"}}>{(log.entries||[]).map((e,i)=>{const m=data.machines.find(x=>x.id===e.machineId);return(<div key={e.machineId} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderBottom:i<log.entries.length-1?"1px solid #334155":"none"}}><div style={{width:36,height:36,borderRadius:9,background:"#0F172A",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,color:"#3B82F6",fontSize:12,border:"2px solid #3B82F6",flexShrink:0}}>{m?.name}</div><div style={{flex:1}}><div style={{fontWeight:700,fontSize:13}}>{e.programName||m?.name}</div></div><div style={{fontWeight:900,fontSize:20,color:"#F59E0B"}}>{e.cardPicks}</div></div>);})}</div>}
+      </div>
+    ))}
+  </div>);
+}
+
+function PostProcessPage({data,openModal}){
+  const [stf,setStf]=useState("All");
+  const shown=stf==="All"?data.postProcessing:data.postProcessing.filter(p=>p.process===stf);
+  return(<div className="slide-up">
+    <div className="section-title">✂️ Post-Processing</div>
+    <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:8,marginBottom:14}}>
+      {["All",...POST_STAGES.map(s=>s.key)].map(f=>{
+        const st=POST_STAGES.find(s=>s.key===f);
+        return(<button key={f} onClick={()=>setStf(f)} style={{flexShrink:0,padding:"8px 14px",borderRadius:20,border:`2px solid ${stf===f?"#F59E0B":"#334155"}`,background:stf===f?"#451A03":"transparent",color:stf===f?"#F59E0B":"#64748B",fontFamily:"Nunito",fontWeight:700,fontSize:13,cursor:"pointer"}}>{st?.emoji||"📋"} {f}</button>);
+      })}
+    </div>
+    {shown.length===0&&<div className="card" style={{textAlign:"center",padding:40,color:"#475569"}}><div style={{fontSize:48,marginBottom:10}}>📭</div><div style={{fontWeight:700}}>Nothing here yet</div></div>}
+    {shown.map(item=>{
+      const st=getPPS(item.status);
+      const machine=data.machines.find(m=>m.id==item.machineId);
+      const stage=POST_STAGES.find(s=>s.key===item.process);
+      return(<div key={item.id} className="prog-card" style={{marginBottom:10}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+          <div><div style={{fontWeight:800,fontSize:15}}>{item.itemName}</div><div style={{fontSize:12,color:"#64748B",marginTop:2}}>{machine?.name} · {item.qty} pcs · {fmtDate(item.createdAt)}</div></div>
+          <span className="tag" style={{background:"#1E293B",color:"#F59E0B",flexShrink:0}}>{stage?.emoji} {item.process}</span>
+        </div>
+        {item.challanNo&&<div style={{fontSize:13,color:"#94A3B8",marginBottom:4}}>🧾 Challan: <b>{item.challanNo}</b></div>}
+        {item.party&&<div style={{fontSize:13,color:"#94A3B8",marginBottom:4}}>👤 Party: <b>{item.party}</b></div>}
+        <button onClick={()=>openModal("postStatusPick",item)} style={{width:"100%",padding:"13px",borderRadius:12,border:`2px solid ${st.color}`,background:"transparent",color:st.color,fontFamily:"Nunito",fontWeight:800,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+          {st.emoji} {item.status} <span style={{marginLeft:"auto",fontSize:12,opacity:0.7}}>Tap to change →</span>
+        </button>
+      </div>);
+    })}
+  </div>);
+}
+
+function SettingsPage({data,updateMachineWarp,addMachine,updateMachine,deleteMachine,addWarpType,updateWarpType,deleteWarpType,updateOperator,addOperator,deleteOperator,notify}){
+  const [section,setSection]=useState("machines");
+  const warpTypes=data.warpTypes||WARP_TYPES;
+  const [editingM,setEditingM]=useState(null);const [mName,setMName]=useState("");const [mWarp,setMWarp]=useState("");const [addingM,setAddingM]=useState(false);const [newMName,setNewMName]=useState("");const [newMWarp,setNewMWarp]=useState(warpTypes[0]||"");
+  const [editingW,setEditingW]=useState(null);const [wEditVal,setWEditVal]=useState("");const [addingW,setAddingW]=useState(false);const [newWName,setNewWName]=useState("");
+  const [editingOp,setEditingOp]=useState(null);const [newName,setNewName]=useState("");const [addingNew,setAddingNew]=useState(false);const [newOpName,setNewOpName]=useState("");
+  const saveMachine=()=>{if(!mName.trim())return;updateMachine(editingM,{name:mName.trim(),warp:mWarp});setEditingM(null);notify("Machine updated ✓");};
+  const handleAddMachine=()=>{if(!newMName.trim())return;addMachine(newMName,newMWarp||warpTypes[0]||"");setNewMName("");setAddingM(false);notify("Machine added ✓");};
+  const saveOp=()=>{if(!newName.trim())return;updateOperator(editingOp,newName.trim());setEditingOp(null);notify("Updated ✓");};
+  const handleAddOp=()=>{if(!newOpName.trim())return;addOperator(newOpName.trim());setNewOpName("");setAddingNew(false);notify("Operator added ✓");};
+  const tabs=[{key:"machines",label:"🏭 Machines"},{key:"warptypes",label:"🧵 Warp Types"},{key:"operators",label:"👷 Operators"}];
+  return(<div className="slide-up">
+    <div className="section-title">⚙️ Settings</div>
+    <div style={{display:"flex",background:"#2C2416",borderRadius:14,padding:4,gap:4,marginBottom:20,border:"1px solid #5A4830"}}>
+      {tabs.map(t=><button key={t.key} onClick={()=>setSection(t.key)} style={{flex:1,padding:"10px 4px",borderRadius:10,border:"none",fontFamily:"Nunito",fontWeight:800,fontSize:12,cursor:"pointer",background:section===t.key?"#D4A853":"transparent",color:section===t.key?"#1A0F00":"#A89070"}}>{t.label}</button>)}
+    </div>
+    {section==="machines"&&<div>
+      {data.machines.map(m=>(
+        <div key={m.id} className="card" style={{marginBottom:10}}>
+          {editingM===m.id?<div>
+            <div className="row2">
+              <div className="igrp"><label>Name</label><input value={mName} onChange={e=>setMName(e.target.value)}/></div>
+              <div className="igrp"><label>Warp</label><select value={mWarp} onChange={e=>setMWarp(e.target.value)}>{warpTypes.map(w=><option key={w} value={w}>{w}</option>)}</select></div>
+            </div>
+            <div className="row2"><button className="big-btn btn-green" onClick={saveMachine}>💾 Save</button><button className="big-btn btn-gray" onClick={()=>setEditingM(null)}>✕</button></div>
+          </div>:<div className="frow">
+            <div style={{width:46,height:46,borderRadius:12,background:"#2C2416",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,color:"#D4A853",fontSize:14,border:"2px solid #D4A853",flexShrink:0}}>{m.name}</div>
+            <div style={{flex:1,paddingLeft:10}}><div style={{fontWeight:800,fontSize:15}}>{m.name}</div><div style={{fontSize:12,color:"#A89070",marginTop:1}}>{m.warp}</div></div>
+            <div style={{display:"flex",gap:6}}>
+              <button className="icon-btn" style={{background:"#2C2416",color:"#D4A853"}} onClick={()=>{setEditingM(m.id);setMName(m.name);setMWarp(m.warp);}}>✏️</button>
+              <button className="icon-btn" style={{background:"#2C2416",color:"#EF4444"}} onClick={()=>deleteMachine(m.id)}>🗑️</button>
+            </div>
+          </div>}
+        </div>
+      ))}
+      {addingM?<div className="card" style={{marginBottom:10,border:"2px dashed #D4A853"}}>
+        <div className="row2">
+          <div className="igrp"><label>Name</label><input value={newMName} onChange={e=>setNewMName(e.target.value)} placeholder="e.g. M-9" autoFocus/></div>
+          <div className="igrp"><label>Warp</label><select value={newMWarp} onChange={e=>setNewMWarp(e.target.value)}>{warpTypes.map(w=><option key={w} value={w}>{w}</option>)}</select></div>
+        </div>
+        <div className="row2"><button className="big-btn btn-green" onClick={handleAddMachine}>➕ Add</button><button className="big-btn btn-gray" onClick={()=>{setAddingM(false);setNewMName("");}}>✕</button></div>
+      </div>:<button className="big-btn btn-amber" onClick={()=>setAddingM(true)} style={{marginTop:4}}>➕ Add New Machine</button>}
+    </div>}
+    {section==="warptypes"&&<div>
+      {warpTypes.map(w=>(
+        <div key={w} className="card" style={{marginBottom:10}}>
+          {editingW===w?<div>
+            <div className="igrp"><label>Name</label><input value={wEditVal} onChange={e=>setWEditVal(e.target.value)} autoFocus/></div>
+            <div className="row2"><button className="big-btn btn-green" onClick={()=>{updateWarpType(w,wEditVal);setEditingW(null);}}>💾</button><button className="big-btn btn-gray" onClick={()=>setEditingW(null)}>✕</button></div>
+          </div>:<div className="frow">
+            <div style={{width:10,height:10,borderRadius:"50%",background:"#D4A853",flexShrink:0}}/>
+            <div style={{flex:1,paddingLeft:8,fontWeight:700,fontSize:14}}>{w}</div>
+            <div style={{display:"flex",gap:6}}>
+              <button className="icon-btn" style={{background:"#2C2416",color:"#D4A853"}} onClick={()=>{setEditingW(w);setWEditVal(w);}}>✏️</button>
+              <button className="icon-btn" style={{background:"#2C2416",color:"#EF4444"}} onClick={()=>deleteWarpType(w)}>🗑️</button>
+            </div>
+          </div>}
+        </div>
+      ))}
+      {addingW?<div className="card" style={{marginBottom:10,border:"2px dashed #D4A853"}}>
+        <div className="igrp"><label>New Warp Type</label><input value={newWName} onChange={e=>setNewWName(e.target.value)} placeholder="e.g. Silk Warp 40D" autoFocus/></div>
+        <div className="row2"><button className="big-btn btn-green" onClick={()=>{addWarpType(newWName);setNewWName("");setAddingW(false);}}>➕</button><button className="big-btn btn-gray" onClick={()=>{setAddingW(false);setNewWName("");}}>✕</button></div>
+      </div>:<button className="big-btn btn-amber" onClick={()=>setAddingW(true)} style={{marginTop:4}}>➕ Add Warp Type</button>}
+    </div>}
+    {section==="operators"&&<div>
+      {(data.operators||[]).map(op=>(
+        <div key={op.id} className="card" style={{marginBottom:10}}>
+          {editingOp===op.id?<div>
+            <div className="igrp"><label>Name</label><input value={newName} onChange={e=>setNewName(e.target.value)} autoFocus onKeyDown={e=>e.key==="Enter"&&saveOp()}/></div>
+            <div className="row2"><button className="big-btn btn-green" onClick={saveOp}>💾</button><button className="big-btn btn-gray" onClick={()=>setEditingOp(null)}>✕</button></div>
+          </div>:<div className="frow">
+            <div style={{width:44,height:44,borderRadius:12,background:"#2C2416",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👷</div>
+            <div style={{flex:1,paddingLeft:10}}><div style={{fontWeight:800,fontSize:16}}>{op.name}</div></div>
+            <div style={{display:"flex",gap:6}}>
+              <button className="icon-btn" style={{background:"#2C2416",color:"#D4A853"}} onClick={()=>{setEditingOp(op.id);setNewName(op.name);}}>✏️</button>
+              <button className="icon-btn" style={{background:"#2C2416",color:"#EF4444"}} onClick={()=>{if(window.confirm("Remove "+op.name+"?"))deleteOperator(op.id);}}>🗑️</button>
+            </div>
+          </div>}
+        </div>
+      ))}
+      {addingNew?<div className="card" style={{marginBottom:10,border:"2px dashed #D4A853"}}>
+        <div className="igrp"><label>New Operator</label><input value={newOpName} onChange={e=>setNewOpName(e.target.value)} autoFocus onKeyDown={e=>e.key==="Enter"&&handleAddOp()}/></div>
+        <div className="row2"><button className="big-btn btn-green" onClick={handleAddOp}>➕</button><button className="big-btn btn-gray" onClick={()=>{setAddingNew(false);setNewOpName("");}}>✕</button></div>
+      </div>:<button className="big-btn btn-amber" onClick={()=>setAddingNew(true)} style={{marginTop:4}}>➕ Add Operator</button>}
+    </div>}
+  </div>);
+}
+
+function YarnsPage({data,addYarn,updateYarn,deleteYarn,notify}){
+  const [search,setSearch]=useState("");
+  const yarns=data.yarns||[];
+  const shown=search.trim()?yarns.filter(y=>y.name.toLowerCase().includes(search.toLowerCase())):yarns;
+  return(<div className="slide-up">
+    <div className="section-title">🧶 Yarn Master</div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:16}}>
+      {[{label:"Total Yarns",value:yarns.length,color:"#7C3AED"},{label:"With Colours",value:yarns.filter(y=>y.colours?.length>0).length,color:"#059669"},{label:"Stock (kg)",value:yarns.reduce((a,y)=>a+Number(y.stock||0),0).toFixed(1),color:"#F59E0B"}].map(s=>(
+        <div key={s.label} className="card" style={{textAlign:"center",padding:14,borderTop:`3px solid ${s.color}`}}><div style={{fontSize:22,fontWeight:900,color:s.color}}>{s.value}</div><div style={{fontSize:10,color:"#64748B",fontWeight:700,marginTop:2}}>{s.label}</div></div>
+      ))}
+    </div>
+    <div className="igrp"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Search yarn…"/></div>
+    {shown.length===0&&<div className="card" style={{textAlign:"center",padding:40,color:"#475569"}}><div style={{fontSize:48,marginBottom:10}}>🧶</div><div style={{fontWeight:700}}>No yarns yet</div></div>}
+    {shown.map(y=><YarnCard key={y.id} yarn={y} onDelete={()=>deleteYarn(y.id)} updateYarn={updateYarn} notify={notify}/>)}
+  </div>);
+}
+
+function YarnCard({yarn,onDelete,updateYarn,notify}){
+  const [editing,setEditing]=useState(false);
+  const [name,setName]=useState(yarn.name);const [denier,setDenier]=useState(yarn.denier||"");const [cost,setCost]=useState(yarn.cost||"");const [stock,setStock]=useState(yarn.stock||"");
+  const [colours,setColours]=useState(()=>(yarn.colours||[]).map(c=>({...c,id:c.id||genId()})));
+  const addCol=()=>setColours(p=>[...p,{id:genId(),colour:"",shade:""}]);
+  const updateCol=(id,f,v)=>setColours(p=>p.map(c=>c.id===id?{...c,[f]:v}:c));
+  const removeCol=id=>setColours(p=>p.filter(c=>c.id!==id));
+  const save=()=>{if(!name.trim())return;updateYarn(yarn.id,{name:name.trim(),denier,cost,stock,colours});setEditing(false);notify("Yarn updated ✓");};
+  if(editing)return(<div className="card" style={{marginBottom:12,border:"2px solid #7C3AED"}}>
+    <div className="igrp"><label>Yarn Name *</label><input value={name} onChange={e=>setName(e.target.value)}/></div>
+    <div className="row2"><div className="igrp"><label>Denier</label><input value={denier} onChange={e=>setDenier(e.target.value)}/></div><div className="igrp"><label>Cost ₹/kg</label><input type="number" value={cost} onChange={e=>setCost(e.target.value)}/></div></div>
+    <div className="igrp"><label>Stock (kg)</label><input type="number" value={stock} onChange={e=>setStock(e.target.value)}/></div>
+    <div style={{background:"#0F172A",borderRadius:12,padding:12,marginBottom:14}}>
+      <div style={{fontSize:13,color:"#059669",fontWeight:700,marginBottom:10}}>🎨 Colours</div>
+      {colours.map((c,i)=><div key={c.id} style={{background:"#1E293B",borderRadius:12,padding:12,marginBottom:8}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{fontWeight:700}}>{i+1}. {c.colour||"New"}</span><button onClick={()=>removeCol(c.id)} style={{border:"none",background:"transparent",color:"#EF4444",cursor:"pointer",fontSize:18}}>×</button></div>
+        <div className="row2"><div><label>Colour</label><input value={c.colour} onChange={e=>updateCol(c.id,"colour",e.target.value)} style={{fontSize:14}}/></div><div><label>Shade</label><input value={c.shade} onChange={e=>updateCol(c.id,"shade",e.target.value)} style={{fontSize:14}}/></div></div>
+      </div>)}
+      <button className="big-btn btn-green" style={{fontSize:13,padding:"12px"}} onClick={addCol}>➕ Add Colour</button>
+    </div>
+    <div className="row2"><button className="big-btn btn-violet" onClick={save}>💾 Save</button><button className="big-btn btn-gray" onClick={()=>setEditing(false)}>✕</button></div>
+  </div>);
+  return(<div className="card" style={{marginBottom:12}}>
+    <div style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:6}}>
+      <div style={{width:46,height:46,borderRadius:12,background:"#0F172A",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>🧶</div>
+      <div style={{flex:1}}><div style={{fontWeight:900,fontSize:16}}>{yarn.name}</div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:4}}>
+          {yarn.denier&&<span className="tag" style={{background:"#2E1065",color:"#A78BFA",fontSize:11}}>{yarn.denier}D</span>}
+          {yarn.cost&&<span className="tag" style={{background:"#1E3A5F",color:"#60A5FA",fontSize:11}}>₹{yarn.cost}/kg</span>}
+          {yarn.stock&&<span className="tag" style={{background:"#064E3B",color:"#6EE7B7",fontSize:11}}>{yarn.stock}kg</span>}
+        </div>
+      </div>
+      <div style={{display:"flex",gap:6}}>
+        <button className="icon-btn" style={{background:"#0F172A",color:"#3B82F6"}} onClick={()=>setEditing(true)}>✏️</button>
+        <button className="icon-btn" style={{background:"#0F172A",color:"#EF4444"}} onClick={onDelete}>🗑️</button>
+      </div>
+    </div>
+    {yarn.colours?.length>0&&<div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:6}}>{yarn.colours.map(c=><span key={c.id} className="tag" style={{background:"#064E3B",color:"#6EE7B7",fontSize:11}}>{c.colour}{c.shade?` #${c.shade}`:""}</span>)}</div>}
+  </div>);
+}
+
+function YarnModal({onSave,onClose,editMode,yarn}){
+  const [name,setName]=useState(yarn?.name||"");const [denier,setDenier]=useState(yarn?.denier||"");const [cost,setCost]=useState(yarn?.cost||"");const [stock,setStock]=useState(yarn?.stock||"");
+  const [colours,setColours]=useState(()=>(yarn?.colours||[]).map(c=>({...c,id:c.id||genId()})));
+  const addCol=()=>setColours(p=>[...p,{id:genId(),colour:"",shade:""}]);
+  const updateCol=(id,f,v)=>setColours(p=>p.map(c=>c.id===id?{...c,[f]:v}:c));
+  const removeCol=id=>setColours(p=>p.filter(c=>c.id!==id));
+  const handleSave=()=>{if(!name.trim())return;onSave({name:name.trim(),denier,cost,stock,colours});onClose();};
+  return(<ModalShell title={editMode?"✏️ Edit Yarn":"🧶 Add Yarn"} onClose={onClose}>
+    <div className="igrp"><label>Yarn Name *</label><input value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. 2/120 Viscose"/></div>
+    <div className="row2"><div className="igrp"><label>Denier</label><input value={denier} onChange={e=>setDenier(e.target.value)}/></div><div className="igrp"><label>Cost ₹/kg</label><input type="number" value={cost} onChange={e=>setCost(e.target.value)}/></div></div>
+    <div className="igrp"><label>Stock (kg)</label><input type="number" value={stock} onChange={e=>setStock(e.target.value)}/></div>
+    <div style={{background:"#0F172A",borderRadius:14,padding:14,marginBottom:16}}>
+      <div style={{fontSize:13,color:"#059669",fontWeight:700,marginBottom:12}}>🎨 Colour Variants</div>
+      {colours.map((c,i)=><div key={c.id} style={{background:"#1E293B",borderRadius:12,padding:12,marginBottom:10}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{fontWeight:700}}>{i+1}. {c.colour||"New"}</span><button onClick={()=>removeCol(c.id)} style={{border:"none",background:"transparent",color:"#EF4444",cursor:"pointer",fontSize:20}}>×</button></div>
+        <div className="row2"><div><label>Colour</label><input value={c.colour} onChange={e=>updateCol(c.id,"colour",e.target.value)} style={{fontSize:14}}/></div><div><label>Shade</label><input value={c.shade} onChange={e=>updateCol(c.id,"shade",e.target.value)} style={{fontSize:14}}/></div></div>
+      </div>)}
+      <button className="big-btn btn-green" style={{fontSize:14,padding:"13px"}} onClick={addCol}>➕ Add Colour</button>
+    </div>
+    <button className="big-btn btn-violet" style={{marginBottom:10}} onClick={handleSave}>💾 {editMode?"Update":"Save"} Yarn</button>
+  </ModalShell>);
+}
+
+function AddQualityModal({data,onSave,onClose,prefill,editMode}){
+  const warpTypes=data.warpTypes||WARP_TYPES;
+  const ex=prefill?.quality;
+  const [warpType,setWarpType]=useState(prefill?.defaultWarp||warpTypes[0]||"");
+  const [name,setName]=useState(ex?.name||"");const [reed,setReed]=useState(ex?.reed||"");const [pick,setPick]=useState(ex?.pick||"");
+  const [weftGround,setWeftGround]=useState(ex?.weftGround||"");const [zari,setZari]=useState(ex?.zari||"");const [tar,setTar]=useState(ex?.tar||"");const [yarnCost,setYarnCost]=useState(ex?.yarnCost||"");
+  const handleSave=()=>{if(!name.trim())return;onSave(warpType,{name:name.trim(),reed:reed.trim(),pick:pick.trim(),weftGround,zari,tar:tar.trim(),yarnCost});};
+  return(<ModalShell title={editMode?"✏️ Edit Quality":"📚 Add Quality"} onClose={onClose}>
+    {!editMode&&<div className="igrp"><label>Warp Type</label><select value={warpType} onChange={e=>setWarpType(e.target.value)}>{warpTypes.map(w=><option key={w} value={w}>{w}</option>)}</select></div>}
+    <div className="igrp"><label>Quality Name *</label><input value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Gorget Premium"/></div>
+    <div className="row2"><div className="igrp"><label>Reed</label><input value={reed} onChange={e=>setReed(e.target.value)}/></div><div className="igrp"><label>Pick</label><input value={pick} onChange={e=>setPick(e.target.value)}/></div></div>
+    <div className="row2"><div className="igrp"><label>Tar (threads)</label><input value={tar} onChange={e=>setTar(e.target.value)}/></div><div className="igrp"><label>Yarn Cost ₹/kg</label><input type="number" value={yarnCost} onChange={e=>setYarnCost(e.target.value)}/></div></div>
+    <div className="igrp"><label>Weft Ground</label><input value={weftGround} onChange={e=>setWeftGround(e.target.value)} placeholder="Weft ground quality"/></div>
+    <div className="igrp"><label>Zari</label><input value={zari} onChange={e=>setZari(e.target.value)} placeholder="Zari quality"/></div>
+    <button className="big-btn btn-violet" style={{marginBottom:10}} onClick={handleSave}>💾 {editMode?"Update":"Save"} Quality</button>
+  </ModalShell>);
+}
+
+function AddSubProgramModal({payload,yarns=[],onSave,onClose,editMode}){
+  const {warpType,quality,subProgram}=payload;
+  const [name,setName]=useState(subProgram?.name||"");
+  const [feeders,setFeeders]=useState(()=>subProgram?.feeders||EMPTY_FEEDERS.map(f=>({...f})));
+  const [weftColours,setWeftColours]=useState(()=>subProgram?.weftColours?.length?subProgram.weftColours.map(c=>({...c,id:c.id||genId()})):[]);
+  const [section,setSection]=useState("feeders");
+  const activeFeeders=feeders.filter(f=>f.yarn?.trim()).length;
+  const clearFeeder=no=>setFeeders(p=>p.map(f=>f.no===no?{...f,yarn:"",yarnId:null,colourId:null}:f));
+  const updateFeeder=(no,val)=>setFeeders(p=>p.map(f=>f.no===no?{...f,yarn:val,yarnId:null,colourId:null}:f));
+  const addColour=()=>setWeftColours(p=>[...p,{id:genId(),colour:"",shade:"",repeats:1}]);
+  const updateColour=(id,field,val)=>setWeftColours(p=>p.map(c=>c.id===id?{...c,[field]:val}:c));
+  const removeColour=id=>setWeftColours(p=>p.filter(c=>c.id!==id));
+  const totalRepeats=weftColours.reduce((a,c)=>a+(Number(c.repeats)||0),0);
+  const handleSave=()=>{if(!name.trim())return;onSave(warpType,quality.id,{name:name.trim(),feeders,weftColours});};
+  return(<ModalShell title={editMode?"✏️ Edit Program":"➕ New Program"} subtitle={`${quality.name} · ${warpType}`} onClose={onClose}>
+    <div className="param-grid" style={{marginBottom:16}}>
+      {[{label:"Reed",value:quality.reed||"—"},{label:"Pick",value:quality.pick||"—"},{label:"Weft Ground",value:quality.weftGround||"—"},{label:"Zari",value:quality.zari||"—"}].map(p=>(
+        <div key={p.label} className="param-item"><div className="param-label">{p.label}</div><div className="param-value" style={{fontSize:13}}>{p.value}</div></div>
+      ))}
+    </div>
+    <div className="igrp"><label>Program Name *</label><input value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Design 001"/></div>
+    <div style={{display:"flex",background:"#0F172A",borderRadius:12,padding:4,gap:4,marginBottom:16}}>
+      <button onClick={()=>setSection("feeders")} style={{flex:1,padding:"11px",borderRadius:9,border:"none",fontFamily:"Nunito",fontWeight:800,fontSize:14,cursor:"pointer",background:section==="feeders"?"#7C3AED":"transparent",color:section==="feeders"?"#fff":"#64748B"}}>🧵 Feeders {activeFeeders>0?`(${activeFeeders})`:""}</button>
+      <button onClick={()=>setSection("colours")} style={{flex:1,padding:"11px",borderRadius:9,border:"none",fontFamily:"Nunito",fontWeight:800,fontSize:14,cursor:"pointer",background:section==="colours"?"#059669":"transparent",color:section==="colours"?"#fff":"#64748B"}}>🎨 Colours {weftColours.length>0?`(${weftColours.length})`:""}</button>
+    </div>
+    {section==="feeders"&&<div style={{background:"#0F172A",borderRadius:14,padding:14,marginBottom:16}}>
+      <div style={{fontSize:13,color:"#7C3AED",fontWeight:700,marginBottom:14}}>🧵 Feeders F1–F10 · {activeFeeders} active</div>
+      {feeders.map(f=>(
+        <div key={f.no} className="feeder-row">
+          <div className={`feeder-num${f.yarn?.trim()?" active":""}`}>F{f.no}</div>
+          {f.yarn?.trim()?<div style={{display:"flex",alignItems:"center",gap:8,background:"#1E293B",border:"2px solid #7C3AED",borderRadius:14,padding:"10px 14px"}}>
+            <span style={{flex:1,fontSize:14,fontWeight:700}}>{f.yarn}</span>
+            <button onClick={()=>clearFeeder(f.no)} style={{border:"none",background:"transparent",color:"#EF4444",cursor:"pointer",fontSize:18}}>×</button>
+          </div>:<input value={f.yarn} onChange={e=>updateFeeder(f.no,e.target.value)} placeholder={`Feeder ${f.no} yarn…`} style={{fontSize:14}}/>}
+        </div>
+      ))}
+    </div>}
+    {section==="colours"&&<div style={{marginBottom:16}}>
+      <div style={{background:"#0F172A",borderRadius:14,padding:14,marginBottom:12}}>
+        <div style={{fontSize:13,color:"#059669",fontWeight:700,marginBottom:14}}>🎨 Weft Colours {totalRepeats>0&&`· ${totalRepeats} repeats`}</div>
+        {weftColours.length===0&&<div style={{textAlign:"center",padding:"16px 0",color:"#475569",fontSize:13}}>No colours — tap Add Colour</div>}
+        {weftColours.map((c,idx)=>(
+          <div key={c.id} style={{background:"#1E293B",borderRadius:14,padding:14,marginBottom:10,borderLeft:"3px solid #059669"}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
+              <span style={{fontWeight:700}}>{idx+1}. {c.colour||"New"}{c.shade?` · Shade ${c.shade}`:""}</span>
+              <button onClick={()=>removeColour(c.id)} style={{border:"none",background:"transparent",color:"#EF4444",cursor:"pointer",fontSize:18}}>×</button>
+            </div>
+            <div className="igrp"><label>Colour Name</label><input value={c.colour} onChange={e=>updateColour(c.id,"colour",e.target.value)} placeholder="e.g. Red"/></div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <div><label>Shade No.</label><input value={c.shade} onChange={e=>updateColour(c.id,"shade",e.target.value)} placeholder="e.g. 101"/></div>
+              <div><label>Repeats</label><input type="number" min="1" value={c.repeats} onChange={e=>updateColour(c.id,"repeats",e.target.value)}/></div>
+            </div>
+          </div>
+        ))}
+        <button className="big-btn btn-green" style={{marginTop:4,fontSize:14,padding:"14px"}} onClick={addColour}>➕ Add Colour</button>
+      </div>
+    </div>}
+    <button className="big-btn btn-violet" style={{marginBottom:10}} onClick={handleSave}>💾 {editMode?"Update":"Save"} Program</button>
+  </ModalShell>);
+}
+
+function ViewSubProgramModal({payload,onClose,openModal}){
+  const {warpType,quality,subProgram}=payload;
+  const af=subProgram.feeders.filter(f=>f.yarn?.trim());
+  const weftColours=subProgram.weftColours||[];
+  const [section,setSection]=useState("feeders");
+  return(<ModalShell title={subProgram.name} subtitle={`${quality.name} · ${warpType}`} onClose={onClose}>
+    <div className="param-grid" style={{marginBottom:16}}>
+      {[{label:"Reed",value:quality.reed||"—"},{label:"Pick",value:quality.pick||"—"},{label:"Weft Ground",value:quality.weftGround||"—"},{label:"Zari",value:quality.zari||"—"}].map(p=>(
+        <div key={p.label} className="param-item"><div className="param-label">{p.label}</div><div className="param-value">{p.value}</div></div>
+      ))}
+    </div>
+    <div style={{display:"flex",background:"#0F172A",borderRadius:12,padding:4,gap:4,marginBottom:16}}>
+      <button onClick={()=>setSection("feeders")} style={{flex:1,padding:"11px",borderRadius:9,border:"none",fontFamily:"Nunito",fontWeight:800,fontSize:14,cursor:"pointer",background:section==="feeders"?"#7C3AED":"transparent",color:section==="feeders"?"#fff":"#64748B"}}>🧵 Feeders ({af.length})</button>
+      <button onClick={()=>setSection("colours")} style={{flex:1,padding:"11px",borderRadius:9,border:"none",fontFamily:"Nunito",fontWeight:800,fontSize:14,cursor:"pointer",background:section==="colours"?"#059669":"transparent",color:section==="colours"?"#fff":"#64748B"}}>🎨 Colours ({weftColours.length})</button>
+    </div>
+    {section==="feeders"&&<div style={{background:"#0F172A",borderRadius:14,padding:14,marginBottom:16}}>
+      {subProgram.feeders.map(f=>(
+        <div key={f.no} style={{display:"flex",alignItems:"center",gap:12,marginBottom:8}}>
+          <div className={`feeder-num${f.yarn?.trim()?" active":""}`}>F{f.no}</div>
+          <div style={{flex:1,fontSize:14,fontWeight:f.yarn?.trim()?700:400,color:f.yarn?.trim()?"#E2E8F0":"#334155"}}>{f.yarn?.trim()||"— not used —"}</div>
+        </div>
+      ))}
+    </div>}
+    {section==="colours"&&<div style={{background:"#0F172A",borderRadius:14,padding:14,marginBottom:16}}>
+      {weftColours.length===0&&<div style={{textAlign:"center",padding:"14px 0",color:"#475569",fontSize:13}}>No colour repeats</div>}
+      {weftColours.map((c,i)=>(
+        <div key={c.id||i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:"1px solid #1E293B"}}>
+          <div style={{width:28,height:28,borderRadius:8,background:"#1E293B",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:12,color:"#059669",flexShrink:0}}>{i+1}</div>
+          <div style={{flex:1}}><div style={{fontWeight:800,fontSize:15}}>{c.colour||"(unnamed)"}</div>{c.shade?.trim()&&<div style={{fontSize:12,color:"#64748B"}}>Shade: {c.shade}</div>}</div>
+          <span className="tag" style={{background:"#064E3B",color:"#6EE7B7",fontSize:13}}>× {c.repeats}</span>
+        </div>
+      ))}
+    </div>}
+    <button className="big-btn btn-violet" style={{marginBottom:10}} onClick={()=>{onClose();openModal("editSubProgram",payload);}}>✏️ Edit This Program</button>
+  </ModalShell>);
+}
+
+function ProgramModal({data,onSave,onClose}){
+  const [machineId,setMachineId]=useState(1);const [itemName,setItemName]=useState("");const [qualityName,setQualityName]=useState("");const [designNo,setDesignNo]=useState("");const [status,setStatus]=useState("Pending");
+  const machine=data.machines.find(m=>m.id===machineId);
+  const qualities=data.warpQualities[machine?.warp||""]||[];
+  const [selQ,setSelQ]=useState("");const [selSP,setSelSP]=useState("");
+  const quality=qualities.find(q=>q.id===selQ);
+  const handlePickSP=subId=>{setSelSP(subId);const sp=quality?.programs?.find(p=>p.id===subId);if(sp){setItemName(sp.name);setQualityName(quality?.name||"");}};
+  const handleSave=()=>{if(!itemName.trim())return;onSave({machineId,itemName:itemName.trim(),qualityName,designNo:designNo.trim(),status});};
+  return(<ModalShell title="▶️ Run Program" subtitle="Assign a program to a machine" onClose={onClose}>
+    <div className="igrp"><label>Select Machine</label>
+      <div className="m-grid">{data.machines.map(m=><div key={m.id} className={`m-btn${machineId===m.id?" sel":""}`} onClick={()=>{setMachineId(m.id);setSelQ("");setSelSP("");}}><div style={{fontWeight:900,fontSize:13,color:machineId===m.id?"#3B82F6":"#94A3B8"}}>{m.name}</div></div>)}</div>
+    </div>
+    {qualities.length>0&&<div style={{background:"#0F172A",borderRadius:14,padding:14,marginBottom:16}}>
+      <div style={{fontSize:13,color:"#7C3AED",fontWeight:700,marginBottom:12}}>📚 Pick from Library</div>
+      <div className="igrp"><label>Quality</label><select value={selQ} onChange={e=>{setSelQ(e.target.value);setSelSP("");}}>
+        <option value="">-- Select --</option>{qualities.map(q=><option key={q.id} value={q.id}>{q.name}</option>)}
+      </select></div>
+      {quality&&<div className="igrp" style={{marginBottom:0}}><label>Program</label><select value={selSP} onChange={e=>handlePickSP(e.target.value)}>
+        <option value="">-- Select --</option>{(quality.programs||[]).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+      </select></div>}
+    </div>}
+    <div className="igrp"><label>Program / Item Name *</label><input value={itemName} onChange={e=>setItemName(e.target.value)} placeholder="e.g. Design 001"/></div>
+    <div className="igrp"><label>Design No.</label><input value={designNo} onChange={e=>setDesignNo(e.target.value)} placeholder="e.g. D-001"/></div>
+    <div className="igrp"><label>Status</label>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        {PROGRAM_STATUSES.map(s=><button key={s.key} onClick={()=>setStatus(s.key)} style={{padding:"13px 8px",borderRadius:12,border:`2px solid ${s.color}`,background:status===s.key?s.bg:"transparent",color:s.color,fontFamily:"Nunito",fontWeight:800,fontSize:14,cursor:"pointer"}}>{s.emoji} {s.key}</button>)}
+      </div>
+    </div>
+    <button className="big-btn btn-blue" style={{marginBottom:10}} onClick={handleSave}>💾 Save Program</button>
+  </ModalShell>);
+}
+
+function ProductionModal({data,onSave,onClose}){
+  const [date,setDate]=useState(todayStr());const [shift,setShift]=useState("day");const [operator,setOperator]=useState("");const [remarks,setRemarks]=useState("");
+  const [entries,setEntries]=useState(data.machines.map(m=>({machineId:m.id,programId:"",cardPicks:""})));
+  const updateEntry=(machineId,field,value)=>setEntries(p=>p.map(e=>e.machineId===machineId?{...e,[field]:value}:e));
+  const totalCards=entries.reduce((a,e)=>a+(Number(e.cardPicks)||0),0);
+  const filledEntries=entries.filter(e=>Number(e.cardPicks)>0);
+  const handleSave=()=>{if(!operator||!filledEntries.length)return;onSave({date,shift,operator,entries:filledEntries.map(e=>({machineId:e.machineId,cardPicks:Number(e.cardPicks)})),remarks,totalCards});};
+  return(<ModalShell title="📊 Log Production" subtitle="Card picks per machine for this shift" onClose={onClose}>
+    <div className="igrp"><label>Date</label><input type="date" value={date} onChange={e=>setDate(e.target.value)}/></div>
+    <div className="igrp"><label>Shift</label>
+      <div className="shift-tog">
+        <button className="sh-btn" onClick={()=>setShift("day")} style={{background:shift==="day"?"#D97706":"transparent",color:shift==="day"?"#fff":"#64748B"}}>☀️ Day</button>
+        <button className="sh-btn" onClick={()=>setShift("night")} style={{background:shift==="night"?"#2563EB":"transparent",color:shift==="night"?"#fff":"#64748B"}}>🌙 Night</button>
+      </div>
+    </div>
+    <div className="igrp"><label>Operator *</label>
+      <select value={operator} onChange={e=>setOperator(e.target.value)}>
+        <option value="">-- Select --</option>{(data.operators||[]).map(op=><option key={op.id} value={op.name}>{op.name}</option>)}
+      </select>
+    </div>
+    <div style={{background:"#0F172A",borderRadius:14,padding:14,marginBottom:16}}>
+      <div style={{fontSize:13,color:"#3B82F6",fontWeight:700,marginBottom:14}}>🏭 Card Picks {totalCards>0&&<span style={{color:"#10B981"}}>· {totalCards} total</span>}</div>
+      {data.machines.map(m=>{
+        const entry=entries.find(e=>e.machineId===m.id);
+        return(<div key={m.id} style={{background:"#1E293B",borderRadius:12,padding:12,marginBottom:10}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+            <div style={{width:40,height:40,borderRadius:10,background:"#0F172A",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,color:"#3B82F6",fontSize:13,border:"2px solid #3B82F6",flexShrink:0}}>{m.name}</div>
+            <div style={{flex:1}}><div style={{fontWeight:700,fontSize:13}}>{m.name}</div><div style={{fontSize:11,color:"#64748B"}}>{m.warp}</div></div>
+          </div>
+          <input type="number" min="0" value={entry?.cardPicks||""} onChange={e=>updateEntry(m.id,"cardPicks",e.target.value)} placeholder="0 cards" style={{fontSize:15,fontWeight:700}}/>
+        </div>);
+      })}
+    </div>
+    <div className="igrp"><label>Remarks</label><textarea rows={2} value={remarks} onChange={e=>setRemarks(e.target.value)} placeholder="Issues, downtime…"/></div>
+    <button className="big-btn btn-green" style={{marginBottom:10,opacity:(!operator||!filledEntries.length)?0.4:1}} onClick={handleSave}>💾 Save Production</button>
+  </ModalShell>);
+}
+
+function PostModal({data,onSave,onClose,prefill}){
+  const [machineId,setMachineId]=useState(prefill?.machineId||1);const [itemName,setItemName]=useState(prefill?.itemName||"");const [qty,setQty]=useState(prefill?.qty||"");const [process,setProcess]=useState("Butta Cutting");const [nextStage,setNextStage]=useState("RFD");const [party,setParty]=useState("");const [challanNo,setChallanNo]=useState("");const [challanDate,setChallanDate]=useState("");const [notes,setNotes]=useState("");
+  return(<ModalShell title="✂️ Post-Process Entry" onClose={onClose}>
+    <div className="igrp"><label>Select Machine</label>
+      <div className="m-grid">{data.machines.map(m=><div key={m.id} className={`m-btn${machineId===m.id?" sel":""}`} onClick={()=>setMachineId(m.id)}><div style={{fontWeight:900,fontSize:13,color:machineId===m.id?"#3B82F6":"#94A3B8"}}>{m.name}</div></div>)}</div>
+    </div>
+    <div className="row2">
+      <div className="igrp"><label>Item Name *</label><input value={itemName} onChange={e=>setItemName(e.target.value)}/></div>
+      <div className="igrp"><label>Qty (pcs)</label><input type="number" value={qty} onChange={e=>setQty(e.target.value)}/></div>
+    </div>
+    <div className="row2">
+      <div className="igrp"><label>Challan No.</label><input value={challanNo} onChange={e=>setChallanNo(e.target.value)}/></div>
+      <div className="igrp"><label>Challan Date</label><input type="date" value={challanDate} onChange={e=>setChallanDate(e.target.value)}/></div>
+    </div>
+    <div className="igrp"><label>Process Stage</label>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        {POST_STAGES.map(s=><button key={s.key} onClick={()=>setProcess(s.key)} style={{padding:"13px 8px",borderRadius:12,border:`2px solid ${process===s.key?"#F59E0B":"#334155"}`,background:process===s.key?"#451A03":"#0F172A",color:process===s.key?"#F59E0B":"#64748B",fontFamily:"Nunito",fontWeight:700,fontSize:13,cursor:"pointer"}}>{s.emoji} {s.key}</button>)}
+      </div>
+    </div>
+    <div className="igrp"><label>Next Stage</label><select value={nextStage} onChange={e=>setNextStage(e.target.value)}><option>RFD</option><option>Border Cutting</option><option>Deka</option><option>Direct Dispatch</option></select></div>
+    {process==="Butta Cutting"&&<div className="igrp"><label>Party / Contractor</label><input value={party} onChange={e=>setParty(e.target.value)}/></div>}
+    <div className="igrp"><label>Notes</label><textarea rows={2} value={notes} onChange={e=>setNotes(e.target.value)}/></div>
+    <button className="big-btn btn-amber" style={{marginBottom:10}} onClick={()=>itemName.trim()&&onSave({machineId,itemName:itemName.trim(),qty:Number(qty)||0,process,nextStage,party,notes,challanNo,challanDate})}>💾 Save Entry</button>
+  </ModalShell>);
+}
+
+function StatusPickModal({prog,onPick,onClose}){
+  return(<div className="modal-overlay" onClick={onClose}><div className="modal-sheet" onClick={e=>e.stopPropagation()}><div className="modal-handle"/><div className="modal-title">Change Status</div><div style={{fontSize:13,color:"#64748B",marginBottom:16,fontWeight:600}}>{prog.itemName}</div>
+    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      {PROGRAM_STATUSES.map(s=><button key={s.key} onClick={()=>onPick(prog.id,s.key)} style={{padding:"18px 20px",borderRadius:16,border:`2px solid ${s.color}`,background:prog.status===s.key?s.bg:"transparent",color:s.color,fontFamily:"Nunito",fontWeight:800,fontSize:17,cursor:"pointer",display:"flex",alignItems:"center",gap:14}}>
+        <span style={{fontSize:26}}>{s.emoji}</span> {s.key}{prog.status===s.key&&<span style={{marginLeft:"auto",fontSize:12,opacity:0.7}}>✓ Current</span>}
+      </button>)}
+    </div>
+    <div style={{height:14}}/><button className="big-btn btn-gray" onClick={onClose}>✕ Cancel</button>
+  </div></div>);
+}
+
+function PostStatusPick({item,onPick,onClose}){
+  return(<div className="modal-overlay" onClick={onClose}><div className="modal-sheet" onClick={e=>e.stopPropagation()}><div className="modal-handle"/><div className="modal-title">Update Status</div><div style={{fontSize:13,color:"#64748B",marginBottom:16,fontWeight:600}}>{item.itemName}</div>
+    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      {POST_STATUSES.map(s=><button key={s.key} onClick={()=>onPick(item.id,s.key)} style={{padding:"18px 20px",borderRadius:16,border:`2px solid ${s.color}`,background:item.status===s.key?s.color+"22":"transparent",color:s.color,fontFamily:"Nunito",fontWeight:800,fontSize:17,cursor:"pointer",display:"flex",alignItems:"center",gap:14}}>
+        <span style={{fontSize:26}}>{s.emoji}</span> {s.key}{item.status===s.key&&<span style={{marginLeft:"auto",fontSize:12,opacity:0.7}}>✓ Current</span>}
+      </button>)}
+    </div>
+    <div style={{height:14}}/><button className="big-btn btn-gray" onClick={onClose}>✕ Cancel</button>
+  </div></div>);
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+
+<script>
+(function(){
+  // Check if already authenticated this session
+  if(sessionStorage.getItem('ops_auth')==='1'){
+    document.getElementById('pw-screen').style.display='none';
+    return;
+  }
+  // Show password screen, hide main content
+  document.getElementById('pw-screen').style.display='flex';
+})();
+function checkPassword(){
+  const val = document.getElementById('pw-input').value;
+  if(val === 'garg'){
+    sessionStorage.setItem('ops_auth','1');
+    document.getElementById('pw-screen').style.display='none';
+  } else {
+    document.getElementById('pw-err').textContent='✕ Incorrect password';
+    document.getElementById('pw-input').value='';
+    document.getElementById('pw-input').focus();
+    setTimeout(()=>document.getElementById('pw-err').textContent='', 2000);
+  }
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const inp = document.getElementById('pw-input');
+  if(inp) inp.addEventListener('keydown', e=>{ if(e.key==='Enter') checkPassword(); });
+});
+</script>
+
+</body>
+</html>

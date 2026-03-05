@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Operations Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+
+<!-- ── FIREBASE SDK ── -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+  import { getAnalytics }  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-analytics.js";
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyA5-PW6H6BIFQr1x6YI2Hy8PTu_kTI12Rc",
+    authDomain:        "giproductionandstock.firebaseapp.com",
+    projectId:         "giproductionandstock",
+    storageBucket:     "giproductionandstock.firebasestorage.app",
+    messagingSenderId: "628734351948",
+    appId:             "1:628734351948:web:769e3e5385ed183785f2e9",
+    measurementId:     "G-JYYYDRYM4G"
+  };
+
+  const app       = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+  window._firebaseApp = app;
+</script>
+
+<style>
+
+/* ── PASSWORD SCREEN ── */
+#pw-screen{position:fixed;inset:0;z-index:99999;background:#0e0c08;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;}
+#pw-screen .pw-logo{font-family:'Bebas Neue',sans-serif;font-size:2.8rem;letter-spacing:6px;color:#f0e8d4;text-align:center;line-height:1.1;margin-bottom:6px;}
+#pw-screen .pw-sub{font-size:0.55rem;letter-spacing:3px;color:#4a3a20;text-align:center;margin-bottom:40px;}
+#pw-screen .pw-box{background:#1a1508;border:1px solid #3a2810;border-radius:18px;padding:28px 24px;width:100%;max-width:340px;}
+#pw-screen .pw-label{font-size:0.52rem;letter-spacing:2px;text-transform:uppercase;color:#6a5a3a;margin-bottom:10px;}
+#pw-screen .pw-input{width:100%;background:#0e0c08;border:1px solid #3a2810;border-radius:10px;color:#f0e8d4;font-family:'IBM Plex Mono',monospace;font-size:1.1rem;padding:14px 16px;outline:none;transition:border-color .2s;letter-spacing:4px;}
+#pw-screen .pw-input:focus{border-color:#c47a20;}
+#pw-screen .pw-btn{width:100%;margin-top:14px;padding:15px;border:none;border-radius:10px;background:#c47a20;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;font-weight:700;letter-spacing:3px;cursor:pointer;transition:opacity .15s;}
+#pw-screen .pw-btn:hover{opacity:.88;}
+#pw-screen .pw-err{margin-top:12px;text-align:center;font-size:0.6rem;color:#c0392b;letter-spacing:1px;min-height:18px;}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:#0e0c08;color:#f0e8d4;font-family:'IBM Plex Mono',monospace;-webkit-tap-highlight-color:transparent;overflow:hidden;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 70% 50% at 15% 15%, rgba(196,122,32,0.08) 0%,transparent 65%),radial-gradient(ellipse 60% 45% at 85% 85%, rgba(37,99,235,0.08) 0%,transparent 60%),repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(255,255,255,0.015) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(255,255,255,0.015) 40px);}
+.shell{position:relative;z-index:1;height:100vh;display:flex;flex-direction:column;padding:0 18px;max-width:480px;margin:0 auto;}
+.header{padding:32px 0 22px;text-align:center;flex-shrink:0;}
+.header-icon{width:62px;height:62px;background:linear-gradient(135deg,#c47a20,#7a4a08);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 14px;box-shadow:0 6px 24px rgba(196,122,32,0.3);}
+.header-title{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;letter-spacing:5px;color:#f0e8d4;line-height:1;margin-bottom:5px;}
+.header-sub{font-size:0.52rem;letter-spacing:3.5px;text-transform:uppercase;color:#4a3a20;}
+.sep{display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-shrink:0;}
+.sep-line{flex:1;height:1px;background:#1e1808;}
+.sep-txt{font-size:0.48rem;letter-spacing:3px;text-transform:uppercase;color:#3a2e18;}
+.cards{flex:1;display:flex;flex-direction:column;gap:14px;justify-content:center;padding-bottom:24px;}
+.app-card{position:relative;overflow:hidden;border-radius:22px;cursor:pointer;transition:transform .14s ease,box-shadow .2s ease;text-decoration:none;display:block;border:1px solid transparent;}
+.app-card:active{transform:scale(0.965);}
+.app-card.prod{background:linear-gradient(145deg,#1c1408 0%,#261c09 55%,#181005 100%);border-color:#3a2810;box-shadow:0 2px 18px rgba(0,0,0,.6),inset 0 1px 0 rgba(196,122,32,0.07);}
+.app-card.prod:hover{border-color:#a06018;box-shadow:0 6px 32px rgba(196,122,32,0.18);}
+.app-card.stock{background:linear-gradient(145deg,#070d1c 0%,#0a1424 55%,#050a16 100%);border-color:#101c3a;box-shadow:0 2px 18px rgba(0,0,0,.6),inset 0 1px 0 rgba(59,130,246,0.06);}
+.app-card.stock:hover{border-color:#1d4ed8;box-shadow:0 6px 32px rgba(37,99,235,0.18);}
+.app-card::after{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,0.035) 50%,transparent 70%);transform:translateX(-100%);transition:transform .45s ease;pointer-events:none;}
+.app-card:hover::after{transform:translateX(100%);}
+.ci{padding:22px 20px 20px;}
+.ct{display:flex;align-items:flex-start;gap:14px;margin-bottom:13px;}
+.ico{width:54px;height:54px;flex-shrink:0;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;}
+.prod .ico{background:rgba(196,122,32,0.13);border:1px solid rgba(196,122,32,0.22);}
+.stock .ico{background:rgba(37,99,235,0.13);border:1px solid rgba(37,99,235,0.22);}
+.cm{flex:1;}
+.clbl{font-size:0.48rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:5px;font-weight:600;}
+.prod .clbl{color:#7a5018;}
+.stock .clbl{color:#1e40a0;}
+.ctitle{font-family:'Bebas Neue',sans-serif;font-size:1.75rem;letter-spacing:3px;line-height:1.05;}
+.prod .ctitle{color:#d4a853;}
+.stock .ctitle{color:#60a5fa;}
+.cdesc{font-size:0.6rem;line-height:1.75;margin-bottom:13px;}
+.prod .cdesc{color:#4a3820;}
+.stock .cdesc{color:#1e2e50;}
+.ctags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:15px;}
+.ctag{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;font-size:0.5rem;letter-spacing:.5px;font-weight:600;}
+.prod .ctag{background:rgba(196,122,32,0.1);color:#7a5018;border:1px solid rgba(196,122,32,0.18);}
+.stock .ctag{background:rgba(37,99,235,0.1);color:#1e3a90;border:1px solid rgba(37,99,235,0.18);}
+.cbtn{width:100%;padding:13px 16px;border:none;border-radius:12px;font-family:'IBM Plex Mono',monospace;font-size:0.65rem;font-weight:700;letter-spacing:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;}
+.prod .cbtn{background:#c47a20;color:#fff;}
+.stock .cbtn{background:#2563eb;color:#fff;}
+.cbtn:hover{opacity:.88;}
+.arr{transition:transform .15s;}
+.app-card:hover .arr{transform:translateX(5px);}
+.footer{flex-shrink:0;text-align:center;padding:12px 0 18px;font-size:0.45rem;letter-spacing:2px;text-transform:uppercase;color:#251e10;}
+.overlay{position:fixed;inset:0;z-index:200;background:#0e0c08;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .32s cubic-bezier(.32,.72,0,1);}
+.overlay.open{transform:translateY(0);}
+.obar{background:#0e0c08;border-bottom:1px solid #1a1508;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.obk{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid #2a2010;border-radius:8px;padding:7px 12px;font-family:'IBM Plex Mono',monospace;font-size:0.58rem;font-weight:600;color:#7a6a4a;cursor:pointer;letter-spacing:1px;transition:border-color .15s,color .15s;}
+.obk:hover{border-color:#c47a20;color:#c47a20;}
+.otitle{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:3px;color:#6a5a3a;}
+.oframe{flex:1;border:none;width:100%;height:100%;}
+</style>
+</head>
+<body>
+
+<div id="pw-screen">
+  <div class="pw-logo">OPERATIONS<br>HUB</div>
+  <div class="pw-sub">// TEXTILE MANAGEMENT SYSTEM</div>
+  <div class="pw-box">
+    <div class="pw-label">Enter Password</div>
+    <input class="pw-input" id="pw-input" type="password" placeholder="••••••" maxlength="30" autocomplete="off">
+    <button class="pw-btn" onclick="checkPassword()">ENTER →</button>
+    <div class="pw-err" id="pw-err"></div>
+  </div>
+</div>
+
+
+<div class="shell">
+  <div class="header">
+    <div class="header-icon">🏭</div>
+    <div class="header-title">OPERATIONS HUB</div>
+    <div class="header-sub">// Textile Management System</div>
+  </div>
+  <div class="sep">
+    <div class="sep-line"></div>
+    <div class="sep-txt">Select Module</div>
+    <div class="sep-line"></div>
+  </div>
+  <div class="cards">
+    <a class="app-card prod" onclick="openApp('prod');return false;" href="#">
+      <div class="ci">
+        <div class="ct">
+          <div class="ico">🧵</div>
+          <div class="cm">
+            <div class="clbl">Module 01</div>
+            <div class="ctitle">PRODUCTION<br>MANAGEMENT</div>
+          </div>
+        </div>
+        <div class="cdesc">Machine programs, run tracking, shift logs, post-processing pipeline and quality library.</div>
+        <div class="ctags">
+          <span class="ctag">🏭 Machines</span>
+          <span class="ctag">📋 Programs</span>
+          <span class="ctag">📊 Reports</span>
+          <span class="ctag">✂️ Post-Process</span>
+          <span class="ctag">🧶 Yarns</span>
+        </div>
+        <button class="cbtn">OPEN MODULE <span class="arr">→</span></button>
+      </div>
+    </a>
+    <a class="app-card stock" onclick="openApp('stock');return false;" href="#">
+      <div class="ci">
+        <div class="ct">
+          <div class="ico">📦</div>
+          <div class="cm">
+            <div class="clbl">Module 02</div>
+            <div class="ctitle">STOCK<br>MANAGEMENT</div>
+          </div>
+        </div>
+        <div class="cdesc">Output &amp; input challans, warehouse &amp; shop inventory, item lookup, AI scanning and sales reports.</div>
+        <div class="ctags">
+          <span class="ctag">📤 Output</span>
+          <span class="ctag">📥 Input</span>
+          <span class="ctag">📦 Stock</span>
+          <span class="ctag">🔍 Lookup</span>
+          <span class="ctag">📊 Sales</span>
+        </div>
+        <button class="cbtn">OPEN MODULE <span class="arr">→</span></button>
+      </div>
+    </a>
+  </div>
+  <div class="footer">Textile Operations · Cloud Sync · v4.0</div>
+</div>
+
+<!-- PRODUCTION OVERLAY -->
+<div class="overlay" id="ov-prod">
+  <div class="obar">
+    <button class="obk" onclick="closeApp('prod')">← BACK</button>
+    <span class="otitle">🧵 PRODUCTION MANAGEMENT</span>
+  </div>
+  <iframe class="oframe" id="fr-prod" src="" title="Production Management"></iframe>
+</div>
+
+<!-- STOCK OVERLAY -->
+<div class="overlay" id="ov-stock">
+  <div class="obar">
+    <button class="obk" onclick="closeApp('stock')">← BACK</button>
+    <span class="otitle">📦 STOCK MANAGEMENT</span>
+  </div>
+  <iframe class="oframe" id="fr-stock" src="" title="Stock Management"></iframe>
+</div>
+
+<script>
+function openApp(app) {
+  const ov = document.getElementById('ov-' + app);
+  const fr = document.getElementById('fr-' + app);
+  if (!fr.getAttribute('data-loaded')) {
+    fr.src = app === 'prod' ? 'production.html' : 'stock.html';
+    fr.setAttribute('data-loaded','1');
+  }
+  ov.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeApp(app) {
+  document.getElementById('ov-' + app).classList.remove('open');
+  document.body.style.overflow = '';
+}
+window.addEventListener('message', e => {
+  if (e.data === 'goBack') { closeApp('prod'); closeApp('stock'); }
+});
+</script>
+
+<script>
+(function(){
+  // Check if already authenticated this session
+  if(sessionStorage.getItem('ops_auth')==='1'){
+    document.getElementById('pw-screen').style.display='none';
+    return;
+  }
+  // Show password screen, hide main content
+  document.getElementById('pw-screen').style.display='flex';
+})();
+function checkPassword(){
+  const val = document.getElementById('pw-input').value;
+  if(val === 'garg'){
+    sessionStorage.setItem('ops_auth','1');
+    document.getElementById('pw-screen').style.display='none';
+  } else {
+    document.getElementById('pw-err').textContent='✕ Incorrect password';
+    document.getElementById('pw-input').value='';
+    document.getElementById('pw-input').focus();
+    setTimeout(()=>document.getElementById('pw-err').textContent='', 2000);
+  }
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const inp = document.getElementById('pw-input');
+  if(inp) inp.addEventListener('keydown', e=>{ if(e.key==='Enter') checkPassword(); });
+});
+</script>
+
+</body>
+</html>
