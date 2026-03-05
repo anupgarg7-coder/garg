@@ -821,7 +821,7 @@ function startRealtimeSync(uid) {
   if (unsubscribe) { unsubscribe(); unsubscribe = null; }
   try {
     const _ref = getUserDocRef(uid); if(!_ref){ console.warn('No DB for realtime sync'); return; } unsubscribe = _ref.onSnapshot( (snap) => {
-      if (!snap.exists()) return;
+      if (!snap.exists) return;
       const d = snap.data();
       // Only update if we're not mid-save (avoid feedback loops)
       if (d.updatedAt && data._lastSaveAt === d.updatedAt) return;
@@ -1294,6 +1294,13 @@ function getSalesQtyForItem(n){let t=0;data.salesReports.forEach(r=>(r.items||[]
 function getInputQtyForItem(n){return getWhInQty(n);}
 function getOutQtyForItem(n){return getShOutQty(n);}
 
+function renderShelfBadges(item) {
+  var wh = (item.whShelves||[]).filter(function(s){return s.shelf;}).map(function(s){return '<span class="shelf-badge">'+s.shelf+': '+s.qty+'</span>';}).join('');
+  var sh = (item.shShelves||[]).filter(function(s){return s.shelf;}).map(function(s){return '<span class="shelf-badge" style="background:#fffbe6;color:var(--report)">'+s.shelf+': '+s.qty+'</span>';}).join('');
+  if(wh||sh) return '<div>'+wh+(sh?'<br>'+sh:'')+'</div>';
+  return '<span style="color:var(--muted)">—</span>';
+}
+
 function renderStockRegister(){
   const q=(document.getElementById('stock-search').value||'').toLowerCase();
   const container=document.getElementById('stock-register-container');
@@ -1321,7 +1328,7 @@ function renderStockRegister(){
   document.getElementById('stk-low-count').textContent=lowCountWH;
   document.getElementById('stk-total-pcs').textContent=items.reduce((s,i)=>s+Math.max(0,i.warehouseTotal)+Math.max(0,i.shopTotal),0);
   if(!items.length){container.innerHTML='<div class="empty"><div class="empty-icon">📦</div>No stock items yet.</div>';return;}
-  container.innerHTML=`<div class="stock-register"><div class="stock-register-header"><span class="stock-register-title">LIVE STOCK REGISTER</span><span style="font-size:0.6rem;opacity:0.8;">${items.length} items</span></div><table class="stock-table"><thead><tr><th>ITEM</th><th colspan="2" style="text-align:center;background:#e8f5f5;color:var(--lookup)">🏭 WAREHOUSE</th><th colspan="2" style="text-align:center;background:#fef9ec;color:var(--report)">🏪 SHOP</th><th>SHELVES</th><th>WARN</th></tr><tr><th>—</th><th>Pre+In</th><th>Total</th><th>Pre+Out</th><th>Total</th><th>—</th><th>—</th></tr></thead><tbody>${items.map(item=>{const whDanger=item.warehouseTotal<=0,whLow=item.lowWarn>0&&item.warehouseTotal<=item.lowWarn&&!whDanger;const shDanger=item.shopTotal<=0;return`<tr><td style="font-weight:600;vertical-align:top;padding-top:8px">${item.name}</td><td style="color:var(--muted);font-size:0.65rem;vertical-align:top;padding-top:8px">${item.preWH}+${item.whIn}−${item.shOut}</td><td class="stock-total" style="vertical-align:top;padding-top:8px;${whDanger?'color:var(--out-color)':whLow?'color:var(--warn)':''}">${item.warehouseTotal}</td><td style="color:var(--muted);font-size:0.65rem;vertical-align:top;padding-top:8px">${item.preSH}+${item.shOut}−${item.shDed}−${item.salesQty}</td><td class="stock-total" style="vertical-align:top;padding-top:8px;${shDanger?'color:var(--out-color)':''}">${item.shopTotal}</td><td style="vertical-align:top;padding-top:6px;font-size:0.62rem;max-width:110px">${(()=>{const wh=item.whShelves.filter(s=>s.shelf).map(s=>`<span class=\'shelf-badge\'>${s.shelf}: ${s.qty}</span>`).join(\'\');const sh=item.shShelves.filter(s=>s.shelf).map(s=>`<span class=\'shelf-badge\' style=\'background:var(--report-light,#fffbe6);color:var(--report)\'>${s.shelf}: ${s.qty}</span>`).join(\'\');return (wh||sh)?`<div>${wh}${sh?`<br>${sh}`:''}</div>`:\'<span style=\"color:var(--muted)\">—</span>\';})()}</td><td style="vertical-align:top;padding-top:8px">${whDanger?'<span class="low-badge">🚨 WH</span>':whLow?'<span class="low-badge">⚠ LOW</span>':item.lowWarn>0?'<span class="ok-badge">✔</span>':'<span style="font-size:0.52rem;color:#ccc">—</span>'}</td></tr>`;}).join('')}</tbody></table></div>`;
+  container.innerHTML=`<div class="stock-register"><div class="stock-register-header"><span class="stock-register-title">LIVE STOCK REGISTER</span><span style="font-size:0.6rem;opacity:0.8;">${items.length} items</span></div><table class="stock-table"><thead><tr><th>ITEM</th><th colspan="2" style="text-align:center;background:#e8f5f5;color:var(--lookup)">🏭 WAREHOUSE</th><th colspan="2" style="text-align:center;background:#fef9ec;color:var(--report)">🏪 SHOP</th><th>SHELVES</th><th>WARN</th></tr><tr><th>—</th><th>Pre+In</th><th>Total</th><th>Pre+Out</th><th>Total</th><th>—</th><th>—</th></tr></thead><tbody>${items.map(item=>{const whDanger=item.warehouseTotal<=0,whLow=item.lowWarn>0&&item.warehouseTotal<=item.lowWarn&&!whDanger;const shDanger=item.shopTotal<=0;return`<tr><td style="font-weight:600;vertical-align:top;padding-top:8px">${item.name}</td><td style="color:var(--muted);font-size:0.65rem;vertical-align:top;padding-top:8px">${item.preWH}+${item.whIn}−${item.shOut}</td><td class="stock-total" style="vertical-align:top;padding-top:8px;${whDanger?'color:var(--out-color)':whLow?'color:var(--warn)':''}">${item.warehouseTotal}</td><td style="color:var(--muted);font-size:0.65rem;vertical-align:top;padding-top:8px">${item.preSH}+${item.shOut}−${item.shDed}−${item.salesQty}</td><td class="stock-total" style="vertical-align:top;padding-top:8px;${shDanger?'color:var(--out-color)':''}">${item.shopTotal}</td><td style="vertical-align:top;padding-top:6px;font-size:0.62rem;max-width:110px">${renderShelfBadges(item)}</td><td style="vertical-align:top;padding-top:8px">${whDanger?'<span class="low-badge">🚨 WH</span>':whLow?'<span class="low-badge">⚠ LOW</span>':item.lowWarn>0?'<span class="ok-badge">✔</span>':'<span style="font-size:0.52rem;color:#ccc">—</span>'}</td></tr>`;}).join('')}</tbody></table></div>`;
 }
 
 // ══ SALES REPORT ══
