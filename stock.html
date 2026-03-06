@@ -401,6 +401,21 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
 
 .stk-date{padding:5px 6px;border:1px solid var(--border);border-radius:7px;background:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:0.6rem;outline:none;min-width:110px;color:var(--ink);}
 .stk-date:focus{border-color:var(--stock);}
+
+/* ── Shelf-centric stock entry ── */
+.shelf-entry{background:var(--paper);border:2px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px;}
+.shelf-entry-hdr{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px dashed var(--border);margin-bottom:10px;}
+.shelf-entry-hdr input,.shelf-entry-hdr select{padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:0.65rem;outline:none;color:var(--ink);}
+.shelf-entry-hdr input:focus,.shelf-entry-hdr select:focus{border-color:var(--stock);}
+.shelf-items-table{width:100%;border-collapse:collapse;margin-bottom:6px;}
+.shelf-items-table th{font-size:0.52rem;letter-spacing:1px;color:var(--muted);padding:4px 6px;text-align:left;border-bottom:1px solid var(--border);}
+.shelf-items-table td{padding:4px 4px;}
+.shelf-items-table input{width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:7px;background:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:0.65rem;outline:none;color:var(--ink);}
+.shelf-items-table input:focus{border-color:var(--stock);}
+.shelf-add-item-btn{background:transparent;border:1px dashed var(--stock);border-radius:7px;padding:5px 12px;font-family:'IBM Plex Mono',monospace;font-size:0.58rem;color:var(--stock);cursor:pointer;width:100%;margin-top:4px;}
+.shelf-del-btn{background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:0.7rem;color:#c0392b;}
+.shelf-loc-wh{border-left:4px solid #0ea5e9;}
+.shelf-loc-sh{border-left:4px solid #f59e0b;}
 </style>
 </head>
 <body>
@@ -589,14 +604,10 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
   <div class="page" id="page-stock">
     <div class="form-card stock-card">
       <div class="section-label">Add / Update Pre-Stock</div>
-      <div class="items-header">
-        <span class="items-label">Stock Items</span>
-        <button class="add-item-btn" style="background:var(--stock-light);color:var(--stock);border-color:var(--stock);" onclick="addStockRow()">+ ADD ITEM</button>
-      </div>
-      <div style="font-size:0.58rem;color:var(--muted);margin-bottom:6px;line-height:1.6">Enter opening stock at each location. Movements are tracked automatically from challans.</div>
-      <div class="stock-col-heads"><span>Item Name</span><span>Warehouse qty</span><span>Shop qty</span><span style="font-size:0.5rem;">Pre-Stock Date</span><span></span></div>
+      <div style="font-size:0.58rem;color:var(--muted);margin-bottom:10px;line-height:1.6;">Add stock shelf by shelf. Each shelf has a location, date, and multiple items.</div>
       <div id="stock-input-list"></div>
-      <button class="submit-btn stock-btn" style="margin-top:12px;" onclick="saveStockItems()">SAVE STOCK</button>
+      <button class="add-item-btn" style="background:var(--stock-light);color:var(--stock);border-color:var(--stock);width:100%;padding:10px;margin-bottom:10px;" onclick="addShelfEntry()">+ ADD SHELF</button>
+      <button class="submit-btn stock-btn" style="margin-top:4px;" onclick="saveStockItems()">SAVE ALL STOCK</button>
     </div>
     <div class="section-label">Live Stock Register</div>
     <div class="filter-row"><input id="stock-search" type="text" placeholder="Search item..." oninput="renderStockRegister()"></div>
@@ -1189,108 +1200,11 @@ function renderBook(){
 }
 
 // ══ STOCK ══
-function makeShelfRow(shelfNo='', qty=0, container) {
-  const row = document.createElement('div'); row.className = 'shelf-row';
-  const sInp = document.createElement('input'); sInp.type='text'; sInp.placeholder='Shelf (e.g. A-3)'; sInp.className='stk-shelf'; sInp.value=shelfNo||''; sInp.autocomplete='off';
-  const qInp = document.createElement('input'); qInp.type='number'; qInp.placeholder='Qty'; qInp.min='0'; qInp.className='stk-shelf-qty'; qInp.value=qty||'';
-  const rmBtn = document.createElement('button'); rmBtn.className='remove-item'; rmBtn.textContent='✕'; rmBtn.title='Remove shelf';
-  rmBtn.onclick = () => { if(container.querySelectorAll('.shelf-row').length > 1) row.remove(); else { sInp.value=''; qInp.value=''; } };
-  row.appendChild(sInp); row.appendChild(qInp); row.appendChild(rmBtn);
-  container.appendChild(row);
-}
+/* makeShelfRow replaced */
+/* makeStockRow replaced */
+/* addStockRow replaced */
 
-function makeStockRow(name='', preStockWarehouse=0, preStockShop=0, lowWarn=0, shelves=[], preStockDate='') {
-  const div = document.createElement('div'); div.className = 'stock-item-row';
-
-  // Top row: item name + low warn + remove
-  const top = document.createElement('div'); top.className = 'stk-item-top';
-  const nameWrap = document.createElement('div'); nameWrap.className='name-wrap'; nameWrap.style.position='relative';
-  const nameInp = document.createElement('input'); nameInp.type='text'; nameInp.placeholder='Item name'; nameInp.className='stk-name'; nameInp.autocomplete='off'; nameInp.value=name;
-  nameWrap.appendChild(nameInp);
-  const warnInp = document.createElement('input'); warnInp.type='number'; warnInp.placeholder='Low warn'; warnInp.min='0'; warnInp.className='stk-warn'; warnInp.value=lowWarn||''; warnInp.title='Low stock warning threshold';
-  const dateInp = document.createElement('input'); dateInp.type='date'; dateInp.className='stk-date'; dateInp.value=preStockDate||''; dateInp.title='Pre-stock date — only challans AFTER this date will be counted'; dateInp.style.cssText='padding:5px 6px;border:1px solid var(--border);border-radius:7px;background:var(--bg);font-family:"IBM Plex Mono",monospace;font-size:0.6rem;outline:none;min-width:110px;color:var(--ink);';
-  const removeBtn = document.createElement('button'); removeBtn.className='remove-item'; removeBtn.textContent='✕'; removeBtn.onclick=()=>div.remove();
-  top.appendChild(nameWrap); top.appendChild(warnInp); top.appendChild(dateInp); top.appendChild(removeBtn);
-
-  // Shelf section label
-  const shelfLabel = document.createElement('div');
-  shelfLabel.style.cssText='font-size:0.5rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;margin-top:2px;';
-  shelfLabel.textContent='📦 Shelf locations (shelf name → qty)';
-
-  // Warehouse shelves
-  const whLabel = document.createElement('div');
-  whLabel.style.cssText='font-size:0.52rem;font-weight:700;color:var(--lookup);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;';
-  whLabel.textContent='🏭 Warehouse Shelves';
-  const whContainer = document.createElement('div'); whContainer.className='shelf-rows'; whContainer.dataset.loc='wh';
-  const whShelves = shelves.filter(s=>s.loc==='wh'||!s.loc);
-  if(whShelves.length) whShelves.forEach(s=>makeShelfRow(s.shelf||s.shelfNo||'', s.qty||0, whContainer));
-  else makeShelfRow('', preStockWarehouse||0, whContainer);
-  const addWhBtn = document.createElement('button'); addWhBtn.className='add-shelf-btn'; addWhBtn.textContent='+ Add Warehouse Shelf';
-  addWhBtn.onclick=()=>makeShelfRow('','',whContainer);
-
-  // Shop shelves
-  const shLabel = document.createElement('div');
-  shLabel.style.cssText='font-size:0.52rem;font-weight:700;color:var(--report);letter-spacing:1px;text-transform:uppercase;margin:8px 0 3px;';
-  shLabel.textContent='🏪 Shop Shelves';
-  const shContainer = document.createElement('div'); shContainer.className='shelf-rows'; shContainer.dataset.loc='sh';
-  const shShelves = shelves.filter(s=>s.loc==='sh');
-  if(shShelves.length) shShelves.forEach(s=>makeShelfRow(s.shelf||'', s.qty||0, shContainer));
-  else makeShelfRow('', preStockWarehouse>0?0:(shelves.length?0:0), shContainer);
-  const addShBtn = document.createElement('button'); addShBtn.className='add-shelf-btn'; addShBtn.textContent='+ Add Shop Shelf';
-  addShBtn.onclick=()=>makeShelfRow('','',shContainer);
-
-  div.appendChild(top);
-  div.appendChild(shelfLabel);
-  div.appendChild(whLabel); div.appendChild(whContainer); div.appendChild(addWhBtn);
-  div.appendChild(shLabel); div.appendChild(shContainer); div.appendChild(addShBtn);
-  document.getElementById('stock-input-list').appendChild(div);
-  attachItemAutocomplete(nameInp);
-}
-
-function addStockRow(){ makeStockRow(); }
-
-function renderStockInputRows(){
-  document.getElementById('stock-input-list').innerHTML='';
-  if(data.stock.length) data.stock.forEach(s=>{
-    const shelves = s.shelves || [];
-    // Legacy migration: if no shelves but has preStock values, build shelf entries
-    if(!shelves.length){
-      if(s.preStockWarehouse||s.preStock) shelves.push({loc:'wh',shelf:'',qty:s.preStockWarehouse||s.preStock||0});
-      if(s.preStockShop) shelves.push({loc:'sh',shelf:'',qty:s.preStockShop||0});
-    }
-    makeStockRow(s.name, s.preStockWarehouse||s.preStock||0, s.preStockShop||0, s.lowWarn||0, shelves, s.preStockDate||'');
-  });
-  else addStockRow();
-}
-
-function saveStockItems(){
-  const rows = document.querySelectorAll('#stock-input-list .stock-item-row');
-  data.stock = [];
-  rows.forEach(row=>{
-    const name = row.querySelector('.stk-name').value.trim();
-    if(!name) return;
-    const shelves = [];
-    row.querySelectorAll('[data-loc="wh"] .shelf-row').forEach(sr=>{
-      const shelf = sr.querySelector('.stk-shelf').value.trim();
-      const qty = parseInt(sr.querySelector('.stk-shelf-qty').value)||0;
-      if(shelf||qty) shelves.push({loc:'wh', shelf, qty});
-    });
-    row.querySelectorAll('[data-loc="sh"] .shelf-row').forEach(sr=>{
-      const shelf = sr.querySelector('.stk-shelf').value.trim();
-      const qty = parseInt(sr.querySelector('.stk-shelf-qty').value)||0;
-      if(shelf||qty) shelves.push({loc:'sh', shelf, qty});
-    });
-    const preStockWarehouse = shelves.filter(s=>s.loc==='wh').reduce((t,s)=>t+s.qty,0);
-    const preStockShop = shelves.filter(s=>s.loc==='sh').reduce((t,s)=>t+s.qty,0);
-    const lowWarn = parseInt(row.querySelector('.stk-warn').value)||0;
-    const preStockDate = row.querySelector('.stk-date')?.value||'';
-    data.stock.push({name, shelves, preStockWarehouse, preStockShop, lowWarn, preStockDate});
-  });
-  save(); toast('✔ Stock saved! Syncing to cloud...'); renderStockRegister();
-}
-
-// ── Warehouse inventory: +input(both types) +preStockWarehouse −output(sample/packing)
-// ── Get the latest pre-stock date for an item (or '' if none set) ──
+/* renderStockInputRows replaced */
 function getLatestPreStockDate(name){
   const entries = data.stock.filter(s=>s.name.toLowerCase()===name.toLowerCase()&&s.preStockDate);
   if(!entries.length) return '';
@@ -1815,6 +1729,197 @@ renderOutputList = function(){
     return '<div class="challan-card"><div class="challan-header out"><div><div class="ch-num out">'+o.challan+'</div><div class="ch-date">'+o.date+'</div></div><div style="display:flex;align-items:center;gap:8px;"><span class="ch-badge out">OUT</span><button class="del-ch-btn" onclick="deleteOut(\''+o.id+'\')">🗑</button></div></div><div class="challan-body">'+o.items.map(i=>{const cat=itemCatalog[i.name]||{};const stk=cat.stackNo?'<div class="stack-tag">📍 Stack '+cat.stackNo+'</div>':'';const tb='<span class="type-badge '+typeCls(i.type||'grey')+'" style="margin-left:4px">'+typeLabel(i.type||'grey')+'</span>';return'<div class="item-line"><div><span>'+i.name+'</span>'+stk+tb+'</div><span class="item-pcs">'+i.pcs+' pcs</span></div>';}).join('')+'<div style="margin-top:5px">'+typeTagsHtml+'</div><div class="ch-footer"><span class="ch-total">Total: <strong>'+total+' pcs</strong></span>'+(li.length?'<span class="linked-tag">🔗 '+li.length+' input(s)</span>':'<span style="font-size:0.62rem;color:#bbb">No inputs yet</span>')+'</div></div></div>';
   }).join('');
 };
+
+</script>
+
+<script>
+
+// ════════════════════════════════════════════════
+// SHELF-CENTRIC STOCK ENTRY
+// Each shelf entry = one shelf location + date + multiple items
+// data.stock stores per-item records, rebuilt from shelf entries on save
+// ════════════════════════════════════════════════
+
+function addShelfEntry(shelfNo='', loc='wh', date='', items=[]) {
+  const list = document.getElementById('stock-input-list');
+  const entry = document.createElement('div');
+  entry.className = 'shelf-entry ' + (loc==='sh' ? 'shelf-loc-sh' : 'shelf-loc-wh');
+
+  // ── Header: shelf name, location, date, remove ──
+  const hdr = document.createElement('div');
+  hdr.className = 'shelf-entry-hdr';
+
+  const shelfInp = document.createElement('input');
+  shelfInp.type = 'text'; shelfInp.placeholder = 'Shelf (e.g. A-3)';
+  shelfInp.className = 'shelf-no-inp'; shelfInp.value = shelfNo;
+  shelfInp.style.cssText = 'flex:1;min-width:80px;';
+
+  const locSel = document.createElement('select');
+  locSel.className = 'shelf-loc-sel';
+  locSel.innerHTML = '<option value="wh">🏭 Warehouse</option><option value="sh">🏪 Shop</option>';
+  locSel.value = loc;
+  locSel.onchange = function() {
+    entry.className = 'shelf-entry ' + (this.value==='sh' ? 'shelf-loc-sh' : 'shelf-loc-wh');
+  };
+
+  const dateInp = document.createElement('input');
+  dateInp.type = 'date'; dateInp.className = 'shelf-date-inp'; dateInp.value = date;
+  dateInp.title = 'Pre-stock date for this shelf entry';
+  dateInp.style.cssText = 'min-width:120px;';
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'shelf-del-btn'; delBtn.textContent = '🗑';
+  delBtn.title = 'Remove this shelf entry';
+  delBtn.onclick = function() { if(confirm('Remove this shelf entry?')) entry.remove(); };
+
+  hdr.appendChild(shelfInp); hdr.appendChild(locSel);
+  hdr.appendChild(dateInp); hdr.appendChild(delBtn);
+
+  // ── Items table ──
+  const tbl = document.createElement('table');
+  tbl.className = 'shelf-items-table';
+  tbl.innerHTML = '<thead><tr><th>ITEM NAME</th><th style="width:80px;">QTY</th><th style="width:28px;"></th></tr></thead>';
+  const tbody = document.createElement('tbody');
+  tbl.appendChild(tbody);
+
+  function addItemRow(itemName='', qty='') {
+    const tr = document.createElement('tr');
+    const tdName = document.createElement('td');
+    const nameInp = document.createElement('input');
+    nameInp.type = 'text'; nameInp.placeholder = 'Item name';
+    nameInp.className = 'shelf-item-name'; nameInp.value = itemName;
+    nameInp.setAttribute('list', 'stock-names-datalist');
+    tdName.appendChild(nameInp);
+
+    const tdQty = document.createElement('td');
+    const qtyInp = document.createElement('input');
+    qtyInp.type = 'number'; qtyInp.placeholder = 'Qty'; qtyInp.min = '0';
+    qtyInp.className = 'shelf-item-qty'; qtyInp.value = qty;
+    qtyInp.style.textAlign = 'center';
+    tdQty.appendChild(qtyInp);
+
+    const tdDel = document.createElement('td');
+    const delItemBtn = document.createElement('button');
+    delItemBtn.textContent = '✕';
+    delItemBtn.style.cssText = 'background:#fee2e2;border:1px solid #fca5a5;border-radius:5px;padding:3px 6px;cursor:pointer;font-size:0.65rem;color:#c0392b;';
+    delItemBtn.onclick = function() {
+      if(tbody.querySelectorAll('tr').length > 1) tr.remove();
+      else { nameInp.value=''; qtyInp.value=''; }
+    };
+    tdDel.appendChild(delItemBtn);
+
+    tr.appendChild(tdName); tr.appendChild(tdQty); tr.appendChild(tdDel);
+    tbody.appendChild(tr);
+    return nameInp;
+  }
+
+  // Pre-fill items or add one blank row
+  if(items.length) {
+    items.forEach(function(it) { addItemRow(it.name||'', it.qty||''); });
+  } else {
+    addItemRow();
+  }
+
+  // Add item button
+  const addItemBtn = document.createElement('button');
+  addItemBtn.className = 'shelf-add-item-btn';
+  addItemBtn.textContent = '+ ADD ITEM TO THIS SHELF';
+  addItemBtn.onclick = function() {
+    const inp = addItemRow();
+    inp.focus();
+  };
+
+  entry.appendChild(hdr);
+  entry.appendChild(tbl);
+  entry.appendChild(addItemBtn);
+  list.appendChild(entry);
+
+  // Build datalist if not exists
+  if(!document.getElementById('stock-names-datalist')) {
+    const dl = document.createElement('datalist');
+    dl.id = 'stock-names-datalist';
+    document.body.appendChild(dl);
+  }
+  // Populate datalist from existing stock
+  const dl = document.getElementById('stock-names-datalist');
+  const existingNames = new Set(Array.from(dl.options).map(o=>o.value));
+  data.stock.forEach(function(s) {
+    if(!existingNames.has(s.name)) {
+      const opt = document.createElement('option');
+      opt.value = s.name;
+      dl.appendChild(opt);
+    }
+  });
+}
+
+function saveStockItems() {
+  const entries = document.querySelectorAll('#stock-input-list .shelf-entry');
+  if(!entries.length) { toast('⚠ No shelf entries to save!'); return; }
+
+  // Build a map: itemName → {shelves[], preStockWarehouse, preStockShop, latestDate}
+  const itemMap = {};
+
+  entries.forEach(function(entry) {
+    const shelfNo = entry.querySelector('.shelf-no-inp').value.trim();
+    const loc = entry.querySelector('.shelf-loc-sel').value;
+    const date = entry.querySelector('.shelf-date-inp').value;
+
+    entry.querySelectorAll('tbody tr').forEach(function(tr) {
+      const name = tr.querySelector('.shelf-item-name').value.trim();
+      const qty = parseInt(tr.querySelector('.shelf-item-qty').value) || 0;
+      if(!name || qty <= 0) return;
+
+      if(!itemMap[name]) {
+        itemMap[name] = { name:name, shelves:[], preStockWarehouse:0, preStockShop:0, lowWarn:0, preStockDate:'' };
+      }
+      itemMap[name].shelves.push({ loc:loc, shelf:shelfNo, qty:qty, date:date });
+      if(loc === 'wh') itemMap[name].preStockWarehouse += qty;
+      else itemMap[name].preStockShop += qty;
+      // Keep latest date as the item's preStockDate
+      if(!itemMap[name].preStockDate || date > itemMap[name].preStockDate) {
+        itemMap[name].preStockDate = date;
+      }
+    });
+  });
+
+  // Preserve lowWarn from existing stock
+  data.stock.forEach(function(s) {
+    if(itemMap[s.name]) itemMap[s.name].lowWarn = s.lowWarn||0;
+  });
+
+  data.stock = Object.values(itemMap);
+  save();
+  toast('✔ Stock saved! ' + data.stock.length + ' items syncing...');
+  renderStockRegister();
+}
+
+function renderStockInputRows() {
+  const list = document.getElementById('stock-input-list');
+  list.innerHTML = '';
+
+  // Rebuild shelf entries from saved data
+  // Group by shelf+loc+date
+  const shelfMap = {};
+  data.stock.forEach(function(item) {
+    (item.shelves||[]).forEach(function(s) {
+      const key = (s.shelf||'') + '|' + (s.loc||'wh') + '|' + (s.date||item.preStockDate||'');
+      if(!shelfMap[key]) shelfMap[key] = { shelfNo: s.shelf||'', loc: s.loc||'wh', date: s.date||item.preStockDate||'', items:[] };
+      shelfMap[key].items.push({ name: item.name, qty: s.qty||0 });
+    });
+  });
+
+  const shelfEntries = Object.values(shelfMap);
+  if(shelfEntries.length) {
+    shelfEntries.forEach(function(se) {
+      addShelfEntry(se.shelfNo, se.loc, se.date, se.items);
+    });
+  } else {
+    // If stock has items but no shelf data yet, show one blank entry
+    addShelfEntry();
+  }
+}
+
+function addStockRow() { addShelfEntry(); }
 
 </script>
 
