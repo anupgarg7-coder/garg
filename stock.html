@@ -491,7 +491,7 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
       <label style="margin-bottom:5px;display:block">📷 Scan Challan Photo — AI Auto-Fill</label>
       <div class="scan-zone" id="out-scan-zone" onclick="document.getElementById('out-scan-file').click()">
         <div class="scan-icon">📷</div>
-        <div class="scan-hint"><strong>Tap to photograph challan</strong><br>AI reads handwriting &amp; fills all fields</div>
+        <div class="scan-hint"><strong>Tap to photograph challan</strong><br>AI reads handwriting &amp; fills all fields<br><span onclick="showGeminiKeyModal()" style="font-size:0.52rem;text-decoration:underline;cursor:pointer;opacity:0.7;">🔑 Set AI Key</span></div>
         <input type="file" id="out-scan-file" accept="image/*" capture="environment" style="display:none" onchange="scanChallan(event,'out')">
       </div>
       <div id="out-scan-status" class="scan-status out-s" style="display:none"><div class="spinner"></div><span id="out-scan-msg"></span></div>
@@ -516,7 +516,7 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
       <label style="margin-bottom:5px;display:block">📷 Scan Challan Photo — AI Auto-Fill</label>
       <div class="scan-zone in-v" id="in-scan-zone" onclick="document.getElementById('in-scan-file').click()">
         <div class="scan-icon">📷</div>
-        <div class="scan-hint"><strong>Tap to photograph challan</strong><br>AI reads handwriting &amp; fills all fields</div>
+        <div class="scan-hint"><strong>Tap to photograph challan</strong><br>AI reads handwriting &amp; fills all fields<br><span onclick="showGeminiKeyModal()" style="font-size:0.52rem;text-decoration:underline;cursor:pointer;opacity:0.7;">🔑 Set AI Key</span></div>
         <input type="file" id="in-scan-file" accept="image/*" capture="environment" style="display:none" onchange="scanChallan(event,'in')">
       </div>
       <div id="in-scan-status" class="scan-status in-s" style="display:none"><div class="spinner" style="border-color:var(--in-border);border-top-color:var(--in-color)"></div><span id="in-scan-msg"></span></div>
@@ -1340,9 +1340,11 @@ async function handlePdfUpload(event){
   try{
     const base64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
     document.getElementById('ai-status').textContent='AI extracting quantities...';
-    const response=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}},{type:'text',text:`Sales report PDF for ${monthYear}. Extract ALL items/products sold and quantities (pieces/units/pcs). Return ONLY a valid JSON array, no markdown, no code fences. Format: [{"name":"Item Name","qty":100},...]. Include every product line found.`}]}]})});
+    if(!getGeminiKey()){ document.getElementById('ai-processing').style.display='none'; showGeminiKeyModal(); return; }
+    const response=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+getGeminiKey(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{inline_data:{mime_type:'application/pdf',data:base64}},{text:`Sales report PDF for ${monthYear}. Extract ALL items/products sold and quantities (pieces/units/pcs). Return ONLY a valid JSON array, no markdown, no code fences. Format: [{"name":"Item Name","qty":100},...]. Include every product line found.`}]}],generationConfig:{temperature:0.1,maxOutputTokens:2000}})});
+    if(!response.ok){ const e=await response.json(); throw new Error('Gemini error: '+(e.error?.message||response.status)); }
     const result=await response.json();
-    const rawText=result.content.map(c=>c.text||'').join('');
+    const rawText=result.candidates?.[0]?.content?.parts?.[0]?.text||'';
     let items=[];
     try{items=JSON.parse(rawText.replace(/```json|```/g,'').trim());}
     catch{const m=rawText.match(/\[[\s\S]*\]/);if(m)items=JSON.parse(m[0]);else throw new Error('Could not parse AI response');}
@@ -1451,11 +1453,20 @@ function buildHWContext(){
 // ═══════════════════════════════════
 let pendingScan = {};
 
+// ── Gemini API key management ──
+function getGeminiKey(){ return localStorage.getItem('csm_gemini_key')||''; }
+function saveGeminiKey(k){ localStorage.setItem('csm_gemini_key',k.trim()); toast('✔ Gemini API key saved!'); document.getElementById('gemini-key-modal').style.display='none'; }
+function showGeminiKeyModal(){ document.getElementById('gemini-key-input').value=getGeminiKey(); document.getElementById('gemini-key-modal').style.display='flex'; }
+
 async function scanChallan(event, type){
   const file = event.target.files[0]; if(!file)return;
   const statusEl = document.getElementById(type+'-scan-status');
   const msgEl    = document.getElementById(type+'-scan-msg');
   const reviewEl = document.getElementById(type+'-review-panel');
+
+  // Check for API key
+  if(!getGeminiKey()){ showGeminiKeyModal(); event.target.value=''; return; }
+
   statusEl.style.display='flex'; msgEl.textContent='Reading photo...';
   reviewEl.innerHTML=''; reviewEl.style.display='none';
   try{
@@ -1467,20 +1478,40 @@ async function scanChallan(event, type){
     msgEl.textContent='AI reading handwriting...';
     const hwCtx  = buildHWContext();
     const label  = type==='out'?'OUTPUT':'INPUT';
-    const prompt = 'This is a handwritten '+label+' CHALLAN from a warehouse.\nExtract: challan number, date, all items with quantities (pcs).\nFor any unclear/unreadable text mark with ??UNREADABLE?? and put your best guess in aiGuess.\n'+hwCtx+'\nReturn ONLY valid JSON (no markdown, no explanation):\n{"challanNo":"...","date":"YYYY-MM-DD","items":[{"name":"...","pcs":0,"unreadable":false,"aiGuess":""}],"hasUnreadable":false}';
-    const resp = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:mime,data:base64}},{type:'text',text:prompt}]}]})});
+    const prompt = 'This is a handwritten '+label+' CHALLAN from a textile warehouse.\nExtract: challan number, date (as YYYY-MM-DD), all items with quantities (pcs).\nItem names may be fabric/saree designs like Pihu-19, Pihu-21 etc.\nFor any unclear text mark unreadable:true and put best guess in aiGuess.\n'+hwCtx+'\nReturn ONLY valid JSON (no markdown, no backticks):\n{"challanNo":"...","date":"YYYY-MM-DD","items":[{"name":"...","pcs":0,"unreadable":false,"aiGuess":""}],"hasUnreadable":false}';
+
+    // Call Gemini 1.5 Flash — free tier: 1500 requests/day
+    const apiKey = getGeminiKey();
+    const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+apiKey;
+    const resp = await fetch(geminiUrl, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        contents:[{parts:[
+          {inline_data:{mime_type:mime, data:base64}},
+          {text:prompt}
+        ]}],
+        generationConfig:{temperature:0.1, maxOutputTokens:1000}
+      })
+    });
+    if(!resp.ok){
+      const err = await resp.json();
+      if(resp.status===400&&err.error?.message?.includes('API_KEY')) throw new Error('Invalid API key. Click 🔑 to update.');
+      throw new Error('Gemini error: '+resp.status+' '+JSON.stringify(err.error?.message||''));
+    }
     const result = await resp.json();
-    const raw = result.content.map(c=>c.text||'').join('');
+    const raw = result.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    if(!raw) throw new Error('Gemini returned empty response');
     let parsed;
-    try{parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());}
-    catch{const m=raw.match(/\{[\s\S]*\}/);if(m)parsed=JSON.parse(m[0]);else throw new Error('Could not parse AI response');}
+    try{ parsed=JSON.parse(raw.replace(/```json|```/g,'').trim()); }
+    catch{ const m=raw.match(/\{[\s\S]*\}/); if(m) parsed=JSON.parse(m[0]); else throw new Error('Could not parse AI response: '+raw.substring(0,100)); }
     pendingScan[type]={...parsed,base64,mime};
     statusEl.style.display='none';
     buildReviewPanel(type,parsed);
     event.target.value='';
   }catch(err){
     statusEl.style.display='none';
-    toast('❌ Scan error: '+err.message,3500);
+    toast('❌ '+err.message, 4000);
     console.error(err);
     event.target.value='';
   }
@@ -1758,5 +1789,20 @@ document.addEventListener('DOMContentLoaded',function(){
   if(i)i.addEventListener('keydown',function(e){if(e.key==='Enter')checkPassword();});
 });
 </script>
+
+<!-- GEMINI API KEY MODAL -->
+<div id="gemini-key-modal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;padding:20px;flex-direction:column;">
+  <div style="background:var(--paper);border:1px solid var(--border);border-radius:18px;padding:26px 22px;width:100%;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+    <div style="font-size:0.75rem;font-weight:700;letter-spacing:2px;margin-bottom:4px;">🔑 GEMINI API KEY</div>
+    <div style="font-size:0.62rem;color:var(--muted);margin-bottom:6px;line-height:1.7;">Free AI scanning — 1,500 scans/day at no cost.<br>
+    Get your free key:<br>
+    1. Go to <b>aistudio.google.com</b><br>
+    2. Click <b>Get API Key → Create API Key</b><br>
+    3. Copy and paste below</div>
+    <input id="gemini-key-input" type="password" placeholder="AIza..." style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:9px;background:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:0.72rem;outline:none;margin-bottom:10px;margin-top:6px;" oninput="this.style.borderColor=this.value.startsWith('AIza')?'#1a6b3a':'var(--border)'">
+    <button onclick="saveGeminiKey(document.getElementById('gemini-key-input').value)" style="width:100%;padding:13px;background:var(--in-color);color:#fff;border:none;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:0.68rem;letter-spacing:2px;cursor:pointer;margin-bottom:8px;">SAVE KEY & CONTINUE</button>
+    <button onclick="document.getElementById('gemini-key-modal').style.display='none'" style="width:100%;padding:10px;background:transparent;border:1px solid var(--border);border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:0.62rem;cursor:pointer;color:var(--muted);">CANCEL</button>
+  </div>
+</div>
 </body>
 </html>
