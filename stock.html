@@ -399,48 +399,9 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
 .month-selector .field{flex:1;margin-bottom:0;}
 .del-report-btn{background:transparent;border:1px solid rgba(255,255,255,0.35);border-radius:6px;color:#fff;cursor:pointer;font-size:0.62rem;padding:3px 8px;opacity:0.85;}
 
-/* ── Challan Create & Process tabs ── */
-.tab.challan.active,.tab.challan:hover{background:var(--stock);color:#fff;}
-.tab.process.active,.tab.process:hover{background:#7c3aed;color:#fff;}
-.tab.challan{border-color:var(--stock);color:var(--stock);}
-.tab.process{border-color:#7c3aed;color:#7c3aed;}
-.process-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.55rem;font-weight:700;letter-spacing:1px;}
-.badge-pending{background:#fef3c7;color:#d97706;}
-.badge-returned{background:#d1fae5;color:#065f46;}
-.badge-deka{background:#ede9fe;color:#7c3aed;}
-.badge-ready{background:#d1fae5;color:#065f46;}
-.badge-regular{background:#fee2e2;color:#991b1b;}
-.process-card{background:var(--paper);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;}
-.process-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
-.process-ch-num{font-size:0.8rem;font-weight:700;letter-spacing:1px;}
-.process-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
-.process-action-btn{padding:5px 12px;border-radius:7px;border:none;font-family:'IBM Plex Mono',monospace;font-size:0.55rem;font-weight:700;letter-spacing:1px;cursor:pointer;}
-.btn-return{background:#d1fae5;color:#065f46;}
-.btn-deka{background:#ede9fe;color:#7c3aed;}
-.btn-print{background:#e0f2fe;color:#0369a1;}
-/* ── Challan Print ── */
-.challan-print-modal{display:none;position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;padding:10px;overflow-y:auto;}
-.challan-print-modal.open{display:flex;}
-.challan-print-sheet{background:#fff;width:100%;max-width:420px;border-radius:8px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.4);}
-.challan-print-actions{display:flex;gap:8px;padding:12px;background:#f8f8f8;border-top:1px solid #eee;}
-.cpa-btn{flex:1;padding:11px;border:none;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:0.62rem;letter-spacing:1px;cursor:pointer;}
-.cpa-pdf{background:#c0392b;color:#fff;}
-.cpa-img{background:#2980b9;color:#fff;}
-.cpa-close{background:#eee;color:#333;}
-/* ── Process List Manager ── */
-.process-tag{display:inline-flex;align-items:center;gap:5px;background:var(--paper);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:0.62rem;font-weight:600;margin:4px;}
-.process-tag-del{background:none;border:none;color:#ef4444;cursor:pointer;font-size:0.8rem;padding:0;line-height:1;}
-/* ── Challan form output type selector ── */
-.out-type-selector{display:flex;gap:8px;margin-bottom:14px;}
-.out-type-btn{flex:1;padding:10px 8px;border-radius:10px;border:2px solid var(--border);background:var(--paper);font-family:'IBM Plex Mono',monospace;font-size:0.6rem;font-weight:700;letter-spacing:1px;cursor:pointer;text-align:center;transition:all .15s;}
-.out-type-btn.active.regular{border-color:var(--out-color);background:#fee2e2;color:#991b1b;}
-.out-type-btn.active.process{border-color:#7c3aed;background:#ede9fe;color:#7c3aed;}
-@media print {
-  body > *:not(#challan-print-content){ display:none!important; }
-  #challan-print-content{ display:block!important; }
-}
+.stk-date{padding:5px 6px;border:1px solid var(--border);border-radius:7px;background:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:0.6rem;outline:none;min-width:110px;color:var(--ink);}
+.stk-date:focus{border-color:var(--stock);}
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 <div id="pw-screen">
@@ -521,8 +482,6 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
     </div>
     <div class="tabs2">
       <button class="tab stock" onclick="switchTab('stock')">📦 STOCK</button>
-      <button class="tab challan" onclick="switchTab('challan')">🖨 CREATE CHALLAN</button>
-      <button class="tab process" onclick="switchTab('process')">🔄 PROCESS</button>
       <button class="tab report" onclick="switchTab('report')">📊 SALES REPORT</button>
       <button class="tab lookup" onclick="switchTab('lookup')">🔍 ITEM LOOKUP</button>
     </div>
@@ -635,7 +594,7 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
         <button class="add-item-btn" style="background:var(--stock-light);color:var(--stock);border-color:var(--stock);" onclick="addStockRow()">+ ADD ITEM</button>
       </div>
       <div style="font-size:0.58rem;color:var(--muted);margin-bottom:6px;line-height:1.6">Enter opening stock at each location. Movements are tracked automatically from challans.</div>
-      <div class="stock-col-heads"><span>Item Name</span><span>Warehouse qty</span><span>Shop qty</span><span></span></div>
+      <div class="stock-col-heads"><span>Item Name</span><span>Warehouse qty</span><span>Shop qty</span><span style="font-size:0.5rem;">Pre-Stock Date</span><span></span></div>
       <div id="stock-input-list"></div>
       <button class="submit-btn stock-btn" style="margin-top:12px;" onclick="saveStockItems()">SAVE STOCK</button>
     </div>
@@ -647,86 +606,6 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
       <div class="sum-box in-box"><div class="val" id="stk-total-pcs">0</div><div class="lbl">Total Pcs</div></div>
     </div>
     <div id="stock-register-container"></div>
-  </div>
-
-
-  <!-- CREATE CHALLAN -->
-  <div class="page" id="page-challan">
-    <div class="form-card" style="border-top:3px solid var(--stock);">
-      <div class="section-label">Create Digital Challan</div>
-
-      <!-- Output Type Selector -->
-      <div style="font-size:0.6rem;color:var(--muted);margin-bottom:8px;">Select Output Type:</div>
-      <div class="out-type-selector" id="challan-type-selector">
-        <button class="out-type-btn regular active" onclick="setChallanType('regular')" id="ctype-regular">📦 REGULAR OUTPUT<br><span style="font-size:0.5rem;font-weight:400;opacity:0.8;">Reduces inventory</span></button>
-        <button class="out-type-btn process" onclick="setChallanType('process')" id="ctype-process">🔄 PROCESS OUTPUT<br><span style="font-size:0.5rem;font-weight:400;opacity:0.8;">Sent for work (no inventory change)</span></button>
-        <button class="out-type-btn" style="border-color:var(--in-color);" onclick="setChallanType('input')" id="ctype-input">📥 INPUT CHALLAN<br><span style="font-size:0.5rem;font-weight:400;opacity:0.8;">Goods received</span></button>
-      </div>
-
-      <!-- Process selector (shown only for process type) -->
-      <div id="process-type-row" style="display:none;margin-bottom:12px;">
-        <div class="field">
-          <label>Process Type</label>
-          <select id="challan-process-type">
-            <option value="">-- Select Process --</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Party & Challan details -->
-      <div class="field"><label>Party Name (To M/s)</label><input id="dc-party" type="text" placeholder="e.g. Amoha Silk"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div class="field"><label>Challan No.</label><input id="dc-challan-no" type="text" placeholder="Auto" readonly style="background:var(--bg);cursor:default;"></div>
-        <div class="field"><label>Date</label><input id="dc-date" type="date"></div>
-      </div>
-
-      <!-- Items -->
-      <div class="items-header" style="margin-top:6px;">
-        <span class="items-label">Items</span>
-        <button class="add-item-btn" onclick="addDcItem()">+ ADD ITEM</button>
-      </div>
-      <div id="dc-items-list"></div>
-
-      <!-- Buttons -->
-      <div style="display:flex;gap:8px;margin-top:14px;">
-        <button class="submit-btn" id="dc-save-btn" onclick="saveDcChallan()" style="flex:1;background:var(--stock);">SAVE &amp; PREVIEW</button>
-      </div>
-    </div>
-
-    <!-- Saved challans list -->
-    <div class="section-label" style="margin-top:4px;">Created Challans</div>
-    <div class="filter-row"><input type="text" id="dc-search" placeholder="Search challan..." oninput="renderDcList()"></div>
-    <div id="dc-list"></div>
-  </div>
-
-  <!-- PROCESS TRACKER -->
-  <div class="page" id="page-process">
-    <!-- Process List Manager -->
-    <div class="form-card" style="border-top:3px solid #7c3aed;padding:0;overflow:hidden;">
-      <div onclick="toggleProcessManager()" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;background:#f5f3ff;">
-        <span style="font-size:0.68rem;font-weight:700;letter-spacing:2px;color:#7c3aed;">⚙ MANAGE PROCESS TYPES</span>
-        <span id="process-mgr-arrow" style="color:#7c3aed;">▼</span>
-      </div>
-      <div id="process-mgr-body" style="display:none;padding:14px 16px;">
-        <div id="process-tags-list"></div>
-        <div style="display:flex;gap:8px;margin-top:10px;">
-          <input id="new-process-input" type="text" placeholder="New process name..." style="flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:0.68rem;outline:none;">
-          <button onclick="addProcessType()" style="padding:9px 14px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:0.62rem;font-weight:700;cursor:pointer;">ADD</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Pending Returns -->
-    <div class="section-label" style="margin-top:6px;">⏳ Pending Returns</div>
-    <div id="pending-process-list"></div>
-
-    <!-- Deka Stage -->
-    <div class="section-label" style="margin-top:6px;">🔄 At Deka Stage</div>
-    <div id="deka-process-list"></div>
-
-    <!-- Completed -->
-    <div class="section-label" style="margin-top:6px;">✅ Completed Process Challans</div>
-    <div id="completed-process-list"></div>
   </div>
 
   <!-- REPORT -->
@@ -796,7 +675,7 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
 // ══════════════════════════════════════════════════════
 
 let currentUser = null;
-let data = { outputs:[], inputs:[], stock:[], salesReports:[], processList:['Dyeing','Printing','Stitching','Embroidery','Washing'], processChallans:[], outCounter:1, inCounter:1 };
+let data = { outputs:[], inputs:[], stock:[], salesReports:[] };
 let unsubscribe = null; // real-time listener
 let saveTimer = null;
 let isConfigured = false;
@@ -906,7 +785,7 @@ async function loadUserData(uid) {
     const ref = getUserDocRef(uid); if(!ref){ throw new Error('no-db'); } const snap = await ref.get();
     if (snap.exists) {
       const d = snap.data();
-      return { outputs:d.outputs||[], inputs:d.inputs||[], stock:d.stock||[], salesReports:d.salesReports||[], processList:d.processList||['Dyeing','Printing','Stitching','Embroidery','Washing'], processChallans:d.processChallans||[], outCounter:d.outCounter||1, inCounter:d.inCounter||1 };
+      return { outputs:d.outputs||[], inputs:d.inputs||[], stock:d.stock||[], salesReports:d.salesReports||[] };
     }
   } catch(e) { console.warn('Load error:', e); }
   // Fallback to localStorage
@@ -926,10 +805,6 @@ function save() {
         inputs: data.inputs,
         stock: data.stock,
         salesReports: data.salesReports,
-        processList: data.processList,
-        processChallans: data.processChallans,
-        outCounter: data.outCounter,
-        inCounter: data.inCounter,
         updatedAt: new Date().toISOString()
       }, {merge:true});
       setSyncStatus('synced');
@@ -957,10 +832,6 @@ function startRealtimeSync(uid) {
       data.inputs  = d.inputs  || [];
       data.stock   = d.stock   || [];
       data.salesReports = d.salesReports || [];
-      data.processList = d.processList || data.processList;
-      data.processChallans = d.processChallans || [];
-      data.outCounter = d.outCounter || data.outCounter;
-      data.inCounter = d.inCounter || data.inCounter;
       // Re-render current tab
       const activeTab = document.querySelector('.tab.active');
       if (activeTab) {
@@ -1328,7 +1199,7 @@ function makeShelfRow(shelfNo='', qty=0, container) {
   container.appendChild(row);
 }
 
-function makeStockRow(name='', preStockWarehouse=0, preStockShop=0, lowWarn=0, shelves=[]) {
+function makeStockRow(name='', preStockWarehouse=0, preStockShop=0, lowWarn=0, shelves=[], preStockDate='') {
   const div = document.createElement('div'); div.className = 'stock-item-row';
 
   // Top row: item name + low warn + remove
@@ -1337,8 +1208,9 @@ function makeStockRow(name='', preStockWarehouse=0, preStockShop=0, lowWarn=0, s
   const nameInp = document.createElement('input'); nameInp.type='text'; nameInp.placeholder='Item name'; nameInp.className='stk-name'; nameInp.autocomplete='off'; nameInp.value=name;
   nameWrap.appendChild(nameInp);
   const warnInp = document.createElement('input'); warnInp.type='number'; warnInp.placeholder='Low warn'; warnInp.min='0'; warnInp.className='stk-warn'; warnInp.value=lowWarn||''; warnInp.title='Low stock warning threshold';
+  const dateInp = document.createElement('input'); dateInp.type='date'; dateInp.className='stk-date'; dateInp.value=preStockDate||''; dateInp.title='Pre-stock date — only challans AFTER this date will be counted'; dateInp.style.cssText='padding:5px 6px;border:1px solid var(--border);border-radius:7px;background:var(--bg);font-family:"IBM Plex Mono",monospace;font-size:0.6rem;outline:none;min-width:110px;color:var(--ink);';
   const removeBtn = document.createElement('button'); removeBtn.className='remove-item'; removeBtn.textContent='✕'; removeBtn.onclick=()=>div.remove();
-  top.appendChild(nameWrap); top.appendChild(warnInp); top.appendChild(removeBtn);
+  top.appendChild(nameWrap); top.appendChild(warnInp); top.appendChild(dateInp); top.appendChild(removeBtn);
 
   // Shelf section label
   const shelfLabel = document.createElement('div');
@@ -1386,7 +1258,7 @@ function renderStockInputRows(){
       if(s.preStockWarehouse||s.preStock) shelves.push({loc:'wh',shelf:'',qty:s.preStockWarehouse||s.preStock||0});
       if(s.preStockShop) shelves.push({loc:'sh',shelf:'',qty:s.preStockShop||0});
     }
-    makeStockRow(s.name, s.preStockWarehouse||s.preStock||0, s.preStockShop||0, s.lowWarn||0, shelves);
+    makeStockRow(s.name, s.preStockWarehouse||s.preStock||0, s.preStockShop||0, s.lowWarn||0, shelves, s.preStockDate||'');
   });
   else addStockRow();
 }
@@ -1411,17 +1283,65 @@ function saveStockItems(){
     const preStockWarehouse = shelves.filter(s=>s.loc==='wh').reduce((t,s)=>t+s.qty,0);
     const preStockShop = shelves.filter(s=>s.loc==='sh').reduce((t,s)=>t+s.qty,0);
     const lowWarn = parseInt(row.querySelector('.stk-warn').value)||0;
-    data.stock.push({name, shelves, preStockWarehouse, preStockShop, lowWarn});
+    const preStockDate = row.querySelector('.stk-date')?.value||'';
+    data.stock.push({name, shelves, preStockWarehouse, preStockShop, lowWarn, preStockDate});
   });
   save(); toast('✔ Stock saved! Syncing to cloud...'); renderStockRegister();
 }
 
 // ── Warehouse inventory: +input(both types) +preStockWarehouse −output(sample/packing)
-function getWhInQty(n){let t=0;data.inputs.forEach(inp=>inp.items.filter(i=>i.name.toLowerCase()===n.toLowerCase()).forEach(i=>{t+=i.pcs;}));return t;}
+// ── Get the latest pre-stock date for an item (or '' if none set) ──
+function getLatestPreStockDate(name){
+  const entries = data.stock.filter(s=>s.name.toLowerCase()===name.toLowerCase()&&s.preStockDate);
+  if(!entries.length) return '';
+  return entries.map(s=>s.preStockDate).sort().pop(); // latest date
+}
+
+// ── Only count a challan if its date is STRICTLY AFTER the pre-stock date ──
+function challanCountable(challanDate, preStockDate){
+  if(!preStockDate) return true;   // no cutoff set → count everything
+  if(!challanDate) return true;    // no date on challan → count it
+  return challanDate > preStockDate; // strictly after
+}
+
+function getWhInQty(n){
+  const cutoff = getLatestPreStockDate(n);
+  let tot=0;
+  data.inputs.forEach(inp=>{
+    if(!challanCountable(inp.date, cutoff)) return;
+    inp.items.filter(i=>i.name.toLowerCase()===n.toLowerCase()).forEach(i=>{tot+=i.pcs;});
+  });
+  return tot;
+}
 // Shop inventory: +output(sample/packing) +preStockShop −input(packing type only)
-function getShOutQty(n){let t=0;data.outputs.forEach(o=>o.items.filter(i=>i.name.toLowerCase()===n.toLowerCase()&&(i.type==='sample'||i.type==='packing')).forEach(i=>{t+=i.pcs;}));return t;}
-function getShInDeduction(n){let t=0;data.inputs.filter(inp=>inp.inType==='packing').forEach(inp=>inp.items.filter(i=>i.name.toLowerCase()===n.toLowerCase()).forEach(i=>{t+=i.pcs;}));return t;}
-function getSalesQtyForItem(n){let t=0;data.salesReports.forEach(r=>(r.items||[]).filter(i=>i.name.toLowerCase()===n.toLowerCase()).forEach(i=>{t+=i.qty;}));return t;}
+function getShOutQty(n){
+  const cutoff = getLatestPreStockDate(n);
+  let tot=0;
+  data.outputs.forEach(o=>{
+    if(!challanCountable(o.date, cutoff)) return;
+    o.items.filter(i=>i.name.toLowerCase()===n.toLowerCase()&&(i.type==='sample'||i.type==='packing')).forEach(i=>{tot+=i.pcs;});
+  });
+  return tot;
+}
+function getShInDeduction(n){
+  const cutoff = getLatestPreStockDate(n);
+  let tot=0;
+  data.inputs.filter(inp=>inp.inType==='packing').forEach(inp=>{
+    if(!challanCountable(inp.date, cutoff)) return;
+    inp.items.filter(i=>i.name.toLowerCase()===n.toLowerCase()).forEach(i=>{tot+=i.pcs;});
+  });
+  return tot;
+}
+function getSalesQtyForItem(n){
+  const cutoff = getLatestPreStockDate(n);
+  let tot=0;
+  data.salesReports.forEach(r=>{
+    const rDate = r.date||r.monthYear||'';
+    if(!challanCountable(rDate, cutoff)) return;
+    (r.items||[]).filter(i=>i.name.toLowerCase()===n.toLowerCase()).forEach(i=>{tot+=i.qty;});
+  });
+  return tot;
+}
 // Legacy alias used by renderFinalStock
 function getInputQtyForItem(n){return getWhInQty(n);}
 function getOutQtyForItem(n){return getShOutQty(n);}
@@ -1445,22 +1365,23 @@ function renderStockRegister(){
     const preWH=se?(se.preStockWarehouse||se.preStock||0):0;
     const preSH=se?(se.preStockShop||0):0;
     const lowWarn=se?(se.lowWarn||0):0;
-    const whIn=getWhInQty(name);       // all input challans add to WH
-    const shOut=getShOutQty(name);     // sample/packing output moves from WH→SH
-    const shDed=getShInDeduction(name);// packing input reduces shop
+    const cutoffDate=getLatestPreStockDate(name);
+    const whIn=getWhInQty(name);       // input challans AFTER cutoff date
+    const shOut=getShOutQty(name);     // sample/packing outputs AFTER cutoff
+    const shDed=getShInDeduction(name);// packing input AFTER cutoff
     const salesQty=getSalesQtyForItem(name);
     const warehouseTotal = preWH + whIn - shOut;
     const shopTotal      = preSH + shOut - shDed - salesQty;
     const whShelves=(se&&se.shelves)?se.shelves.filter(s=>s.loc==='wh'):[];
     const shShelves=(se&&se.shelves)?se.shelves.filter(s=>s.loc==='sh'):[];
-    return{name,preWH,preSH,whIn,shOut,shDed,salesQty,warehouseTotal,shopTotal,lowWarn,whShelves,shShelves};
+    return{name,preWH,preSH,whIn,shOut,shDed,salesQty,warehouseTotal,shopTotal,lowWarn,whShelves,shShelves,cutoffDate};
   });
   const lowCountWH=items.filter(i=>i.lowWarn>0&&i.warehouseTotal<=i.lowWarn).length;
   document.getElementById('stk-total-items').textContent=items.length;
   document.getElementById('stk-low-count').textContent=lowCountWH;
   document.getElementById('stk-total-pcs').textContent=items.reduce((s,i)=>s+Math.max(0,i.warehouseTotal)+Math.max(0,i.shopTotal),0);
   if(!items.length){container.innerHTML='<div class="empty"><div class="empty-icon">📦</div>No stock items yet.</div>';return;}
-  container.innerHTML=`<div class="stock-register"><div class="stock-register-header"><span class="stock-register-title">LIVE STOCK REGISTER</span><span style="font-size:0.6rem;opacity:0.8;">${items.length} items</span></div><table class="stock-table"><thead><tr><th>ITEM</th><th colspan="2" style="text-align:center;background:#e8f5f5;color:var(--lookup)">🏭 WAREHOUSE</th><th colspan="2" style="text-align:center;background:#fef9ec;color:var(--report)">🏪 SHOP</th><th>SHELVES</th><th>WARN</th></tr><tr><th>—</th><th>Pre+In</th><th>Total</th><th>Pre+Out</th><th>Total</th><th>—</th><th>—</th></tr></thead><tbody>${items.map(item=>{const whDanger=item.warehouseTotal<=0,whLow=item.lowWarn>0&&item.warehouseTotal<=item.lowWarn&&!whDanger;const shDanger=item.shopTotal<=0;return`<tr><td style="font-weight:600;vertical-align:top;padding-top:8px">${item.name}</td><td style="color:var(--muted);font-size:0.65rem;vertical-align:top;padding-top:8px">${item.preWH}+${item.whIn}−${item.shOut}</td><td class="stock-total" style="vertical-align:top;padding-top:8px;${whDanger?'color:var(--out-color)':whLow?'color:var(--warn)':''}">${item.warehouseTotal}</td><td style="color:var(--muted);font-size:0.65rem;vertical-align:top;padding-top:8px">${item.preSH}+${item.shOut}−${item.shDed}−${item.salesQty}</td><td class="stock-total" style="vertical-align:top;padding-top:8px;${shDanger?'color:var(--out-color)':''}">${item.shopTotal}</td><td style="vertical-align:top;padding-top:6px;font-size:0.62rem;max-width:110px">${renderShelfBadges(item)}</td><td style="vertical-align:top;padding-top:8px">${whDanger?'<span class="low-badge">🚨 WH</span>':whLow?'<span class="low-badge">⚠ LOW</span>':item.lowWarn>0?'<span class="ok-badge">✔</span>':'<span style="font-size:0.52rem;color:#ccc">—</span>'}</td></tr>`;}).join('')}</tbody></table></div>`;
+  container.innerHTML=`<div class="stock-register"><div class="stock-register-header"><span class="stock-register-title">LIVE STOCK REGISTER</span><span style="font-size:0.6rem;opacity:0.8;">${items.length} items</span></div><table class="stock-table"><thead><tr><th>ITEM</th><th colspan="2" style="text-align:center;background:#e8f5f5;color:var(--lookup)">🏭 WAREHOUSE</th><th colspan="2" style="text-align:center;background:#fef9ec;color:var(--report)">🏪 SHOP</th><th>SHELVES</th><th>WARN</th></tr><tr><th>—</th><th>Pre+In</th><th>Total</th><th>Pre+Out</th><th>Total</th><th>—</th><th>—</th></tr></thead><tbody>${items.map(item=>{const whDanger=item.warehouseTotal<=0,whLow=item.lowWarn>0&&item.warehouseTotal<=item.lowWarn&&!whDanger;const shDanger=item.shopTotal<=0;return`<tr><td style="font-weight:600;vertical-align:top;padding-top:8px">${item.name}${item.cutoffDate?`<br><span style="font-size:0.5rem;color:var(--muted);">📅 from ${item.cutoffDate}</span>`:''}</td><td style="color:var(--muted);font-size:0.65rem;vertical-align:top;padding-top:8px">${item.preWH}+${item.whIn}−${item.shOut}</td><td class="stock-total" style="vertical-align:top;padding-top:8px;${whDanger?'color:var(--out-color)':whLow?'color:var(--warn)':''}">${item.warehouseTotal}</td><td style="color:var(--muted);font-size:0.65rem;vertical-align:top;padding-top:8px">${item.preSH}+${item.shOut}−${item.shDed}−${item.salesQty}</td><td class="stock-total" style="vertical-align:top;padding-top:8px;${shDanger?'color:var(--out-color)':''}">${item.shopTotal}</td><td style="vertical-align:top;padding-top:6px;font-size:0.62rem;max-width:110px">${renderShelfBadges(item)}</td><td style="vertical-align:top;padding-top:8px">${whDanger?'<span class="low-badge">🚨 WH</span>':whLow?'<span class="low-badge">⚠ LOW</span>':item.lowWarn>0?'<span class="ok-badge">✔</span>':'<span style="font-size:0.52rem;color:#ccc">—</span>'}</td></tr>`;}).join('')}</tbody></table></div>`;
 }
 
 // ══ SALES REPORT ══
@@ -1530,7 +1451,7 @@ function renderFinalStock(){
     const shopTotal=preSH+shOut-shDed-salesQty;
     const whShelves=(se&&se.shelves)?se.shelves.filter(s=>s.loc==='wh'):[];
     const shShelves=(se&&se.shelves)?se.shelves.filter(s=>s.loc==='sh'):[];
-    return{name,preWH,preSH,whIn,shOut,shDed,salesQty,warehouseTotal,shopTotal,lowWarn,whShelves,shShelves};
+    return{name,preWH,preSH,whIn,shOut,shDed,salesQty,warehouseTotal,shopTotal,lowWarn,whShelves,shShelves,cutoffDate};
   }).sort((a,b)=>(a.warehouseTotal+a.shopTotal)-(b.warehouseTotal+b.shopTotal));
   const label=fv==='all'?'All Months':(data.salesReports.find(r=>r.id===fv)?.monthYear||'');
   const lowCount=rows.filter(r=>r.lowWarn>0&&r.warehouseTotal<=r.lowWarn).length;
@@ -1922,404 +1843,6 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 
-<script>
-
-// ══════════════════════════════════════════════════════
-// DIGITAL CHALLAN SYSTEM
-// ══════════════════════════════════════════════════════
-
-let currentChallanType = 'regular';
-let editingDcId = null;
-
-function setChallanType(type) {
-  currentChallanType = type;
-  ['regular','process','input'].forEach(function(t) {
-    var btn = document.getElementById('ctype-'+t);
-    if(btn) btn.classList.toggle('active', t===type);
-  });
-  document.getElementById('process-type-row').style.display = type==='process' ? 'block' : 'none';
-  updateDcChallanNo();
-}
-
-function updateDcChallanNo() {
-  var el = document.getElementById('dc-challan-no');
-  if(!el || editingDcId) return;
-  if(currentChallanType==='input') {
-    el.value = 'IN-' + String(data.inCounter||1).padStart(3,'0');
-  } else {
-    el.value = 'OUT-' + String(data.outCounter||1).padStart(3,'0');
-  }
-}
-
-function addDcItem() {
-  var list = document.getElementById('dc-items-list');
-  var div = document.createElement('div');
-  div.className = 'out-item-row';
-  div.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px;';
-  div.innerHTML = '<input type="text" class="dc-item-name" placeholder="Item name" list="dc-names-list" style="flex:2;padding:9px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:\'IBM Plex Mono\',monospace;font-size:0.68rem;outline:none;">'
-    + '<input type="number" class="dc-item-qty" placeholder="Qty" min="0" style="flex:1;padding:9px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:\'IBM Plex Mono\',monospace;font-size:0.68rem;outline:none;text-align:center;">'
-    + '<button onclick="this.parentElement.remove()" style="background:#fee2e2;border:1px solid #fca5a5;border-radius:7px;padding:7px 10px;cursor:pointer;font-size:0.75rem;color:#c0392b;">✕</button>';
-  list.appendChild(div);
-  // Update datalist
-  if(!document.getElementById('dc-names-list')) {
-    var dl = document.createElement('datalist');
-    dl.id = 'dc-names-list';
-    document.body.appendChild(dl);
-  }
-  var dl2 = document.getElementById('dc-names-list');
-  var names = Array.from(new Set(data.stock.map(function(s){return s.name;})));
-  dl2.innerHTML = names.map(function(n){return '<option value="'+n+'">';}).join('');
-}
-
-function collectDcItems() {
-  var rows = document.querySelectorAll('#dc-items-list .out-item-row');
-  var items = [];
-  rows.forEach(function(row) {
-    var name = row.querySelector('.dc-item-name').value.trim();
-    var qty = parseInt(row.querySelector('.dc-item-qty').value) || 0;
-    if(name && qty > 0) items.push({name:name, pcs:qty});
-  });
-  return items;
-}
-
-function saveDcChallan() {
-  var party = document.getElementById('dc-party').value.trim();
-  var challanNo = document.getElementById('dc-challan-no').value.trim();
-  var date = document.getElementById('dc-date').value;
-  var items = collectDcItems();
-  var processType = document.getElementById('challan-process-type').value;
-
-  if(!party) { toast('⚠ Enter party name!'); return; }
-  if(!date) { toast('⚠ Select date!'); return; }
-  if(!items.length) { toast('⚠ Add at least one item!'); return; }
-  if(currentChallanType==='process' && !processType) { toast('⚠ Select process type!'); return; }
-
-  var challanObj = {
-    id: editingDcId || Date.now().toString(),
-    challanNo: challanNo,
-    date: date,
-    party: party,
-    type: currentChallanType,
-    processType: currentChallanType==='process' ? processType : '',
-    items: items,
-    status: currentChallanType==='process' ? 'pending' : 'done',
-    createdAt: new Date().toISOString()
-  };
-
-  if(editingDcId) {
-    var idx = data.processChallans.findIndex(function(c){return c.id===editingDcId;});
-    if(idx !== -1) data.processChallans[idx] = challanObj;
-    editingDcId = null;
-    toast('✔ Challan updated!');
-  } else {
-    data.processChallans.push(challanObj);
-    if(currentChallanType === 'regular') {
-      data.outputs.push({id:challanObj.id, challan:challanNo, date:date, party:party, items:items, source:'digital'});
-      data.outCounter = (data.outCounter||1) + 1;
-    } else if(currentChallanType === 'input') {
-      data.inputs.push({id:challanObj.id, challan:challanNo, date:date, party:party, items:items, type:'input', source:'digital'});
-      data.inCounter = (data.inCounter||1) + 1;
-    } else if(currentChallanType === 'process') {
-      data.outCounter = (data.outCounter||1) + 1;
-    }
-    toast('✔ Challan saved!');
-  }
-
-  save(); renderDcList(); renderProcessTracker(); renderOutputList(); renderInputList();
-  showChallanPrint(challanObj);
-  resetDcForm();
-}
-
-function resetDcForm() {
-  document.getElementById('dc-party').value = '';
-  document.getElementById('dc-items-list').innerHTML = '';
-  document.getElementById('dc-date').value = new Date().toISOString().split('T')[0];
-  document.getElementById('challan-process-type').value = '';
-  document.getElementById('dc-save-btn').textContent = 'SAVE & PREVIEW';
-  editingDcId = null;
-  updateDcChallanNo();
-  addDcItem();
-}
-
-function editDcChallan(id) {
-  var ch = data.processChallans.find(function(c){return c.id===id;});
-  if(!ch) return;
-  editingDcId = id;
-  switchTab('challan');
-  setChallanType(ch.type);
-  document.getElementById('dc-party').value = ch.party||'';
-  document.getElementById('dc-challan-no').value = ch.challanNo;
-  document.getElementById('dc-date').value = ch.date;
-  if(ch.processType) document.getElementById('challan-process-type').value = ch.processType;
-  document.getElementById('dc-items-list').innerHTML = '';
-  ch.items.forEach(function(item) {
-    addDcItem();
-    var rows = document.querySelectorAll('#dc-items-list .out-item-row');
-    var last = rows[rows.length-1];
-    last.querySelector('.dc-item-name').value = item.name;
-    last.querySelector('.dc-item-qty').value = item.pcs;
-  });
-  document.getElementById('dc-save-btn').textContent = 'UPDATE & PREVIEW';
-  window.scrollTo(0,0);
-}
-
-function deleteDcChallan(id) {
-  if(!confirm('Delete this challan?')) return;
-  data.outputs = data.outputs.filter(function(o){return o.id!==id;});
-  data.inputs = data.inputs.filter(function(i){return i.id!==id;});
-  data.processChallans = data.processChallans.filter(function(c){return c.id!==id;});
-  save(); renderDcList(); renderProcessTracker(); renderOutputList(); renderInputList();
-  toast('Challan deleted');
-}
-
-function renderDcList() {
-  var q = (document.getElementById('dc-search').value||'').toLowerCase();
-  var list = document.getElementById('dc-list');
-  var all = data.processChallans.filter(function(c){
-    return c.challanNo.toLowerCase().includes(q) || (c.party||'').toLowerCase().includes(q) || c.items.some(function(i){return i.name.toLowerCase().includes(q);});
-  }).slice().reverse();
-
-  if(!all.length) { list.innerHTML = '<div class="empty"><div class="empty-icon">🖨</div>No challans created yet.</div>'; return; }
-
-  list.innerHTML = all.map(function(c) {
-    var total = c.items.reduce(function(s,i){return s+i.pcs;},0);
-    var typeBadge = c.type==='regular' ? '<span class="process-badge badge-regular">REGULAR OUT</span>'
-      : c.type==='process' ? '<span class="process-badge badge-pending">'+(c.processType||'PROCESS')+' OUT</span>'
-      : '<span class="process-badge badge-returned">INPUT</span>';
-    var statusBadge = c.type==='process' ? (
-      c.status==='pending' ? '<span class="process-badge badge-pending">⏳ PENDING</span>' :
-      c.status==='deka' ? '<span class="process-badge badge-deka">🔄 DEKA</span>' :
-      '<span class="process-badge badge-returned">✔ DONE</span>'
-    ) : '';
-    return '<div class="process-card">'
-      +'<div class="process-card-header"><div><div class="process-ch-num">'+c.challanNo+'</div>'
-      +'<div style="font-size:0.6rem;color:var(--muted);">'+c.date+' · '+(c.party||'—')+'</div></div>'
-      +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">'+typeBadge+statusBadge+'</div></div>'
-      +'<div>'+c.items.map(function(i){return '<div class="item-line"><span>'+i.name+'</span><span class="item-pcs">'+i.pcs+' pcs</span></div>';}).join('')+'</div>'
-      +'<div class="ch-footer"><span class="ch-total">Total: <strong>'+total+' pcs</strong></span></div>'
-      +'<div class="process-actions">'
-      +'<button class="process-action-btn btn-print" onclick="showChallanPrint(data.processChallans.find(function(c){return c.id===\''+c.id+'\';}))">🖨 PRINT</button>'
-      +'<button class="process-action-btn" style="background:#fef9c3;color:#854d0e;" onclick="editDcChallan(\''+c.id+'\')">✏ EDIT</button>'
-      +'<button class="process-action-btn" style="background:#fee2e2;color:#991b1b;" onclick="deleteDcChallan(\''+c.id+'\')">🗑 DELETE</button>'
-      +'</div></div>';
-  }).join('');
-}
-
-// ══════════════════════════════════════════════════════
-// PROCESS TRACKER
-// ══════════════════════════════════════════════════════
-
-function renderProcessTracker() {
-  var pending = data.processChallans.filter(function(c){return c.type==='process'&&c.status==='pending';});
-  var deka = data.processChallans.filter(function(c){return c.type==='process'&&c.status==='deka';});
-  var completed = data.processChallans.filter(function(c){return c.type==='process'&&(c.status==='returned'||c.status==='deka_returned');});
-  renderProcessSection('pending-process-list', pending, 'pending');
-  renderProcessSection('deka-process-list', deka, 'deka');
-  renderProcessSection('completed-process-list', completed, 'completed');
-  renderProcessTags();
-}
-
-function renderProcessSection(elId, challans, stage) {
-  var el = document.getElementById(elId);
-  if(!el) return;
-  if(!challans.length) { el.innerHTML = '<div style="font-size:0.65rem;color:var(--muted);padding:10px 0;">None</div>'; return; }
-  el.innerHTML = challans.map(function(c) {
-    var total = c.items.reduce(function(s,i){return s+i.pcs;},0);
-    var actions = '';
-    if(stage==='pending') {
-      actions = '<button class="process-action-btn btn-return" onclick="markProcessReturn(\''+c.id+'\',\'ready\')">✔ RETURNED READY (add to stock)</button>'
-               +'<button class="process-action-btn btn-deka" onclick="markProcessReturn(\''+c.id+'\',\'deka\')">🔄 RETURNED — FOR DEKA</button>';
-    } else if(stage==='deka') {
-      actions = '<button class="process-action-btn btn-return" onclick="markDekaReturn(\''+c.id+'\')">✔ DEKA DONE — ADD TO STOCK</button>';
-    }
-    return '<div class="process-card">'
-      +'<div class="process-card-header"><div><div class="process-ch-num">'+c.challanNo+'</div>'
-      +'<div style="font-size:0.6rem;color:var(--muted);">'+c.date+' · '+(c.party||'—')+' · '+(c.processType||'')+'</div></div>'
-      +'<button class="process-action-btn btn-print" onclick="showChallanPrint(data.processChallans.find(function(x){return x.id===\''+c.id+'\';}))">🖨</button></div>'
-      +'<div>'+c.items.map(function(i){return '<div class="item-line"><span>'+i.name+'</span><span class="item-pcs">'+i.pcs+' pcs</span></div>';}).join('')+'</div>'
-      +'<div class="ch-footer"><span class="ch-total">Total: <strong>'+total+' pcs</strong></span></div>'
-      +'<div class="process-actions">'+actions+'</div></div>';
-  }).join('');
-}
-
-function markProcessReturn(id, returnType) {
-  var ch = data.processChallans.find(function(c){return c.id===id;});
-  if(!ch) return;
-  if(returnType === 'ready') {
-    ch.status = 'returned';
-    ch.items.forEach(function(item) {
-      var se = data.stock.find(function(s){return s.name.toLowerCase()===item.name.toLowerCase();});
-      if(se) { se.preStockWarehouse = (se.preStockWarehouse||se.preStock||0) + item.pcs; }
-      else { data.stock.push({name:item.name, preStockWarehouse:item.pcs, preStockShop:0, lowWarn:0, shelves:[]}); }
-    });
-    toast('✔ Items returned and added to stock!');
-  } else {
-    ch.status = 'deka';
-    toast('🔄 Marked as sent to Deka stage');
-  }
-  save(); renderProcessTracker(); renderStockRegister();
-}
-
-function markDekaReturn(id) {
-  var ch = data.processChallans.find(function(c){return c.id===id;});
-  if(!ch) return;
-  ch.status = 'deka_returned';
-  ch.items.forEach(function(item) {
-    var se = data.stock.find(function(s){return s.name.toLowerCase()===item.name.toLowerCase();});
-    if(se) { se.preStockWarehouse = (se.preStockWarehouse||se.preStock||0) + item.pcs; }
-    else { data.stock.push({name:item.name, preStockWarehouse:item.pcs, preStockShop:0, lowWarn:0, shelves:[]}); }
-  });
-  save(); renderProcessTracker(); renderStockRegister();
-  toast('✔ Deka items returned and added to stock!');
-}
-
-// ══════════════════════════════════════════════════════
-// PROCESS TYPE MANAGER
-// ══════════════════════════════════════════════════════
-
-function renderProcessTags() {
-  var el = document.getElementById('process-tags-list');
-  if(!el) return;
-  el.innerHTML = (data.processList||[]).map(function(p) {
-    return '<span class="process-tag">'+p+'<button class="process-tag-del" onclick="deleteProcessType(\''+p.replace(/'/g,"\\'")+'\')">&times;</button></span>';
-  }).join('') || '<span style="font-size:0.62rem;color:var(--muted);">No process types yet.</span>';
-  updateProcessSelect();
-}
-
-function updateProcessSelect() {
-  var sel = document.getElementById('challan-process-type');
-  if(!sel) return;
-  var cur = sel.value;
-  sel.innerHTML = '<option value="">-- Select Process --</option>'
-    + (data.processList||[]).map(function(p){return '<option value="'+p+'"'+(p===cur?' selected':'')+'>'+p+'</option>';}).join('');
-}
-
-function addProcessType() {
-  var input = document.getElementById('new-process-input');
-  var name = input.value.trim();
-  if(!name) return;
-  if((data.processList||[]).includes(name)) { toast('Already exists!'); return; }
-  if(!data.processList) data.processList = [];
-  data.processList.push(name);
-  input.value = '';
-  save(); renderProcessTags();
-  toast('✔ Process type added!');
-}
-
-function deleteProcessType(name) {
-  if(!confirm('Delete process type "'+name+'"?')) return;
-  data.processList = (data.processList||[]).filter(function(p){return p!==name;});
-  save(); renderProcessTags();
-}
-
-function toggleProcessManager() {
-  var body = document.getElementById('process-mgr-body');
-  var arrow = document.getElementById('process-mgr-arrow');
-  var isOpen = body.style.display !== 'none';
-  body.style.display = isOpen ? 'none' : 'block';
-  arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
-}
-
-// ══════════════════════════════════════════════════════
-// CHALLAN PRINT
-// ══════════════════════════════════════════════════════
-
-var currentPrintChallan = null;
-
-function buildChallanHtml(ch) {
-  if(!ch) return '';
-  var total = ch.items.reduce(function(s,i){return s+i.pcs;},0);
-  var typeLabel = ch.type==='regular' ? 'DELIVERY CHALLAN' : ch.type==='process' ? 'PROCESS CHALLAN — '+(ch.processType||'') : 'INPUT CHALLAN';
-  var rows = ch.items.map(function(item,i) {
-    return '<tr><td style="text-align:center;border:1px solid #e879a0;padding:6px 4px;">'+(i+1)+'</td>'
-      +'<td style="border:1px solid #e879a0;padding:6px 8px;">'+item.name+'</td>'
-      +'<td style="text-align:center;border:1px solid #e879a0;padding:6px 4px;">'+item.pcs+'</td></tr>';
-  }).join('');
-  var emptyCount = Math.max(0, 8 - ch.items.length);
-  var emptyRows = '';
-  for(var i=0;i<emptyCount;i++){
-    emptyRows += '<tr><td style="text-align:center;border:1px solid #e879a0;padding:9px 4px;">'+(ch.items.length+i+1)+'</td><td style="border:1px solid #e879a0;"></td><td style="border:1px solid #e879a0;"></td></tr>';
-  }
-  return '<div style="background:#fff;font-family:Arial,sans-serif;padding:16px;max-width:420px;margin:0 auto;">'
-    +'<div style="text-align:center;border-bottom:2px solid #e879a0;padding-bottom:8px;margin-bottom:10px;">'
-    +'<div style="font-size:1.4rem;font-weight:900;letter-spacing:3px;color:#c0392b;">GARG INDUSTRIES</div>'
-    +'<div style="font-size:0.65rem;color:#888;letter-spacing:1px;">Textile · Surat</div>'
-    +'<div style="font-size:0.75rem;font-weight:700;letter-spacing:2px;color:#e879a0;margin-top:4px;">'+typeLabel+'</div>'
-    +'</div>'
-    +'<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">'
-    +'<tr><td style="font-size:0.68rem;padding:3px 0;width:50%;"><b>Ch. No.:</b> '+ch.challanNo+'</td>'
-    +'<td style="font-size:0.68rem;padding:3px 0;text-align:right;"><b>Date:</b> '+ch.date+'</td></tr>'
-    +'<tr><td colspan="2" style="font-size:0.68rem;padding:3px 0;"><b>To M/s:</b> '+(ch.party||'—')+'</td></tr>'
-    +(ch.type==='process'?'<tr><td colspan="2" style="font-size:0.68rem;padding:3px 0;"><b>Process:</b> '+(ch.processType||'—')+'</td></tr>':'')
-    +'</table>'
-    +'<table style="width:100%;border-collapse:collapse;border:1px solid #e879a0;">'
-    +'<thead><tr style="background:#fce4ec;">'
-    +'<th style="border:1px solid #e879a0;padding:6px 4px;font-size:0.65rem;width:10%;text-align:center;">Sr.</th>'
-    +'<th style="border:1px solid #e879a0;padding:6px 8px;font-size:0.65rem;">Description</th>'
-    +'<th style="border:1px solid #e879a0;padding:6px 4px;font-size:0.65rem;width:20%;text-align:center;">Qty</th>'
-    +'</tr></thead><tbody>'+rows+emptyRows
-    +'<tr style="background:#fff8f8;"><td colspan="2" style="border:1px solid #e879a0;padding:6px 8px;font-size:0.68rem;font-weight:700;text-align:right;">TOTAL</td>'
-    +'<td style="border:1px solid #e879a0;padding:6px 4px;font-size:0.68rem;font-weight:700;text-align:center;">'+total+'</td></tr>'
-    +'</tbody></table>'
-    +'<div style="margin-top:16px;display:flex;justify-content:space-between;">'
-    +'<div style="font-size:0.6rem;color:#888;">Received by: _______________</div>'
-    +'<div style="font-size:0.6rem;color:#888;">Prepared by: _______________</div></div>'
-    +'<div style="margin-top:10px;font-size:0.52rem;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:6px;">If any difference in quality/quantity, notify within 24 hours.</div>'
-    +'</div>';
-}
-
-function showChallanPrint(ch) {
-  if(!ch) return;
-  currentPrintChallan = ch;
-  document.getElementById('challan-print-content').innerHTML = buildChallanHtml(ch);
-  var modal = document.getElementById('challan-print-modal');
-  modal.style.display = 'flex';
-  modal.style.alignItems = 'center';
-  modal.style.justifyContent = 'center';
-}
-
-function closeChallanPrint() {
-  document.getElementById('challan-print-modal').style.display = 'none';
-}
-
-function printChallanPdf() {
-  var content = document.getElementById('challan-print-content').innerHTML;
-  var win = window.open('','_blank');
-  win.document.write('<html><head><title>Challan</title><style>body{margin:0;padding:0;}</style></head><body>'+content+'</body></html>');
-  win.document.close();
-  win.focus();
-  setTimeout(function(){ win.print(); }, 400);
-}
-
-function printChallanImg() {
-  // Share via canvas screenshot
-  var el = document.getElementById('challan-print-content');
-  if(window.html2canvas) {
-    html2canvas(el, {scale:2, backgroundColor:'#fff'}).then(function(canvas){
-      var link = document.createElement('a');
-      link.download = (currentPrintChallan ? currentPrintChallan.challanNo : 'challan')+'.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    });
-  } else {
-    printChallanPdf();
-  }
-}
-
-function initChallanTab() {
-  updateDcChallanNo();
-  var date = document.getElementById('dc-date');
-  if(date && !date.value) date.value = new Date().toISOString().split('T')[0];
-  if(!document.querySelector('#dc-items-list .out-item-row')) addDcItem();
-  updateProcessSelect();
-}
-
-function initProcessTab() {
-  renderProcessTracker();
-}
-
-</script>
-
 <!-- GEMINI API KEY MODAL -->
 <div id="gemini-key-modal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;padding:20px;flex-direction:column;">
   <div style="background:var(--paper);border:1px solid var(--border);border-radius:18px;padding:26px 22px;width:100%;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
@@ -2334,55 +1857,5 @@ function initProcessTab() {
     <button onclick="document.getElementById('gemini-key-modal').style.display='none'" style="width:100%;padding:10px;background:transparent;border:1px solid var(--border);border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:0.62rem;cursor:pointer;color:var(--muted);">CANCEL</button>
   </div>
 </div>
-
-<!-- CHALLAN PRINT MODAL -->
-<div class="challan-print-modal" id="challan-print-modal">
-  <div class="challan-print-sheet">
-    <div id="challan-print-content" style="padding:0;background:#fff;font-family:Arial,sans-serif;font-size:12px;">
-      <!-- Challan HTML injected here -->
-    </div>
-    <div class="challan-print-actions">
-      <button class="cpa-btn cpa-pdf" onclick="printChallanPdf()">📄 PDF</button>
-      <button class="cpa-btn cpa-img" onclick="printChallanImg()">🖼 IMAGE</button>
-      <button class="cpa-btn cpa-close" onclick="closeChallanPrint()">✕ CLOSE</button>
-    </div>
-  </div>
-</div>
 </body>
 </html>
-
-</head><body>'+content+'</body></html>');
-  win.document.close();
-  win.focus();
-  setTimeout(function(){ win.print(); }, 400);
-}
-
-function printChallanImg() {
-  // Share via canvas screenshot
-  var el = document.getElementById('challan-print-content');
-  if(window.html2canvas) {
-    html2canvas(el, {scale:2, backgroundColor:'#fff'}).then(function(canvas){
-      var link = document.createElement('a');
-      link.download = (currentPrintChallan ? currentPrintChallan.challanNo : 'challan')+'.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    });
-  } else {
-    printChallanPdf();
-  }
-}
-
-function initChallanTab() {
-  updateDcChallanNo();
-  var date = document.getElementById('dc-date');
-  if(date && !date.value) date.value = new Date().toISOString().split('T')[0];
-  if(!document.querySelector('#dc-items-list .out-item-row')) addDcItem();
-  updateProcessSelect();
-}
-
-function initProcessTab() {
-  renderProcessTracker();
-}
-
-</script>
-
