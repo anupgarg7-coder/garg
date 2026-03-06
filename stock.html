@@ -150,6 +150,7 @@
 body{background:var(--bg);color:var(--ink);font-family:'IBM Plex Mono',monospace;min-height:100vh;max-width:480px;margin:0 auto;}
 
 /* ── FIREBASE INIT OVERLAY ── */
+#app-shell{display:none;}
 #firebase-loading{position:fixed;inset:0;background:var(--ink);z-index:99999;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
 #firebase-loading .logo{font-family:'Bebas Neue',sans-serif;font-size:2.8rem;letter-spacing:6px;color:var(--bg);}
 #firebase-loading .status{font-size:0.65rem;letter-spacing:3px;color:#666;}
@@ -813,7 +814,15 @@ async function initFirebaseSync() {
   startRealtimeSync('shared');
 }
 
-document.addEventListener('DOMContentLoaded', () => { autoLogin(); });
+document.addEventListener('DOMContentLoaded', () => {
+  if(sessionStorage.getItem('ops_auth')==='1'){
+    autoLogin();
+  } else {
+    document.getElementById('firebase-loading').style.display='none';
+    var ps=document.getElementById('pw-screen');
+    if(ps) ps.style.display='flex';
+  }
+});
 
 
 function showLogin() {
@@ -836,9 +845,12 @@ async function autoLogin() {
   // 3. Show app
   document.getElementById('firebase-loading').style.display = 'none';
   document.getElementById('login-screen').classList.remove('visible');
+  var pwSc = document.getElementById('pw-screen');
+  if(pwSc) pwSc.style.display = 'none';
   document.getElementById('app-shell').style.display = 'block';
   const badge = document.getElementById('header-user-badge');
   if(badge) badge.style.display = 'none';
+  if(typeof seedItemCatalog==='function') seedItemCatalog();
 
   // 4. Start real-time sync
   startRealtimeSync(SHARED_USER);
