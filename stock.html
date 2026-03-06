@@ -133,8 +133,7 @@
 .lb-close{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:1.1rem;width:34px;height:34px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 /* PRINT */
 @media print{
-  body *{visibility:hidden;}
-  #print-area,#print-area *{visibility:visible;}
+    #print-area,#print-area *{visibility:visible;}
   #print-area{position:fixed;left:0;top:0;width:100%;background:#fff;}
   .pg{display:grid;grid-template-columns:repeat(3,1fr);gap:6mm;padding:8mm;}
   .pi{border:1px solid #ccc;border-radius:3mm;overflow:hidden;break-inside:avoid;}
@@ -481,7 +480,7 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
 </div>
 
 <!-- APP -->
-<div id="app-shell">
+<div id="app-shell" style="display:block;">
   <div class="header">
     <div class="header-row">
       <div>
