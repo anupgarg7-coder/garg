@@ -584,16 +584,22 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
 
   <!-- STOCK -->
   <div class="page" id="page-stock">
-    <div class="form-card stock-card">
-      <div class="section-label">Add / Update Pre-Stock</div>
-      <div class="items-header">
-        <span class="items-label">Stock Items</span>
-        <button class="add-item-btn" style="background:var(--stock-light);color:var(--stock);border-color:var(--stock);" onclick="addStockRow()">+ ADD ITEM</button>
+    <!-- Add/Update Pre-Stock — collapsible -->
+    <div class="form-card stock-card" style="padding:0;overflow:hidden;">
+      <div onclick="toggleStockForm()" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;background:var(--stock-light);">
+        <span style="font-size:0.68rem;font-weight:700;letter-spacing:2px;color:var(--stock);">+ ADD / UPDATE PRE-STOCK</span>
+        <span id="stock-form-arrow" style="font-size:1rem;color:var(--stock);transition:transform .2s;">▼</span>
       </div>
-      <div style="font-size:0.58rem;color:var(--muted);margin-bottom:6px;line-height:1.6">Enter opening stock at each location. Movements are tracked automatically from challans.</div>
-      <div class="stock-col-heads"><span>Item Name</span><span>Warehouse qty</span><span>Shop qty</span><span></span></div>
-      <div id="stock-input-list"></div>
-      <button class="submit-btn stock-btn" style="margin-top:12px;" onclick="saveStockItems()">SAVE STOCK</button>
+      <div id="stock-form-body" style="display:none;padding:14px 16px;">
+        <div style="font-size:0.58rem;color:var(--muted);margin-bottom:8px;line-height:1.6">Enter opening stock at each location. Movements are tracked automatically from challans.</div>
+        <div class="items-header">
+          <span class="items-label">Stock Items</span>
+          <button class="add-item-btn" style="background:var(--stock-light);color:var(--stock);border-color:var(--stock);" onclick="addStockRow()">+ ADD ITEM</button>
+        </div>
+        <div class="stock-col-heads"><span>Item Name</span><span>Warehouse qty</span><span>Shop qty</span><span></span></div>
+        <div id="stock-input-list"></div>
+        <button class="submit-btn stock-btn" style="margin-top:12px;" onclick="saveStockItems()">SAVE STOCK</button>
+      </div>
     </div>
     <div class="section-label">Live Stock Register</div>
     <div class="filter-row"><input id="stock-search" type="text" placeholder="Search item..." oninput="renderStockRegister()"></div>
@@ -1245,6 +1251,39 @@ function makeStockRow(name='', preStockWarehouse=0, preStockShop=0, lowWarn=0, s
 
 function addStockRow(){ makeStockRow(); }
 
+
+
+function editStockItem(name){
+  // Open the add/update form
+  const body = document.getElementById('stock-form-body');
+  const arrow = document.getElementById('stock-form-arrow');
+  body.style.display = 'block';
+  arrow.style.transform = 'rotate(180deg)';
+  // Scroll to form
+  body.scrollIntoView({behavior:'smooth', block:'start'});
+  // Find and highlight the matching row
+  const rows = document.querySelectorAll('#stock-input-list .stock-item-row');
+  let found = false;
+  rows.forEach(row => {
+    const nameInput = row.querySelector('.stk-name');
+    if(nameInput && nameInput.value.trim().toLowerCase() === name.toLowerCase()){
+      row.style.background = 'var(--stock-light)';
+      row.style.borderRadius = '8px';
+      row.style.transition = 'background 0.5s';
+      setTimeout(()=>{ row.style.background=''; }, 2000);
+      nameInput.focus();
+      found = true;
+    }
+  });
+  if(!found) toast('Item "'+name+'" not in pre-stock form yet. Add it using + ADD ITEM.');
+}
+function toggleStockForm(){
+  const body = document.getElementById('stock-form-body');
+  const arrow = document.getElementById('stock-form-arrow');
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
 function renderStockInputRows(){
   document.getElementById('stock-input-list').innerHTML='';
   if(data.stock.length) data.stock.forEach(s=>{
@@ -1328,7 +1367,7 @@ function renderStockRegister(){
   document.getElementById('stk-low-count').textContent=lowCountWH;
   document.getElementById('stk-total-pcs').textContent=items.reduce((s,i)=>s+Math.max(0,i.warehouseTotal)+Math.max(0,i.shopTotal),0);
   if(!items.length){container.innerHTML='<div class="empty"><div class="empty-icon">📦</div>No stock items yet.</div>';return;}
-  container.innerHTML=`<div class="stock-register"><div class="stock-register-header"><span class="stock-register-title">LIVE STOCK REGISTER</span><span style="font-size:0.6rem;opacity:0.8;">${items.length} items</span></div><table class="stock-table"><thead><tr><th>ITEM</th><th colspan="2" style="text-align:center;background:#e8f5f5;color:var(--lookup)">🏭 WAREHOUSE</th><th colspan="2" style="text-align:center;background:#fef9ec;color:var(--report)">🏪 SHOP</th><th>SHELVES</th><th>WARN</th></tr><tr><th>—</th><th>Pre+In</th><th>Total</th><th>Pre+Out</th><th>Total</th><th>—</th><th>—</th></tr></thead><tbody>${items.map(item=>{const whDanger=item.warehouseTotal<=0,whLow=item.lowWarn>0&&item.warehouseTotal<=item.lowWarn&&!whDanger;const shDanger=item.shopTotal<=0;return`<tr><td style="font-weight:600;vertical-align:top;padding-top:8px">${item.name}</td><td style="color:var(--muted);font-size:0.65rem;vertical-align:top;padding-top:8px">${item.preWH}+${item.whIn}−${item.shOut}</td><td class="stock-total" style="vertical-align:top;padding-top:8px;${whDanger?'color:var(--out-color)':whLow?'color:var(--warn)':''}">${item.warehouseTotal}</td><td style="color:var(--muted);font-size:0.65rem;vertical-align:top;padding-top:8px">${item.preSH}+${item.shOut}−${item.shDed}−${item.salesQty}</td><td class="stock-total" style="vertical-align:top;padding-top:8px;${shDanger?'color:var(--out-color)':''}">${item.shopTotal}</td><td style="vertical-align:top;padding-top:6px;font-size:0.62rem;max-width:110px">${renderShelfBadges(item)}</td><td style="vertical-align:top;padding-top:8px">${whDanger?'<span class="low-badge">🚨 WH</span>':whLow?'<span class="low-badge">⚠ LOW</span>':item.lowWarn>0?'<span class="ok-badge">✔</span>':'<span style="font-size:0.52rem;color:#ccc">—</span>'}</td></tr>`;}).join('')}</tbody></table></div>`;
+  container.innerHTML=`<div class="stock-register"><div class="stock-register-header"><span class="stock-register-title">LIVE STOCK REGISTER</span><span style="font-size:0.6rem;opacity:0.8;">${items.length} items</span></div><table class="stock-table"><thead><tr><th>ITEM</th><th colspan="2" style="text-align:center;background:#e8f5f5;color:var(--lookup)">🏭 WAREHOUSE</th><th colspan="2" style="text-align:center;background:#fef9ec;color:var(--report)">🏪 SHOP</th><th>SHELVES</th><th>WARN</th></tr><tr><th>—</th><th>Pre+In</th><th>Total</th><th>Pre+Out</th><th>Total</th><th>—</th><th>—</th></tr></thead><tbody>${items.map(item=>{const whDanger=item.warehouseTotal<=0,whLow=item.lowWarn>0&&item.warehouseTotal<=item.lowWarn&&!whDanger;const shDanger=item.shopTotal<=0;return`<tr><td style="font-weight:600;vertical-align:top;padding-top:8px">${item.name}<br><button onclick="editStockItem('${item.name.replace(/'/g,'\\'')}')" style="margin-top:4px;padding:3px 8px;font-size:0.5rem;background:var(--stock-light);color:var(--stock);border:1px solid var(--stock);border-radius:5px;cursor:pointer;font-family:'IBM Plex Mono',monospace;letter-spacing:1px;">✏ EDIT</button></td><td style="color:var(--muted);font-size:0.65rem;vertical-align:top;padding-top:8px">${item.preWH}+${item.whIn}−${item.shOut}</td><td class="stock-total" style="vertical-align:top;padding-top:8px;${whDanger?'color:var(--out-color)':whLow?'color:var(--warn)':''}">${item.warehouseTotal}</td><td style="color:var(--muted);font-size:0.65rem;vertical-align:top;padding-top:8px">${item.preSH}+${item.shOut}−${item.shDed}−${item.salesQty}</td><td class="stock-total" style="vertical-align:top;padding-top:8px;${shDanger?'color:var(--out-color)':''}">${item.shopTotal}</td><td style="vertical-align:top;padding-top:6px;font-size:0.62rem;max-width:110px">${renderShelfBadges(item)}</td><td style="vertical-align:top;padding-top:8px">${whDanger?'<span class="low-badge">🚨 WH</span>':whLow?'<span class="low-badge">⚠ LOW</span>':item.lowWarn>0?'<span class="ok-badge">✔</span>':'<span style="font-size:0.52rem;color:#ccc">—</span>'}</td></tr>`;}).join('')}</tbody></table></div>`;
 }
 
 // ══ SALES REPORT ══
@@ -1456,7 +1495,7 @@ let pendingScan = {};
 // ── Gemini API key management ──
 function getGeminiKey(){ return localStorage.getItem('csm_gemini_key')||''; }
 function saveGeminiKey(k){ localStorage.setItem('csm_gemini_key',k.trim()); toast('✔ Gemini API key saved!'); document.getElementById('gemini-key-modal').style.display='none'; }
-function showGeminiKeyModal(){ document.getElementById('gemini-key-input').value=getGeminiKey(); document.getElementById('gemini-key-modal').style.display='flex'; }
+function showGeminiKeyModal(){ document.getElementById('gemini-key-input').value=getGeminiKey(); var m=document.getElementById('gemini-key-modal'); m.style.display='flex'; m.style.alignItems='center'; m.style.justifyContent='center'; }
 
 async function scanChallan(event, type){
   const file = event.target.files[0]; if(!file)return;
@@ -1791,7 +1830,7 @@ document.addEventListener('DOMContentLoaded',function(){
 </script>
 
 <!-- GEMINI API KEY MODAL -->
-<div id="gemini-key-modal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;padding:20px;flex-direction:column;">
+<div id="gemini-key-modal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;padding:20px;flex-direction:column;">
   <div style="background:var(--paper);border:1px solid var(--border);border-radius:18px;padding:26px 22px;width:100%;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
     <div style="font-size:0.75rem;font-weight:700;letter-spacing:2px;margin-bottom:4px;">🔑 GEMINI API KEY</div>
     <div style="font-size:0.62rem;color:var(--muted);margin-bottom:6px;line-height:1.7;">Free AI scanning — 1,500 scans/day at no cost.<br>
