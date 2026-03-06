@@ -133,7 +133,7 @@
 .lb-close{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:1.1rem;width:34px;height:34px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 /* PRINT */
 @media print{
-
+  
   #print-area,#print-area *{visibility:visible;}
   #print-area{position:fixed;left:0;top:0;width:100%;background:#fff;}
   .pg{display:grid;grid-template-columns:repeat(3,1fr);gap:6mm;padding:8mm;}
@@ -620,15 +620,12 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
       <div class="items-header">
         <span class="items-label">Stock Items</span>
         <button class="add-item-btn" style="background:var(--stock-light);color:var(--stock);border-color:var(--stock);" onclick="addStockRow()">+ ADD ITEM</button>
+        <button class="add-item-btn" id="load-catalog-btn" style="background:#7b2d8b;color:#fff;border-color:#7b2d8b;" onclick="forceSeed()">📦 LOAD CATALOG</button>
       </div>
       <div style="font-size:0.58rem;color:var(--muted);margin-bottom:6px;line-height:1.6">Enter opening stock at each location. Movements are tracked automatically from challans.</div>
       <div class="stock-col-heads"><span>Item Name</span><span>Warehouse qty</span><span>Shop qty</span><span style="font-size:0.5rem;">Pre-Stock Date</span><span></span></div>
       <div id="stock-input-list"></div>
       <button class="submit-btn stock-btn" style="margin-top:12px;" onclick="saveStockItems()">SAVE STOCK</button>
-    </div>
-    <div id="seed-banner" style="background:#7b2d8b;color:#fff;border-radius:12px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;" data-show="always">
-      <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;">📦 FIRST TIME SETUP<br><span style="font-weight:400;font-size:0.58rem;">Load all 1,651 items into catalog</span></div>
-      <button onclick="forceSeed()" style="background:#fff;color:#7b2d8b;border:none;border-radius:8px;padding:10px 16px;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:0.62rem;cursor:pointer;white-space:nowrap;">LOAD ITEMS →</button>
     </div>
     <div class="section-label">Live Stock Register</div>
     <div class="filter-row"><input id="stock-search" type="text" placeholder="Search item..." oninput="renderStockRegister()"></div>
@@ -819,8 +816,12 @@ async function initFirebaseSync() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  if(sessionStorage.getItem('ops_auth')==='1'){ autoLogin(); }
-  else { document.getElementById('firebase-loading').style.display='none'; var ps=document.getElementById('pw-screen'); if(ps) ps.style.display='flex'; }
+  if(sessionStorage.getItem('ops_auth')==='1'){
+    autoLogin();
+  } else {
+    document.getElementById('firebase-loading').style.display='none';
+    var ps=document.getElementById('pw-screen'); if(ps) ps.style.display='flex';
+  }
 });
 
 
@@ -991,9 +992,7 @@ async function doLogin() {
   data = await loadUserData(val);
 
   document.getElementById('login-screen').classList.remove('visible');
-  var _pw=document.getElementById('pw-screen'); if(_pw) _pw.style.display='none';
   document.getElementById('app-shell').style.display = 'block';
-  if(typeof seedItemCatalog==='function') seedItemCatalog();
   document.getElementById('header-user-badge').textContent = '👤 '+val;
   setSyncStatus('synced');
   startRealtimeSync(val);
@@ -1024,11 +1023,7 @@ function switchTab(tab) {
   if(tab==='out') renderOutputList();
   if(tab==='in') renderInputList();
   if(tab==='book') renderBook();
-  if(tab==='stock') {
-    renderStockInputRows(); renderStockRegister();
-    var b=document.getElementById('seed-banner');
-    if(b && (data.stock||[]).length < 100) b.style.display='flex';
-  }
+  if(tab==='stock') { renderStockInputRows(); renderStockRegister(); }
   if(tab==='challan') { initChallanTab(); renderDcList(); }
   if(tab==='process') { renderProcessTracker(); }
   if(tab==='report') { renderReportList(); renderFinalStock(); populateReportFilterMonths(); }
@@ -2287,7 +2282,7 @@ function closeChallanPrint(){ var m=document.getElementById('challan-print-modal
 function printChallanPdf(){
   var content=document.getElementById('challan-print-content').innerHTML;
   var win=window.open('','_blank');
-  win.document.write('<html><head><title>Challan</title><style>body{margin:0;}@media print{body{margin:0;}}</style></head><body>'+content+'</body></html>');
+  win.document.write('<html><head><title>Challan</title><style>body{margin:0;}@media print{body{margin:0;}}</style></head><body>'+content+'<\/body><\/html>');
   win.document.close(); win.focus(); setTimeout(function(){ win.print(); },400);
 }
 function printChallanImg(){
@@ -2302,24 +2297,24 @@ function printChallanImg(){
 // ══════════════════════════════════════════════════
 // ITEM CATALOG SEED
 // ══════════════════════════════════════════════════
-
-function forceSeed() {
-  if(typeof ITEM_CATALOG_SEED === 'undefined'){ toast('Catalog data not found'); return; }
-  var existing = {};
-  (data.stock||[]).forEach(function(s){ existing[s.name.toLowerCase()] = s; });
-  var added = 0;
+function forceSeed(){
+  if(typeof ITEM_CATALOG_SEED==='undefined'){toast('Seed data not found');return;}
+  if(!data.stock) data.stock=[];
+  var existing={};
+  data.stock.forEach(function(s){existing[s.name.toLowerCase()]=true;});
+  var added=0;
   ITEM_CATALOG_SEED.forEach(function(n){
     if(!existing[n.toLowerCase()]){
-      data.stock.push({name:n, shelves:[], preStockWarehouse:0, preStockShop:0, lowWarn:0, preStockDate:''});
+      data.stock.push({name:n,shelves:[],preStockWarehouse:0,preStockShop:0,lowWarn:0,preStockDate:''});
       added++;
     }
   });
   save();
-  toast('✔ ' + added + ' items loaded into catalog!');
-  var b=document.getElementById('seed-banner'); if(b) b.style.display='none';
+  toast('✔ '+added+' items loaded into catalog!');
+  var b=document.getElementById('load-catalog-btn');
+  if(b) b.textContent='✔ LOADED';
   renderStockRegister();
 }
-
 function seedItemCatalog() {
   if(data.stock && data.stock.length>0) return;
   if(typeof ITEM_CATALOG_SEED==='undefined') return;
