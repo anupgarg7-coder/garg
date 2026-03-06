@@ -401,7 +401,32 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
 
 .stk-date{padding:5px 6px;border:1px solid var(--border);border-radius:7px;background:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:0.6rem;outline:none;min-width:110px;color:var(--ink);}
 .stk-date:focus{border-color:var(--stock);}
+
+.tab.challan{border-color:#0d9488;color:#0d9488;}.tab.challan.active,.tab.challan:hover{background:#0d9488;color:#fff;}
+.tab.process{border-color:#7c3aed;color:#7c3aed;}.tab.process.active,.tab.process:hover{background:#7c3aed;color:#fff;}
+.process-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.55rem;font-weight:700;letter-spacing:1px;}
+.badge-pending{background:#fef3c7;color:#d97706;}.badge-returned{background:#d1fae5;color:#065f46;}
+.badge-deka{background:#ede9fe;color:#7c3aed;}.badge-regular{background:#fee2e2;color:#991b1b;}
+.process-card{background:var(--paper);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;}
+.process-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.process-ch-num{font-size:0.8rem;font-weight:700;letter-spacing:1px;}
+.process-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.process-action-btn{padding:5px 12px;border-radius:7px;border:none;font-family:'IBM Plex Mono',monospace;font-size:0.55rem;font-weight:700;cursor:pointer;}
+.btn-return{background:#d1fae5;color:#065f46;}.btn-deka{background:#ede9fe;color:#7c3aed;}.btn-print{background:#e0f2fe;color:#0369a1;}
+.out-type-selector{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.out-type-btn{flex:1;min-width:90px;padding:10px 8px;border-radius:10px;border:2px solid var(--border);background:var(--paper);font-family:'IBM Plex Mono',monospace;font-size:0.58rem;font-weight:700;cursor:pointer;text-align:center;transition:all .15s;}
+.out-type-btn.active.regular{border-color:#e53e3e;background:#fee2e2;color:#991b1b;}
+.out-type-btn.active.process-type{border-color:#7c3aed;background:#ede9fe;color:#7c3aed;}
+.out-type-btn.active.input-type{border-color:#38a169;background:#d1fae5;color:#065f46;}
+.process-tag{display:inline-flex;align-items:center;gap:5px;background:var(--paper);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:0.62rem;font-weight:600;margin:4px;}
+.process-tag-del{background:none;border:none;color:#ef4444;cursor:pointer;font-size:0.8rem;padding:0;}
+.dc-item-name-wrap{position:relative;flex:2;}
+.dc-autocomplete{position:absolute;top:100%;left:0;right:0;background:var(--paper);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:9999;max-height:200px;overflow-y:auto;display:none;}
+.dc-autocomplete-item{padding:8px 12px;font-size:0.68rem;cursor:pointer;border-bottom:1px solid var(--border);font-family:'IBM Plex Mono',monospace;}
+.dc-autocomplete-item:hover,.dc-autocomplete-item.active{background:var(--stock-light);color:var(--stock);}
+.dc-autocomplete-item:last-child{border-bottom:none;}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 <div id="pw-screen">
@@ -482,6 +507,8 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
     </div>
     <div class="tabs2">
       <button class="tab stock" onclick="switchTab('stock')">📦 STOCK</button>
+      <button class="tab challan" onclick="switchTab('challan')">🖨 CHALLAN</button>
+      <button class="tab process" onclick="switchTab('process')">🔄 PROCESS</button>
       <button class="tab report" onclick="switchTab('report')">📊 SALES REPORT</button>
       <button class="tab lookup" onclick="switchTab('lookup')">🔍 ITEM LOOKUP</button>
     </div>
@@ -608,6 +635,60 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
     <div id="stock-register-container"></div>
   </div>
 
+
+  <!-- CHALLAN PAGE -->
+  <div class="page" id="page-challan">
+    <div class="form-card" style="border-top:3px solid #0d9488;">
+      <div class="section-label">Create Digital Challan</div>
+      <div class="out-type-selector">
+        <button class="out-type-btn active regular" onclick="setChallanType('regular')" id="ctype-regular">📦 REGULAR OUT<br><span style="font-size:0.5rem;font-weight:400;">Reduces inventory</span></button>
+        <button class="out-type-btn" onclick="setChallanType('process')" id="ctype-process">🔄 PROCESS OUT<br><span style="font-size:0.5rem;font-weight:400;">Sent for process</span></button>
+        <button class="out-type-btn" onclick="setChallanType('input')" id="ctype-input">📥 INPUT<br><span style="font-size:0.5rem;font-weight:400;">Goods received</span></button>
+      </div>
+      <div id="process-type-row" style="display:none;margin-bottom:12px;">
+        <label style="font-size:0.58rem;letter-spacing:1px;color:var(--muted);">PROCESS TYPE</label>
+        <select id="challan-process-type" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:0.68rem;margin-top:4px;"><option value="">-- Select --</option></select>
+      </div>
+      <div class="field"><label>Party Name</label><input id="dc-party" type="text" placeholder="e.g. Amoha Silk" autocomplete="off"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="field"><label>Challan No.</label><input id="dc-challan-no" type="text" readonly style="background:var(--bg);cursor:default;color:var(--muted);"></div>
+        <div class="field"><label>Date</label><input id="dc-date" type="date"></div>
+      </div>
+      <div class="items-header" style="margin-top:8px;">
+        <span class="items-label">Items</span>
+        <button class="add-item-btn" onclick="addDcItem()">+ ADD ITEM</button>
+      </div>
+      <div id="dc-items-list" style="margin-top:6px;"></div>
+      <button class="submit-btn" id="dc-save-btn" onclick="saveDcChallan()" style="width:100%;margin-top:14px;background:#0d9488;border-color:#0d9488;">SAVE &amp; PREVIEW</button>
+    </div>
+    <div class="section-label" style="margin-top:4px;">Saved Challans</div>
+    <div class="filter-row"><input type="text" id="dc-search" placeholder="Search by party, challan no, item..." oninput="renderDcList()" style="width:100%;box-sizing:border-box;"></div>
+    <div id="dc-list"></div>
+  </div>
+
+  <!-- PROCESS TRACKER PAGE -->
+  <div class="page" id="page-process">
+    <div class="form-card" style="border-top:3px solid #7c3aed;padding:0;overflow:hidden;">
+      <div onclick="toggleProcessManager()" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;background:#f5f3ff;">
+        <span style="font-size:0.68rem;font-weight:700;letter-spacing:2px;color:#7c3aed;">⚙ MANAGE PROCESS TYPES</span>
+        <span id="process-mgr-arrow" style="color:#7c3aed;transition:transform .2s;">▼</span>
+      </div>
+      <div id="process-mgr-body" style="display:none;padding:14px 16px;border-top:1px solid #ede9fe;">
+        <div id="process-tags-list"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <input id="new-process-input" type="text" placeholder="New process name..." style="flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:0.68rem;outline:none;">
+          <button onclick="addProcessType()" style="padding:9px 14px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:0.62rem;font-weight:700;cursor:pointer;">ADD</button>
+        </div>
+      </div>
+    </div>
+    <div class="section-label" style="margin-top:6px;">⏳ Pending Returns</div>
+    <div id="pending-process-list"></div>
+    <div class="section-label" style="margin-top:6px;">🔄 At Deka Stage</div>
+    <div id="deka-process-list"></div>
+    <div class="section-label" style="margin-top:6px;">✅ Completed</div>
+    <div id="completed-process-list"></div>
+  </div>
+
   <!-- REPORT -->
   <div class="page" id="page-report">
     <div class="form-card report-card">
@@ -675,7 +756,7 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
 // ══════════════════════════════════════════════════════
 
 let currentUser = null;
-let data = { outputs:[], inputs:[], stock:[], salesReports:[] };
+let data = { outputs:[], inputs:[], stock:[], salesReports:[], processList:['Dyeing','Printing','Stitching','Embroidery','Washing'], processChallans:[], outCounter:1, inCounter:1 };
 let unsubscribe = null; // real-time listener
 let saveTimer = null;
 let isConfigured = false;
@@ -719,6 +800,11 @@ async function initFirebaseSync() {
       data.inputs  = d.inputs||data.inputs;
       data.stock   = d.stock||data.stock;
       data.salesReports = d.salesReports||data.salesReports;
+      data.processList = d.processList||data.processList;
+      data.processChallans = d.processChallans||data.processChallans;
+      data.outCounter = d.outCounter||data.outCounter;
+      data.inCounter = d.inCounter||data.inCounter;
+      if(typeof seedItemCatalog==='function') seedItemCatalog();
       renderOutputList(); renderInputList();
       if (document.querySelector('.tab.stock.active')) { renderStockInputRows(); renderStockRegister(); }
     }
@@ -785,7 +871,7 @@ async function loadUserData(uid) {
     const ref = getUserDocRef(uid); if(!ref){ throw new Error('no-db'); } const snap = await ref.get();
     if (snap.exists) {
       const d = snap.data();
-      return { outputs:d.outputs||[], inputs:d.inputs||[], stock:d.stock||[], salesReports:d.salesReports||[] };
+      return { outputs:d.outputs||[], inputs:d.inputs||[], stock:d.stock||[], salesReports:d.salesReports||[], processList:d.processList||['Dyeing','Printing','Stitching','Embroidery','Washing'], processChallans:d.processChallans||[], outCounter:d.outCounter||1, inCounter:d.inCounter||1 };
     }
   } catch(e) { console.warn('Load error:', e); }
   // Fallback to localStorage
@@ -805,6 +891,10 @@ function save() {
         inputs: data.inputs,
         stock: data.stock,
         salesReports: data.salesReports,
+        processList: data.processList,
+        processChallans: data.processChallans,
+        outCounter: data.outCounter,
+        inCounter: data.inCounter,
         updatedAt: new Date().toISOString()
       }, {merge:true});
       setSyncStatus('synced');
@@ -923,6 +1013,8 @@ function switchTab(tab) {
   if(tab==='in') renderInputList();
   if(tab==='book') renderBook();
   if(tab==='stock') { renderStockInputRows(); renderStockRegister(); }
+  if(tab==='challan') { initChallanTab(); renderDcList(); }
+  if(tab==='process') { renderProcessTracker(); }
   if(tab==='report') { renderReportList(); renderFinalStock(); populateReportFilterMonths(); }
   if(tab==='lookup') { renderCatalogEditor(); renderLookupGrid(); }
 }
@@ -1248,12 +1340,25 @@ function makeStockRow(name='', preStockWarehouse=0, preStockShop=0, lowWarn=0, s
 }
 
 function addStockRow(){ makeStockRow(); }
+function editStockItem(name){
+  const body=document.getElementById('stock-form-body');
+  const arrow=document.getElementById('stock-form-arrow');
+  if(body&&body.style.display==='none'){body.style.display='block';if(arrow)arrow.style.transform='rotate(180deg)';}
+  const existing=Array.from(document.querySelectorAll('#stock-input-list .stk-name')).find(i=>i.value.trim().toLowerCase()===name.toLowerCase());
+  if(existing){const row=existing.closest('.stock-item-row');row.scrollIntoView({behavior:'smooth',block:'center'});row.style.outline='2px solid var(--stock)';setTimeout(()=>row.style.outline='',2000);return;}
+  const item=data.stock.find(s=>s.name.toLowerCase()===name.toLowerCase());
+  if(!item){makeStockRow(name);return;}
+  const shelves=JSON.parse(JSON.stringify(item.shelves||[]));
+  if(!shelves.length){if(item.preStockWarehouse||item.preStock)shelves.push({loc:'wh',shelf:'',qty:item.preStockWarehouse||item.preStock||0});if(item.preStockShop)shelves.push({loc:'sh',shelf:'',qty:item.preStockShop||0});}
+  makeStockRow(item.name,item.preStockWarehouse||0,item.preStockShop||0,item.lowWarn||0,shelves,item.preStockDate||'');
+  setTimeout(()=>{const rows=document.querySelectorAll('#stock-input-list .stock-item-row');const last=rows[rows.length-1];last.scrollIntoView({behavior:'smooth',block:'center'});last.style.outline='2px solid var(--stock)';setTimeout(()=>last.style.outline='',2000);},100);
+}
 
 function renderStockInputRows(){
   document.getElementById('stock-input-list').innerHTML='';
-  if(data.stock.length) data.stock.forEach(s=>{
-    const shelves = s.shelves || [];
-    // Legacy migration: if no shelves but has preStock values, build shelf entries
+  const active = data.stock.filter(s=>(s.preStockWarehouse||s.preStock||0)>0||(s.preStockShop||0)>0||(s.shelves||[]).some(sh=>sh.qty>0));
+  if(active.length) active.forEach(s=>{
+    const shelves = s.shelves||[];
     if(!shelves.length){
       if(s.preStockWarehouse||s.preStock) shelves.push({loc:'wh',shelf:'',qty:s.preStockWarehouse||s.preStock||0});
       if(s.preStockShop) shelves.push({loc:'sh',shelf:'',qty:s.preStockShop||0});
@@ -1265,7 +1370,6 @@ function renderStockInputRows(){
 
 function saveStockItems(){
   const rows = document.querySelectorAll('#stock-input-list .stock-item-row');
-  // Collect what's in the form right now
   const formItems = {};
   rows.forEach(row=>{
     const name = row.querySelector('.stk-name').value.trim();
@@ -1287,12 +1391,8 @@ function saveStockItems(){
     const preStockDate = row.querySelector('.stk-date')?.value||'';
     formItems[name.toLowerCase()] = {name, shelves, preStockWarehouse, preStockShop, lowWarn, preStockDate};
   });
-  // Keep all items NOT in the form unchanged; replace only the ones in the form
   const formKeys = new Set(Object.keys(formItems));
-  data.stock = [
-    ...data.stock.filter(s => !formKeys.has(s.name.toLowerCase())),
-    ...Object.values(formItems)
-  ];
+  data.stock = [...data.stock.filter(s=>!formKeys.has(s.name.toLowerCase())), ...Object.values(formItems)];
   save(); toast('✔ Stock saved! Syncing to cloud...'); renderStockRegister();
 }
 
@@ -1388,7 +1488,7 @@ function renderStockRegister(){
   document.getElementById('stk-low-count').textContent=lowCountWH;
   document.getElementById('stk-total-pcs').textContent=items.reduce((s,i)=>s+Math.max(0,i.warehouseTotal)+Math.max(0,i.shopTotal),0);
   if(!items.length){container.innerHTML='<div class="empty"><div class="empty-icon">📦</div>No stock items yet.</div>';return;}
-  container.innerHTML=`<div class="stock-register"><div class="stock-register-header"><span class="stock-register-title">LIVE STOCK REGISTER</span><span style="font-size:0.6rem;opacity:0.8;">${items.length} items</span></div><table class="stock-table"><thead><tr><th>ITEM</th><th colspan="2" style="text-align:center;background:#e8f5f5;color:var(--lookup)">🏭 WAREHOUSE</th><th colspan="2" style="text-align:center;background:#fef9ec;color:var(--report)">🏪 SHOP</th><th>SHELVES</th><th>WARN</th></tr><tr><th>—</th><th>Pre+In</th><th>Total</th><th>Pre+Out</th><th>Total</th><th>—</th><th>—</th></tr></thead><tbody>${items.map(item=>{const whDanger=item.warehouseTotal<=0,whLow=item.lowWarn>0&&item.warehouseTotal<=item.lowWarn&&!whDanger;const shDanger=item.shopTotal<=0;return`<tr><td style="font-weight:600;vertical-align:top;padding-top:8px">${item.name}${item.cutoffDate?`<br><span style="font-size:0.5rem;color:var(--muted);">📅 from ${item.cutoffDate}</span>`:''}</td><td style="color:var(--muted);font-size:0.65rem;vertical-align:top;padding-top:8px">${item.preWH}+${item.whIn}−${item.shOut}</td><td class="stock-total" style="vertical-align:top;padding-top:8px;${whDanger?'color:var(--out-color)':whLow?'color:var(--warn)':''}">${item.warehouseTotal}</td><td style="color:var(--muted);font-size:0.65rem;vertical-align:top;padding-top:8px">${item.preSH}+${item.shOut}−${item.shDed}−${item.salesQty}</td><td class="stock-total" style="vertical-align:top;padding-top:8px;${shDanger?'color:var(--out-color)':''}">${item.shopTotal}</td><td style="vertical-align:top;padding-top:6px;font-size:0.62rem;max-width:110px">${renderShelfBadges(item)}</td><td style="vertical-align:top;padding-top:8px">${whDanger?'<span class="low-badge">🚨 WH</span>':whLow?'<span class="low-badge">⚠ LOW</span>':item.lowWarn>0?'<span class="ok-badge">✔</span>':'<span style="font-size:0.52rem;color:#ccc">—</span>'}</td></tr>`;}).join('')}</tbody></table></div>`;
+  container.innerHTML=`<div class="stock-register"><div class="stock-register-header"><span class="stock-register-title">LIVE STOCK REGISTER</span><span style="font-size:0.6rem;opacity:0.8;">${items.length} items</span></div><table class="stock-table"><thead><tr><th>ITEM</th><th colspan="2" style="text-align:center;background:#e8f5f5;color:var(--lookup)">🏭 WAREHOUSE</th><th colspan="2" style="text-align:center;background:#fef9ec;color:var(--report)">🏪 SHOP</th><th>SHELVES</th><th>WARN</th></tr><tr><th>—</th><th>Pre+In</th><th>Total</th><th>Pre+Out</th><th>Total</th><th>—</th><th>—</th></tr></thead><tbody>${items.map(item=>{const whDanger=item.warehouseTotal<=0,whLow=item.lowWarn>0&&item.warehouseTotal<=item.lowWarn&&!whDanger;const shDanger=item.shopTotal<=0;return`<tr><td style="font-weight:600;vertical-align:top;padding-top:8px">${item.name}${item.cutoffDate?`<br><span style="font-size:0.5rem;color:var(--muted);">📅 from ${item.cutoffDate}</span>`:''}</td><td style="color:var(--muted);font-size:0.65rem;vertical-align:top;padding-top:8px">${item.preWH}+${item.whIn}−${item.shOut}</td><td class="stock-total" style="vertical-align:top;padding-top:8px;${whDanger?'color:var(--out-color)':whLow?'color:var(--warn)':''}">${item.warehouseTotal}</td><td style="color:var(--muted);font-size:0.65rem;vertical-align:top;padding-top:8px">${item.preSH}+${item.shOut}−${item.shDed}−${item.salesQty}</td><td class="stock-total" style="vertical-align:top;padding-top:8px;${shDanger?'color:var(--out-color)':''}">${item.shopTotal}</td><td style="vertical-align:top;padding-top:6px;font-size:0.62rem;max-width:110px">${renderShelfBadges(item)}</td><td style="vertical-align:top;padding-top:8px">${whDanger?'<span class="low-badge">🚨 WH</span>':whLow?'<span class="low-badge">⚠ LOW</span>':item.lowWarn>0?'<span class="ok-badge">✔</span>':'<span style="font-size:0.52rem;color:#ccc">—</span>'}</td><td style="padding-top:6px"><button onclick="editStockItem(${JSON.stringify(item.name)})" style="background:var(--stock-light);color:var(--stock);border:1px solid var(--stock);border-radius:6px;padding:3px 8px;font-family:'IBM Plex Mono',monospace;font-size:0.52rem;font-weight:700;cursor:pointer;">✏</button></td></tr>`;}).join('')}</tbody></table></div>`;
 }
 
 // ══ SALES REPORT ══
@@ -1516,7 +1616,7 @@ let pendingScan = {};
 // ── Gemini API key management ──
 function getGeminiKey(){ return localStorage.getItem('csm_gemini_key')||''; }
 function saveGeminiKey(k){ localStorage.setItem('csm_gemini_key',k.trim()); toast('✔ Gemini API key saved!'); document.getElementById('gemini-key-modal').style.display='none'; }
-function showGeminiKeyModal(){ document.getElementById('gemini-key-input').value=getGeminiKey(); document.getElementById('gemini-key-modal').style.display='flex'; }
+function showGeminiKeyModal(){ var m=document.getElementById('gemini-key-modal'); m.style.display='flex'; m.style.flexDirection='column'; m.style.alignItems='center'; m.style.justifyContent='center'; document.getElementById('gemini-key-input').value=getGeminiKey()||''; }
 
 async function scanChallan(event, type){
   const file = event.target.files[0]; if(!file)return;
@@ -1826,6 +1926,373 @@ renderOutputList = function(){
 </script>
 
 <script>
+// ═══════════════════════════════════════════
+// CHALLAN AUTOCOMPLETE — uses existing stock names
+// ═══════════════════════════════════════════
+function attachDcAutocomplete(inputEl) {
+  const wrap = inputEl.parentElement;
+  const dd = document.createElement('div');
+  dd.className = 'dc-autocomplete';
+  wrap.appendChild(dd);
+  let focus = -1;
+
+  function getNames() {
+    const map = {};
+    data.stock.forEach(s => { if(s.name) map[s.name.toLowerCase()] = s.name; });
+    data.outputs.forEach(o => o.items.forEach(i => { if(i.name) map[i.name.toLowerCase()] = i.name; }));
+    data.inputs.forEach(inp => inp.items.forEach(i => { if(i.name) map[i.name.toLowerCase()] = i.name; }));
+    return Object.values(map).sort();
+  }
+
+  function show() {
+    const q = inputEl.value.trim().toLowerCase();
+    if (!q) { dd.style.display = 'none'; return; }
+    const matches = getNames().filter(n => n.toLowerCase().includes(q)).slice(0, 40);
+    if (!matches.length) { dd.style.display = 'none'; return; }
+    focus = -1;
+    dd.innerHTML = matches.map((n,i) => `<div class="dc-autocomplete-item" data-idx="${i}" onmousedown="event.preventDefault()" onclick="this.closest('.dc-item-name-wrap').querySelector('input').value='${n.replace(/'/g,"\\'")}';this.closest('.dc-autocomplete').style.display='none';">${n}</div>`).join('');
+    dd.style.display = 'block';
+  }
+
+  inputEl.addEventListener('input', show);
+  inputEl.addEventListener('focus', show);
+  inputEl.addEventListener('blur', () => setTimeout(() => dd.style.display='none', 150));
+  inputEl.addEventListener('keydown', e => {
+    const items = dd.querySelectorAll('.dc-autocomplete-item');
+    if (e.key === 'ArrowDown') { focus = Math.min(focus+1, items.length-1); items.forEach((el,i)=>el.classList.toggle('active',i===focus)); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { focus = Math.max(focus-1, 0); items.forEach((el,i)=>el.classList.toggle('active',i===focus)); e.preventDefault(); }
+    else if (e.key === 'Enter' && focus >= 0) { inputEl.value = items[focus].textContent; dd.style.display='none'; focus=-1; e.preventDefault(); }
+    else if (e.key === 'Escape') { dd.style.display='none'; }
+  });
+}
+
+// ═══════════════════════════════════════════
+// CHALLAN SYSTEM
+// ═══════════════════════════════════════════
+var currentChallanType = 'regular', editingDcId = null, currentPrintChallan = null;
+
+function setChallanType(type) {
+  currentChallanType = type;
+  ['regular','process','input'].forEach(tt => {
+    var b = document.getElementById('ctype-'+tt);
+    if(!b) return;
+    b.className = 'out-type-btn';
+    if(tt === type) { b.classList.add('active'); b.classList.add(tt==='process'?'process-type':tt==='input'?'input-type':'regular'); }
+  });
+  var prow = document.getElementById('process-type-row');
+  if(prow) prow.style.display = type==='process' ? 'block' : 'none';
+  updateDcChallanNo();
+}
+
+function updateDcChallanNo() {
+  var el = document.getElementById('dc-challan-no');
+  if(!el || editingDcId) return;
+  el.value = currentChallanType==='input' ? ('IN-'+String(data.inCounter||1).padStart(3,'0')) : ('OUT-'+String(data.outCounter||1).padStart(3,'0'));
+}
+
+function addDcItem(name, qty) {
+  var list = document.getElementById('dc-items-list');
+  var row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px;';
+
+  // Name wrap (for autocomplete positioning)
+  var wrap = document.createElement('div');
+  wrap.className = 'dc-item-name-wrap';
+
+  var nI = document.createElement('input');
+  nI.type = 'text'; nI.placeholder = 'Type item name...'; nI.className = 'dc-item-name'; nI.autocomplete = 'off';
+  nI.value = name || '';
+  nI.style.cssText = 'width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:\'IBM Plex Mono\',monospace;font-size:0.68rem;outline:none;color:var(--ink);box-sizing:border-box;';
+  wrap.appendChild(nI);
+
+  var qI = document.createElement('input');
+  qI.type = 'number'; qI.placeholder = 'Qty'; qI.min = '0'; qI.className = 'dc-item-qty';
+  qI.value = qty || '';
+  qI.style.cssText = 'width:70px;padding:9px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:\'IBM Plex Mono\',monospace;font-size:0.68rem;outline:none;text-align:center;color:var(--ink);flex-shrink:0;';
+
+  var dB = document.createElement('button');
+  dB.textContent = '✕';
+  dB.style.cssText = 'background:#fee2e2;border:1px solid #fca5a5;border-radius:7px;padding:7px 10px;cursor:pointer;font-size:0.75rem;color:#c0392b;flex-shrink:0;';
+  dB.onclick = function(){ row.remove(); };
+
+  row.appendChild(wrap); row.appendChild(qI); row.appendChild(dB);
+  list.appendChild(row);
+  attachDcAutocomplete(nI);
+  if(!name) nI.focus();
+}
+
+function collectDcItems() {
+  var items = [];
+  document.querySelectorAll('#dc-items-list .dc-item-name').forEach(function(nI) {
+    var name = nI.value.trim();
+    var row = nI.closest('div[style]');
+    var qI = row ? row.querySelector('.dc-item-qty') : null;
+    var qty = qI ? (parseInt(qI.value)||0) : 0;
+    if(name && qty > 0) items.push({name: name, pcs: qty});
+  });
+  return items;
+}
+
+function saveDcChallan() {
+  var party = document.getElementById('dc-party').value.trim();
+  var challanNo = document.getElementById('dc-challan-no').value.trim();
+  var date = document.getElementById('dc-date').value;
+  var items = collectDcItems();
+  var pType = (document.getElementById('challan-process-type')||{}).value || '';
+  if(!party) { toast('⚠ Enter party name!'); return; }
+  if(!date) { toast('⚠ Select date!'); return; }
+  if(!items.length) { toast('⚠ Add at least one item with qty!'); return; }
+  if(currentChallanType==='process' && !pType) { toast('⚠ Select process type!'); return; }
+  var obj = {
+    id: editingDcId || Date.now().toString(),
+    challanNo: challanNo, date: date, party: party,
+    type: currentChallanType, processType: currentChallanType==='process' ? pType : '',
+    items: items, status: currentChallanType==='process' ? 'pending' : 'done',
+    createdAt: new Date().toISOString()
+  };
+  if(editingDcId) {
+    var idx = data.processChallans.findIndex(function(c){ return c.id===editingDcId; });
+    if(idx !== -1) data.processChallans[idx] = obj;
+    editingDcId = null; toast('✔ Challan updated!');
+  } else {
+    data.processChallans.push(obj);
+    if(currentChallanType === 'regular') {
+      data.outputs.push({id:obj.id, challan:challanNo, date:date, party:party, items:items, source:'digital'});
+      data.outCounter = (data.outCounter||1)+1;
+    } else if(currentChallanType === 'input') {
+      data.inputs.push({id:obj.id, challan:challanNo, date:date, party:party, items:items, inType:'input', source:'digital'});
+      data.inCounter = (data.inCounter||1)+1;
+    } else {
+      data.outCounter = (data.outCounter||1)+1;
+    }
+    toast('✔ Challan saved!');
+  }
+  save(); renderDcList(); renderProcessTracker();
+  if(typeof renderOutputList==='function') renderOutputList();
+  if(typeof renderInputList==='function') renderInputList();
+  showChallanPrint(obj); resetDcForm();
+}
+
+function resetDcForm() {
+  document.getElementById('dc-party').value = '';
+  document.getElementById('dc-items-list').innerHTML = '';
+  document.getElementById('dc-date').value = new Date().toISOString().split('T')[0];
+  var ps = document.getElementById('challan-process-type'); if(ps) ps.value = '';
+  document.getElementById('dc-save-btn').textContent = 'SAVE & PREVIEW';
+  editingDcId = null; updateDcChallanNo(); addDcItem();
+}
+
+function editDcChallan(id) {
+  var ch = data.processChallans.find(function(c){ return c.id===id; });
+  if(!ch) return;
+  editingDcId = id; switchTab('challan'); setChallanType(ch.type);
+  document.getElementById('dc-party').value = ch.party||'';
+  document.getElementById('dc-challan-no').value = ch.challanNo;
+  document.getElementById('dc-date').value = ch.date;
+  var ps = document.getElementById('challan-process-type'); if(ps && ch.processType) ps.value = ch.processType;
+  document.getElementById('dc-items-list').innerHTML = '';
+  ch.items.forEach(function(item){ addDcItem(item.name, item.pcs); });
+  document.getElementById('dc-save-btn').textContent = 'UPDATE & PREVIEW';
+  window.scrollTo(0,0);
+}
+
+function deleteDcChallan(id) {
+  if(!confirm('Delete this challan?')) return;
+  data.outputs = data.outputs.filter(function(o){ return o.id!==id; });
+  data.inputs = data.inputs.filter(function(i){ return i.id!==id; });
+  data.processChallans = data.processChallans.filter(function(c){ return c.id!==id; });
+  save(); renderDcList(); renderProcessTracker();
+  if(typeof renderOutputList==='function') renderOutputList();
+  if(typeof renderInputList==='function') renderInputList();
+  toast('Deleted');
+}
+
+function renderDcList() {
+  var q = (document.getElementById('dc-search').value||'').toLowerCase();
+  var list = document.getElementById('dc-list');
+  var all = (data.processChallans||[]).filter(function(c){
+    return !q || c.challanNo.toLowerCase().includes(q) || (c.party||'').toLowerCase().includes(q) || c.items.some(function(i){ return i.name.toLowerCase().includes(q); });
+  }).slice().reverse();
+  if(!all.length) { list.innerHTML='<div class="empty"><div class="empty-icon">🖨</div>No challans yet.</div>'; return; }
+  list.innerHTML = all.map(function(c){
+    var total = c.items.reduce(function(s,i){ return s+i.pcs; },0);
+    var tb = c.type==='regular'?'<span class="process-badge badge-regular">REGULAR OUT</span>':c.type==='process'?'<span class="process-badge badge-pending">'+(c.processType||'PROCESS')+' OUT</span>':'<span class="process-badge badge-returned">INPUT</span>';
+    var sb = c.type==='process'?(c.status==='pending'?'<span class="process-badge badge-pending">⏳ PENDING</span>':c.status==='deka'?'<span class="process-badge badge-deka">🔄 DEKA</span>':'<span class="process-badge badge-returned">✔ DONE</span>'):'';
+    var eid = JSON.stringify(c.id);
+    return '<div class="process-card"><div class="process-card-header"><div><div class="process-ch-num">'+c.challanNo+'</div><div style="font-size:0.6rem;color:var(--muted);">'+c.date+' · '+(c.party||'—')+'</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">'+tb+sb+'</div></div>'
+      +'<div>'+c.items.map(function(i){ return '<div class="item-line"><span>'+i.name+'</span><span class="item-pcs">'+i.pcs+' pcs</span></div>'; }).join('')+'</div>'
+      +'<div class="ch-footer"><span class="ch-total">Total: <strong>'+total+' pcs</strong></span></div>'
+      +'<div class="process-actions"><button class="process-action-btn btn-print" onclick="showChallanPrint((data.processChallans||[]).find(function(x){return x.id==='+eid+';}))">🖨 PRINT</button>'
+      +'<button class="process-action-btn" style="background:#fef9c3;color:#854d0e;" onclick="editDcChallan('+eid+')">✏ EDIT</button>'
+      +'<button class="process-action-btn" style="background:#fee2e2;color:#991b1b;" onclick="deleteDcChallan('+eid+')">🗑 DELETE</button></div></div>';
+  }).join('');
+}
+
+function initChallanTab() {
+  updateDcChallanNo();
+  var d = document.getElementById('dc-date'); if(d && !d.value) d.value = new Date().toISOString().split('T')[0];
+  if(!document.querySelector('#dc-items-list .dc-item-name')) addDcItem();
+  updateProcessSelect();
+}
+
+// ═══════════════════════════════════════════
+// PROCESS TRACKER
+// ═══════════════════════════════════════════
+function renderProcessTracker() {
+  renderProcessSection('pending-process-list', (data.processChallans||[]).filter(function(c){ return c.type==='process'&&c.status==='pending'; }), 'pending');
+  renderProcessSection('deka-process-list', (data.processChallans||[]).filter(function(c){ return c.type==='process'&&c.status==='deka'; }), 'deka');
+  renderProcessSection('completed-process-list', (data.processChallans||[]).filter(function(c){ return c.type==='process'&&(c.status==='returned'||c.status==='deka_returned'); }), 'done');
+  renderProcessTags();
+}
+
+function renderProcessSection(elId, challans, stage) {
+  var el = document.getElementById(elId); if(!el) return;
+  if(!challans.length) { el.innerHTML='<div style="font-size:0.65rem;color:var(--muted);padding:10px 0;">None</div>'; return; }
+  el.innerHTML = challans.map(function(c){
+    var total = c.items.reduce(function(s,i){ return s+i.pcs; },0);
+    var eid = JSON.stringify(c.id);
+    var actions = '';
+    if(stage==='pending') actions = '<button class="process-action-btn btn-return" onclick="markProcessReturn('+eid+',\'ready\')">✔ RETURNED</button><button class="process-action-btn btn-deka" onclick="markProcessReturn('+eid+',\'deka\')">🔄 DEKA</button>';
+    else if(stage==='deka') actions = '<button class="process-action-btn btn-return" onclick="markDekaReturn('+eid+')">✔ DEKA DONE</button>';
+    return '<div class="process-card"><div class="process-card-header"><div><div class="process-ch-num">'+c.challanNo+'</div><div style="font-size:0.6rem;color:var(--muted);">'+c.date+' · '+(c.party||'—')+' · '+(c.processType||'')+'</div></div><button class="process-action-btn btn-print" onclick="showChallanPrint((data.processChallans||[]).find(function(x){return x.id==='+eid+';}))">🖨</button></div>'
+      +'<div>'+c.items.map(function(i){ return '<div class="item-line"><span>'+i.name+'</span><span class="item-pcs">'+i.pcs+' pcs</span></div>'; }).join('')+'</div>'
+      +'<div class="ch-footer"><span class="ch-total">Total: <strong>'+total+' pcs</strong></span></div>'
+      +'<div class="process-actions">'+actions+'</div></div>';
+  }).join('');
+}
+
+function markProcessReturn(id, returnType) {
+  var ch = (data.processChallans||[]).find(function(c){ return c.id===id; }); if(!ch) return;
+  if(returnType==='ready') {
+    ch.status='returned';
+    ch.items.forEach(function(item){
+      var se = data.stock.find(function(s){ return s.name.toLowerCase()===item.name.toLowerCase(); });
+      if(se) { se.preStockWarehouse=(se.preStockWarehouse||0)+item.pcs; }
+      else { data.stock.push({name:item.name,shelves:[],preStockWarehouse:item.pcs,preStockShop:0,lowWarn:0,preStockDate:''}); }
+    }); toast('✔ Items returned to stock!');
+  } else { ch.status='deka'; toast('🔄 Moved to Deka'); }
+  save(); renderProcessTracker(); renderStockRegister();
+}
+
+function markDekaReturn(id) {
+  var ch = (data.processChallans||[]).find(function(c){ return c.id===id; }); if(!ch) return;
+  ch.status='deka_returned';
+  ch.items.forEach(function(item){
+    var se = data.stock.find(function(s){ return s.name.toLowerCase()===item.name.toLowerCase(); });
+    if(se) { se.preStockWarehouse=(se.preStockWarehouse||0)+item.pcs; }
+    else { data.stock.push({name:item.name,shelves:[],preStockWarehouse:item.pcs,preStockShop:0,lowWarn:0,preStockDate:''}); }
+  });
+  save(); renderProcessTracker(); renderStockRegister(); toast('✔ Deka items added to stock!');
+}
+
+function renderProcessTags() {
+  var el = document.getElementById('process-tags-list'); if(!el) return;
+  el.innerHTML = (data.processList||[]).map(function(p){
+    return '<span class="process-tag">'+p+'<button class="process-tag-del" onclick="deleteProcessType('+JSON.stringify(p)+')">×</button></span>';
+  }).join('') || '<span style="font-size:0.62rem;color:var(--muted);">No types yet.</span>';
+  updateProcessSelect();
+}
+
+function updateProcessSelect() {
+  var sel = document.getElementById('challan-process-type'); if(!sel) return;
+  var cur = sel.value;
+  sel.innerHTML = '<option value="">-- Select --</option>' + (data.processList||[]).map(function(p){
+    return '<option value="'+p+'"'+(p===cur?' selected':'')+'>'+p+'</option>';
+  }).join('');
+}
+
+function addProcessType() {
+  var inp = document.getElementById('new-process-input'); var name = inp.value.trim();
+  if(!name) return;
+  if((data.processList||[]).indexOf(name)!==-1){ toast('Already exists!'); return; }
+  if(!data.processList) data.processList=[];
+  data.processList.push(name); inp.value=''; save(); renderProcessTags(); toast('✔ '+name+' added!');
+}
+
+function deleteProcessType(name) {
+  if(!confirm('Delete "'+name+'"?')) return;
+  data.processList = (data.processList||[]).filter(function(p){ return p!==name; });
+  save(); renderProcessTags();
+}
+
+function toggleProcessManager() {
+  var body = document.getElementById('process-mgr-body');
+  var arrow = document.getElementById('process-mgr-arrow');
+  var open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if(arrow) arrow.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+// ═══════════════════════════════════════════
+// CHALLAN PRINT
+// ═══════════════════════════════════════════
+function buildChallanHtml(ch) {
+  if(!ch) return '';
+  var total = ch.items.reduce(function(s,i){ return s+i.pcs; },0);
+  var typeLabel = ch.type==='regular'?'DELIVERY CHALLAN':ch.type==='process'?'PROCESS CHALLAN — '+(ch.processType||''):'INPUT CHALLAN';
+  var rows = ch.items.map(function(item,i){
+    return '<tr><td style="text-align:center;border:1px solid #e879a0;padding:6px 4px;">'+(i+1)+'</td><td style="border:1px solid #e879a0;padding:6px 8px;">'+item.name+'</td><td style="text-align:center;border:1px solid #e879a0;padding:6px 4px;">'+item.pcs+'</td></tr>';
+  }).join('');
+  var empty=''; for(var i=0;i<Math.max(0,8-ch.items.length);i++){ empty+='<tr><td style="border:1px solid #e879a0;padding:9px;"></td><td style="border:1px solid #e879a0;"></td><td style="border:1px solid #e879a0;"></td></tr>'; }
+  return '<div style="background:#fff;font-family:Arial,sans-serif;padding:18px;max-width:420px;margin:0 auto;">'
+    +'<div style="text-align:center;border-bottom:2px solid #e879a0;padding-bottom:10px;margin-bottom:12px;">'
+    +'<div style="font-size:1.4rem;font-weight:900;letter-spacing:3px;color:#c0392b;">GARG INDUSTRIES</div>'
+    +'<div style="font-size:0.62rem;color:#888;letter-spacing:1px;">Textile · Surat</div>'
+    +'<div style="font-size:0.72rem;font-weight:700;letter-spacing:2px;color:#e879a0;margin-top:4px;">'+typeLabel+'</div></div>'
+    +'<table style="width:100%;border-collapse:collapse;margin-bottom:10px;font-size:0.68rem;">'
+    +'<tr><td><b>Ch. No.:</b> '+ch.challanNo+'</td><td style="text-align:right;"><b>Date:</b> '+ch.date+'</td></tr>'
+    +'<tr><td colspan="2"><b>To M/s:</b> '+(ch.party||'—')+'</td></tr>'
+    +(ch.type==='process'?'<tr><td colspan="2"><b>Process:</b> '+(ch.processType||'—')+'</td></tr>':'')
+    +'</table>'
+    +'<table style="width:100%;border-collapse:collapse;border:1px solid #e879a0;">'
+    +'<thead><tr style="background:#fce4ec;"><th style="border:1px solid #e879a0;padding:6px 4px;font-size:0.62rem;width:10%;">Sr.</th><th style="border:1px solid #e879a0;padding:6px 8px;font-size:0.62rem;text-align:left;">Description</th><th style="border:1px solid #e879a0;padding:6px 4px;font-size:0.62rem;width:18%;">Qty</th></tr></thead>'
+    +'<tbody>'+rows+empty
+    +'<tr style="background:#fff8f8;"><td colspan="2" style="border:1px solid #e879a0;padding:6px 8px;font-size:0.68rem;font-weight:700;text-align:right;">TOTAL</td>'
+    +'<td style="border:1px solid #e879a0;padding:6px 4px;font-size:0.68rem;font-weight:700;text-align:center;">'+total+'</td></tr>'
+    +'</tbody></table>'
+    +'<div style="margin-top:18px;display:flex;justify-content:space-between;font-size:0.6rem;color:#888;">'
+    +'<div>Received by: _______________</div><div>Prepared by: _______________</div></div>'
+    +'<div style="margin-top:10px;font-size:0.5rem;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:6px;">Notify within 24 hrs of any discrepancy.</div></div>';
+}
+
+function showChallanPrint(ch) {
+  if(!ch) return; currentPrintChallan = ch;
+  var el = document.getElementById('challan-print-content'); if(el) el.innerHTML = buildChallanHtml(ch);
+  var m = document.getElementById('challan-print-modal');
+  if(m){ m.style.display='flex'; m.style.alignItems='center'; m.style.justifyContent='center'; }
+}
+
+function closeChallanPrint() { var m=document.getElementById('challan-print-modal'); if(m) m.style.display='none'; }
+
+function printChallanPdf() {
+  var content = document.getElementById('challan-print-content').innerHTML;
+  var win = window.open('','_blank');
+  win.document.write('<html><head><title>Challan</title><style>body{margin:0;padding:0;}@media print{body{margin:0;}}</style></head><body>'+content+'</body></html>');
+  win.document.close(); win.focus(); setTimeout(function(){ win.print(); }, 400);
+}
+
+function printChallanImg() {
+  if(window.html2canvas){
+    html2canvas(document.getElementById('challan-print-content'),{scale:2,backgroundColor:'#fff'}).then(function(canvas){
+      var a=document.createElement('a'); a.download=(currentPrintChallan?currentPrintChallan.challanNo:'challan')+'.png';
+      a.href=canvas.toDataURL('image/png'); a.click();
+    });
+  } else { printChallanPdf(); }
+}
+
+// ═══════════════════════════════════════════
+// ITEM CATALOG SEED
+// ═══════════════════════════════════════════
+function seedItemCatalog() {
+  if(data.stock && data.stock.length > 0) return;
+  if(typeof ITEM_CATALOG_SEED === 'undefined') return;
+  data.stock = ITEM_CATALOG_SEED.map(function(n){ return {name:n,shelves:[],preStockWarehouse:0,preStockShop:0,lowWarn:0,preStockDate:''}; });
+  save();
+}
+
+</script>
+
+<script>
 (function(){
   if(sessionStorage.getItem('ops_auth')==='1'){
     var s=document.getElementById('pw-screen');
@@ -1837,6 +2304,7 @@ function checkPassword(){
   if(val==='garg'){
     sessionStorage.setItem('ops_auth','1');
     document.getElementById('pw-screen').style.display='none';
+    autoLogin();
   }else{
     document.getElementById('pw-err').textContent='✕ Incorrect password';
     document.getElementById('pw-input').value='';
@@ -1850,21 +2318,18 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 
-<!-- GEMINI API KEY MODAL -->
-<div id="gemini-key-modal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;padding:20px;flex-direction:column;">
-  <div style="background:var(--paper);border:1px solid var(--border);border-radius:18px;padding:26px 22px;width:100%;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
-    <div style="font-size:0.75rem;font-weight:700;letter-spacing:2px;margin-bottom:4px;">🔑 GEMINI API KEY</div>
-    <div style="font-size:0.62rem;color:var(--muted);margin-bottom:6px;line-height:1.7;">Free AI scanning — 1,500 scans/day at no cost.<br>
-    Get your free key:<br>
-    1. Go to <b>aistudio.google.com</b><br>
-    2. Click <b>Get API Key → Create API Key</b><br>
-    3. Copy and paste below</div>
-    <input id="gemini-key-input" type="password" placeholder="AIza..." style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:9px;background:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:0.72rem;outline:none;margin-bottom:10px;margin-top:6px;" oninput="this.style.borderColor=this.value.startsWith('AIza')?'#1a6b3a':'var(--border)'">
-    <button onclick="saveGeminiKey(document.getElementById('gemini-key-input').value)" style="width:100%;padding:13px;background:var(--in-color);color:#fff;border:none;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:0.68rem;letter-spacing:2px;cursor:pointer;margin-bottom:8px;">SAVE KEY & CONTINUE</button>
-    <button onclick="document.getElementById('gemini-key-modal').style.display='none'" style="width:100%;padding:10px;background:transparent;border:1px solid var(--border);border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:0.62rem;cursor:pointer;color:var(--muted);">CANCEL</button>
+<div id="challan-print-modal" style="display:none;position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,0.82);align-items:center;justify-content:center;padding:10px;overflow-y:auto;">
+  <div style="background:#fff;width:100%;max-width:430px;border-radius:10px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.4);">
+    <div id="challan-print-content" style="background:#fff;"></div>
+    <div style="display:flex;gap:8px;padding:12px;background:#f8f8f8;border-top:1px solid #eee;">
+      <button onclick="printChallanPdf()" style="flex:1;padding:11px;border:none;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:0.62rem;cursor:pointer;background:#c0392b;color:#fff;">📄 PDF</button>
+      <button onclick="printChallanImg()" style="flex:1;padding:11px;border:none;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:0.62rem;cursor:pointer;background:#2980b9;color:#fff;">🖼 IMAGE</button>
+      <button onclick="closeChallanPrint()" style="flex:1;padding:11px;border:none;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:0.62rem;cursor:pointer;background:#eee;color:#333;">✕ CLOSE</button>
+    </div>
   </div>
 </div>
 
+<!-- GEMINI API KEY MODAL -->
 <div id="gemini-key-modal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;padding:20px;flex-direction:column;">
   <div style="background:var(--paper);border:1px solid var(--border);border-radius:18px;padding:26px 22px;width:100%;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
     <div style="font-size:0.75rem;font-weight:700;letter-spacing:2px;margin-bottom:4px;">🔑 GEMINI API KEY</div>
@@ -1878,5 +2343,9 @@ document.addEventListener('DOMContentLoaded',function(){
     <button onclick="document.getElementById('gemini-key-modal').style.display='none'" style="width:100%;padding:10px;background:transparent;border:1px solid var(--border);border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:0.62rem;cursor:pointer;color:var(--muted);">CANCEL</button>
   </div>
 </div>
+
+<script>
+var ITEM_CATALOG_SEED=["PURE-17 HARIPRIYA SILK", "PURE-21 HARIPRIYA SILK", "PURE-22 HARIPRIYA SILK", "PURE-16 HARIPRIYA SILK", "G-94(S) AMOHA SILK", "G-84(S) AMOHA SILK", "G-78(S) AMOHA SILK", "G-54(S) AMOHA SILK", "G-71(S)", "G-66(S) AMOHA SILK", "G-49(S) AMOHA SILK", "G-88(S) AMOHA SILK", "G-69(S) AMOHA SILK", "AARYA SILK-01 (S)", "AARYA SILK-08(S)", "AARYA SILK - FF-01(S)", "AARYA SILK-09(S)", "KASAB JARI", "PURE-12 HARIPRIYA SILK", "RAJGHRANA-04", "PURE-10 HARIPRIYA SILK", "PURE-15 HARIPRIYA SILK", "PURE-18 HARIPRIYA SILK", "RAJSHREE SILK-02", "RAJGHRANA-03", "PURE-13 HARIPRIYA SILK", "PURE-20 HARIPRIYA SILK", "PURE-14 HARIPRIYA SILK", "RAJGHARANA-05", "PURE-19 HARIPRIYA SILK", "PURE-11 HARIPRIYA SILK", "AARYA SILK-01", "KS-11 KOSHKII SILK", "KS-04 KOSHKII SILK", "G-12 BANARASI SILK", "G-54 AMOHA SILK", "G-21 BANARASI SILK", "KRISHVI SILK -02", "G-16 BANARASI SILK", "G-07", "G-88(HK) AMOHA SILK", "G-54(HK) AMOHA SILK", "G-85(HK) AMOHA SILK", "G-49(HK) AMOHA SILK", "HY-11(HK) HIYA SILK", "HY-01(HK) HIYA SILK", "KRISHVI-03(HK)", "HY-09(HK) HIYA SILK", "G-70(HK)", "G-68(HK) AMOHA SILK", "HY-06(HK) HIYA SILK", "HY-13(HK) HIYA SILK", "G-78(HK) AMOHA SILK", "HY-04(HK) HIYA SILK", "G-01(HK) MOHA SILK", "G-84(HK) AMOHA SILK", "HY-04(DT) HIYA SILK", "KRISHVI-01(DT)", "HY-11(DT) HIYA SILK", "KRISHVI-02(DT)", "KRISHVI-03(DT)", "G-70(S)", "G-75(S)", "K-34(S) KAVERI SILK", "G-20(S)", "moha Silk Sarees", "moha Silk Sarees(S)", "Krishvi Silk Sarees", "G-01(S) MOHA SILK", "G-81(S) AMOHA SILK", "G-04(S) MOHA SILK", "HY-06(DT) HIYA SILK", "K-07 KAVERI SILK", "MS-08 MERAKI SILK", "PURE-04 HARIPRIYA SILK", "PURE-01 HARIPRIYA SILK", "G-70", "G-32 BANARASI SILK", "G-06", "G-68 MOHA SILK", "G-76(S)", "HY-03(S) HIYA SILK", "HY-04(S) HIYA SILK", "K-11(S) KAVERI SILK", "MOHA SILK BRIDAL RED(S)", "HY-01(DT) HIYA SILK", "G-04(HK) MOHA SILK", "A-03 MOHA SILK", "MS-05 MERAKI SILK", "G-86(HK) AMOHA SILK", "ELEGANZA SAREES LOT", "G-86 (S) AMOHA SILK", "G-79 (S) AMOHA SILK", "KS-17 KOSHKII SILK", "G-97 (S) AMOHA SILK", "KS-22 KOSHKII SILK", "G-66 (MOHA SILK)", "G-86 MOHA SILK", "G-88 AMOHA SILK", "G-89 AMOHA SILK", "G-93 (S) AMOHA SILK", "G-92 MOHA SILK", "HY-21 HIYA SILK", "HY-26 HIYA SILK (BLACK)", "HY-01 HIYA SILK (BLACK)", "HY-03 HIYA SILK (BLACK)", "HY-20 HIYA SILK", "B-11 KRISHVI SILK", "HY-21 HIYA SILK (BLACK)", "PURE-37 (HARIPRIYA SILK)", "AARYA-FF-01", "G-04 MOHA SILK", "HY-17 (S) HIYA SILK", "G-97 MOHA SILK", "K-07(S) KAVERI SILK", "AARYA SILK-01 (HK)", "AARYA-FF-01 (HK)", "AARYA-09 (HK)", "PURE-24 HARIPRIYA SILK", "PURE-27 HARIPRIYA SILK", "PP-01", "AARYA SILK-09", "G-78 MOHA SILK", "G-79 MOHA SILK", "G-93 AMOHA SILK", "AARYA-FF-01 (S)", "AARYA-09", "AARYA-09 (S)", "JOB WORK - SINGLE DYEING", "JOB WORK DESIGN", "35 KOTA FIROZI", "FREIGHT @12%", "35 KOTA PISTA", "50/8 TPM VISCOSE 7030", "WM AT 083 KASAB JARI", "FREIGHT @5%", "ANMOL 904 (70/1) KASAB JARI", "REPAIR & MAINTAINENCE @18%", "ACCOUNTING EXP GST", "150/BSP H13163 MEHANDI", "LISA 91445", "LISA 92203", "300/BSP OW24 OFF WHITE", "POTLA", "SCISSORS", "INDUSTRIAL BLADE", "G-49 AMOHA SILK", "AARYA-01 (HK)", "MS-31 MERAKI SILK", "G-71 MOHA SILK", "G-20 (HK)", "G-94 (HK) AMOHA SILK", "G-75 (HK)", "G-79 (HK) AMOHA SILK", "G-71 (HK)", "G-66 (HK) AMOHA SILK", "G-06 (HK) MOHA SILK", "RAJSHREE-04 (HK)", "HY-13 HIYA SILK", "PURE-PP-01", "G-05 MOHA SILK", "G-85 AMOHA SILK", "KRISHVI SILK-12", "HY-09 HIYA SILK", "HY-14 HIYA SILK", "G-77 (S)", "G-10", "G-19", "G-38 AMOHA SILK", "G-22 AMOHA SILK", "G-24 AMOHA SILK", "G-82 AMOHA SILK", "G-67 AMOHA SILK", "HY-11 (S) HIYA SILK", "K-02 KAVERI SILK", "K-03 KAVERI SILK", "HY-01 HIYA SILK", "KRISHVI-11", "G-01 MOHA SILK", "HY-28 HIYA SILK", "PASHMINA SILK - 35", "HY-02 HIYA SILK (BLACK)", "MOHA SILK BRIDAL RED", "KALKI SILK-09A", "PP-02 HARIPRIYA SILK", "HY-03 HIYA SILK (DT)", "HY-02 HIYA SILK (DT)", "JASMIN SILK-02", "K-23 KAVERI SILK (BLACK)", "RAJSHREE-02", "HY-08 HIYA SILK (DT)", "SAREE HOTFIX", "SAREE JOB WORK", "RAPIER JECARD BLEACH", "MILL DECA WORK", "BORDER CUTTING", "CHARAK ONLY", "SEARING JOB", "JHALAR AND CHARAK", "SHEARING JOB & BORDER CUTTING", "FACTORY RENT", "RATE DIFF JOB", "KRISHVI SILK-01", "HY-24 HIYA SILK", "HY-29 HIYA SILK", "SAREE WASHING", "90 VISCOSE KHODAL", "NYLON YARN", "083 JARI KASAB WM", "50/600 BRT 80733", "LISA 91442", "LISA 91443", "CARTOON", "TAPE", "BOX  FILE", "70/1 JARI KASAB ANMOL 904", "35 KOTA STRABERY", "LISA 91445 NEW", "75 SOFT SILK JAMUNI", "COMMISSION PAID", "JOB WORK NON GST", "LABOUR CHARGES", "JOB WORK GST", "PP BAG", "150 LICHI 55209", "150/BSP OFF WHITE", "150/BSP ORENGE", "150/BSP RANI", "KS-03 KOSHKII SILK", "KS-12 KOSHKII SILK", "G-77", "GOLDEN TEMPLE-27", "KRISHVI-12", "K-32 KAVERI SILK", "MS-24 MERAKI SILK", "MS-19 MERAKI SILK", "HY-19 HIYA SILK", "G-15 PAITHANI SILK", "G-28 PAITHANI SILK", "G-91 AMOHA SILK", "G-20", "AARYA SILK-08", "G-98 AMOHA SILK", "G-94 AMOHA SILK", "PURE-33 HARIPRIYA SILK", "G-75", "RAJGHARANA-37", "K-06 KAVERI SILK", "WASHING", "75 SOFT SILK CV-061 RANI", "CLIP", "35 KOTA REXONA LIGHT GREEN", "150 BSP LT COPPER H12848", "50/8 TPM VISCOSE 7030 NEW", "SPARE PARTS @12%", "SPARE PARTS @18%", "GARG-1", "SAREE", "G-100 MOHA SILK", "KS-13 KOSHKII SILK", "KS-01 KOSHKII SILK", "KS-20 KOSHKII SILK", "KS-24 KOSHKII SILK", "G-101 MOHA SILK", "G-102", "KS-29 KOSHKII SILK", "KS-28 KOSHKII SILK", "KS-21 KOSHKII SILK", "KS-19 KOSHKII SILK", "WATER GOLD 70/1 NAYLON KASAB", "ANMOL 150 POLYSTER", "150/BSP AMSOL H13229", "75 SOFT SILK (W) CV-154 CREAM", "NERROW WOVEN FABRICS", "ANMOL 75/1 POLYSTER", "PATTI", "LD VR BAG 22*36", "LD VR BAG 24*36", "OFFICE  EXP 12%", "JARI ANMOL 75/1", "JARI FL WATER 70/1", "KS-14 KOSHKII SILK", "KS-09 KOSHKII SILK", "KS-08 (DHRUV TARA)", "G-103 MOHA SILK", "KS-02 KOSHKII SILK", "KRISHVI -03", "G-84 MOHA SILK", "G-104 MOHA SILK", "KS-03 (S) KOSHKII SILK", "KS-10 KOSHKII SILK", "HY-13 (DT)HIYA SILK", "KRISHVI-06", "MOHA SILK SAREE (RF)", "G-62 AMOHA SILK", "HY-09 (DT) HIYA SILK", "HIYA-10 (HK) HIYA SILK", "G-96 (HK) AMOHA SILK", "HY-03 (HK) HIYA SILK", "G-67 (HK) AMOHA SILK", "HY-17 (HK) HIYA SILK)", "HY-02 (HK) HIYA SILK", "KRISHVI-02 (HK)", "G-77 (HK)", "KRISHVI-06 (HK)", "G-69 (HK) AMOHA SILK", "G-102 (HK)", "G-62 (HK) AMOHA SILK", "G-39 AMOHA SILK", "75 SOFT SILK CV-105 PEACOCK", "MS-26 MERAKI SILK", "HY-03 (HK) (DARK) HIYA SILK", "GOLDEN TEMPLE-33", "KRISHVI-11 (S)", "AARYA SILK-10", "KRISHVI-03", "LISA 91422", "50/600 BRT 77801", "ELECTRIC EXP", "150 BSP H11533 RANI", "150 BSP H12016 ORENGE", "COMPUTER MAINTAINENCE", "75 SOFT SILK  PEACOCK", "WATER EXP", "BUTTER PAPER", "BUTTER PAPER 12%", "35 KOTA TUSSER", "FL WATER 70/1 JARI", "60/VISCOSE 6231", "150 BSP H14239 M.PISTA", "CONSULTANCY FEES", "KADAMBARI SILK-26", "KADAMBARI SILK-43", "KADAMBARI SILK-45", "TD-01", "TD-05", "TD-06", "TD-09", "KALAMANDIR SILK -01", "KALAMANDIR SILK-02", "GOLDEN TEMPLE-34", "MS-32 MERAKI SILK", "KS-35 KOSHKII SILK", "DISCOUNT", "ACCOUNTING EXP NON GST", "FIRE SAFETY EXPENSES", "ELECTRICAL EXP 18%", "G-105 MOHA SILK", "G-106", "FACTORY RENT GST", "RAJGHARANA-39", "PURE-30 HARIPRIYYA SILK", "PURE-17 (HK) HARIPRIYA SILK", "PURE-20 (HK) HARIPRIYA SILK", "PURE-16 (HK) HARIPRIYA SILK", "PURE-21 (HK) HARIPRIYA SILK", "PURE-18 (HK) HARIPRIYA SILK", "PURE-14 (HK) HARIPRIYA SILK", "RAJGHRANA-09 (HK)", "PRATIBHA SILK -02", "75 SOFT SILK CV-158 RAMA", "MILL CAL WORK", "MIL DECA +CAL WORK", "MILL DECA + WAX", "MILL WAXING WORK", "CCTV", "LG 20/1 NYLON", "44/24-613 NYLON READY TPM", "50/600 BRT CHIKU JT-18016", "KS-26 KOSHKII SILK", "INSURANCE EXP", "RAJGHARANA-26 (PURE)", "G-91 AMOHA SILK (DARK)", "MS-37 MERAKI SILK", "G-02 MOHA SILK", "150 CAT H2504 DEEP SEA", "150 CAT H11295 R.BLUE", "150 CAT H2201 RED", "150 CAT H3116 RANI", "150 CAT JHOW22 ORANGE", "150 BSP H2219 BRICKRED", "ZAIRA SILK-01", "RABARI SILK (A)", "KS-38 KOSHKII SILK", "150 BSP H13229 AMSOL", "150 BSP OW20 MUSTARD", "150 CAT OW19 P.GREEN", "JARI 70/1 ANMOL NAYLON", "50/600 BRT LM-83454", "75 SOFT SILK CV-150 LT PINK", "75 SOFT SILK CV-151 PISTA", "ORI-PLATINUM 21X29 GSM-70", "KS-36 KOSHKII SILK", "PURE-02 HARIPRIYA SILK", "RAJSHREE-01", "KALAMANDIR SILK -04", "RAJGHARANA-45", "GOLDEN TEMPLE-35", "KS-34 KOSHKII SILK", "RENT INCOME", "G-11", "G-37 AMOHA SILK", "KRISHVI-20", "KOSHKII (HAND BHRUSH)", "150 BSP H2521 POOL GREEN", "150 BSP H13163 MEHANDI", "MILL DECA+CAL WORK", "ZAIRA SILK-05", "ZAIRA SILK-02", "PRATIBHA SILK-09", "PRATIBHA SILK-10", "PRATIBHA SILK -04", "PRATIBHA SILK-05", "MS-02 MERAKI SILK", "MS-03 MERAKI SILK", "MS-20 MERAKI SILK", "KALKI SILK-09", "KALKI SILK-06", "KALKI SILK-03", "KALKI SILK -07", "KALKI SILK-05", "WATAR GOLD 70/1 NAYLON KASAB", "60 ORGANZA CV-230 BLACK", "LINO YARN", "JOB WARPING", "NY-43 ELEGANZA SILK", "KALKI SILK-04", "MS-38 MERAKI SILK", "MS-39 MERAKI SILK", "MS-41 MERAKI SILK", "KS-31 KOSHKII SILK", "SUNDARI SILK -01", "KALAKIRTI SILK -05", "KALAKIRTI SILK -01", "KS-21 KOSHKII SILK (BLACK)", "POS-01", "40-SILKY NYLON BAIZE", "75 SOFT SILK DK GREY", "KALKI SILK-02", "ZAIRA SILK-04", "SILK SAREE", "KALKI SILK-10", "RAJGHARANA-47", "NY-06 ELEGANZA SILK", "5 STAR", "PURE-13 (HK) HARIPRIYA SILK", "K-04 (S) KAVERI SILK", "PATHANI SILK", "GUJARATI PATOLA", "HY-10 (HK) HIYA SILK", "PURE-43 HARIPRIYA SILK", "KALKI SILK -08", "KALKI SILK-01", "RANGEELA SILK-01", "58/08 1100 TPM", "PACKING CHARGE", "60/24 JILIN", "IMMITATION ZARI KASAB M/X", "BAMBOO SPUN YARN 60S 1800 TPM-Z", "BEAM PISSING EXP", "40 NYL KOTA YARN", "PURE-03 HARIPRIYA SILK", "MS-38 (ZARKAN) MERAKI SILK", "MS-41 (ZARKAN) MERAKI SILK", "MS-39 (ZARKAN) MERAKI SILK", "Ny-63 Eleganza silk", "G-104 (HK)", "KRISHVI SILK-40", "RAJGHARANA-33 (B)", "NY-44 ELEGANZA SILK", "KS-12 KOSHKII SILK (DUSTY)", "SHINING STARS", "HAST KALA", "AARYA-FF-01 (S) (B)", "G-02 MOHA SILK (B)", "HUSMUKH CS-60021", "HI-TECH MODAL SATIN", "HI-TECH RUSSIAN SILK", "P PRINT", "50/24 JILIN", "PURE-12 (B) HARIPRIYA SILK", "PURE-18 (B) HARIPRIYA SILK", "MS-11 MERAKI SILK", "PURE-48 HARIPRIYA SILK", "RAINBOW SILK-01", "PURE-50 HARIPRIYA SILK", "PURE-46 HARIPRIYA SILK", "RAJGHARANA-40", "AARYA SILK-07", "KALAKIRTI SILK-07", "RAJGHARANA-24", "RAJGHARANA-44", "RAJGHARANA-48", "BOX PACKING", "3 STAR", "1 STAR", "70 NYL NEW GOLD ANMOL DOUBLER", "35 KRISHNA BLUE KOTA", "MILL DECA+H.FOLD", "RAJGHARANA-56", "RAJGHARANA-20", "KALKI SILK -12", "RAJGHARANA-57", "RAJGHARANA-45(B)", "RAJSHREE-04", "RAJGHARANA-28", "MS-40 MERAKI SILK", "MREAKI (JHARKHAN)", "RAJGHARANA-43", "RAJGHARANA-12", "RAJGHARANA-38", "KALAKRITI SILK-08", "HY-11 (HK) (DARK) HIYA SILK", "Gucci SILK-68", "65 NYLON KHODAL", "KALKI SILK-20", "MS-JHARKHAN", "(BENGAL SILK) G-88", "KALKI SILK -11", "KALKI SILK -23", "30 KOTA NAYLON P.GREEN JL-007", "30 KOTA NAYLON PINK JL-004", "30 KOTA NAYLON GOLD JL-002", "30 KOTA NAYLON RED JL-008", "KALKI SILK-06 MX", "RAINBOW SILK-16", "RAJGHARANA-18", "HY-22 (S) HIYA SILK", "KS-01 KOSHKII SILK (BENGOL WORK)", "KS-02 KOSHKII SILK (BENGOL WORK)", "KS-03 KOSHKII SILK (BENGOL WORK)", "G-105  (BENGOL WORK)", "G-106  (BENGOL SILK)", "G-39 (S) AMOHA SILK", "GOLDEN TEMPLE-35(ZARKAN)", "MS-37 (ZARKAN) MERAKI SILK", "MS-26 (ZARKAN) MERAKI SILK", "MS-20 (ZARKAN) MERAKI SILK", "GOLDEN TEMPLE-33(ZARKAN)", "MS-03 (ZARKAN) MERAKI SILK", "G-105 (S)", "FACTORY RENT RCM", "GST AUDIT FEES", "RAJGHARANA-60", "KALKI SILK-16", "SHIKARA SILK-23", "KS-40 KOSHKII SILK", "11-BAHURANI SILK", "ROLEX SILK-04", "ROLEX SILK-05", "40/24 800 TPM", "35 KOTA BEIGE", "35 KOTA ROYAL BLUE", "Gucci SILK-92", "50 VISCOSE BRT", "Gucci SILK-86", "SHIKARA SILK-04", "SHIKARA SILK-05", "SHIKARA SILK-02", "RAINBOW SILK-23", "RAINBOW SILK-03", "KALKI SILK-14", "KALAKIRTI SILK-08", "G-03 MOHA SILK", "MS-11 (ZARKAN) MERAKI SILK", "RAJGHARANA-59", "KS-42 KOSHKII SILK", "RAJGHARANA-51", "RAINBOW SILK-12", "RAINBOW SILK-20", "ROLEX SILK-06", "07-ROLEX SILK", "RAINBOW SILK-11", "SHIKARA SILK - 06", "03-ROLEX SILK", "GOLDEN TEMPLE-27 (ZARKAN)", "SUNDARI SILK-01 (ZARKAN)", "MS-36 MERAKI SILK (ZARKAN)", "G-106  (S)", "JASMIN SILK-01", "10-BAHURANI SILK", "02-BAHURANI SILK", "12-BAHURANI SILK", "06-BAHURANI SILK", "BAHURANI SILK-16", "100-MADHUBANI SILK", "MADHUBANI SILK-92", "12-MADHUBANI SILK", "04-MADHUBANI SILK", "KALKI SILK-01 (JHARKHAN)", "KALKI SILK-14 (JHARKHAN)", "KALKI SILK-05(JHARKHAN)", "KALKI SILK-03(JHARKHAN)", "85-SATRANGI SILK (2D)", "GUCCI SILK-82", "CLAIM ON JOB WORK", "LATE PAYMENT INTEREST 12%", "80/VISCOSE NEW", "LACE", "RATE DIFF 5%", "SALES DISCOUNT", "60-VIRASAT SILK", "VIRASAT SILK-51", "24-VIRASAT SILK", "ROLEX SILK-08", "GUCCI-78 CHICKOO", "GUCCI SILK-49.", "GUCCI SILK-79", "KALKI SILK-34", "35 KOTA TOMATO RED", "522 AT (110) BANARSI JARI", "KALKI SILK-37", "KALKI SILK-18", "KALKI SILK-33", "KALKI SILK-13", "AARYA SILK-14", "KALKI SILK-28", "RAINBOW SILK-34", "GUCCI SILK-78", "RAINBOW SILK-37", "RAINBOW SILK-18", "GUCCI SILK-49", "GUCCI SILK-70", "GUCCI SILK-85", "KALKI SILK-26", "KALKI SILK-15", "KALKI SILK-38", "RAINBOW SILK-28", "SANGAM-FF-01", "KALKI SILK-25", "KALKI SILK-24", "60D/2 4F 2150 TPM S", "60D/2 4F 2150 TPM Z", "GUCCI SILK-109", "GUCCI SILK-102", "GUCCI SILK-107", "GUCCI SILK-104", "RAJGHARANA-58", "RAJGHARANA-61", "AARYA SILK-16", "AARYA SILK-17", "90 NYLON KHODAL", "KALKI SILK-17", "KALKI SILK-22", "KALKI SILK-35", "KALKI SILK-30", "KALKI SILK-21", "RAINBOW SILK-21", "RAINBOW SILK-06", "RAINBOW SILK-15", "RAINBOW SILK-22", "RAINBOW SILK-24", "RAINBOW SILK-26", "WONDER STAR", "RAINBOW SILK-14", "RAINBOW SILK-25", "RAINBOW SILK-30", "RAINBOW SILK-38", "RAINBOW SILK-17", "KALKI SILK-29", "RABARI SILK (E)", "AARYA SILK-15", "AARYA SILK-19", "AARYA SILK-13", "WONDER STAR-82", "CHINAYA SILK-86", "KANCHANA SILK-12 (METALIC)", "CHINAYA SILK-100", "KALKI-12 (L)", "150 BSP OW24 OFF WHITE", "KALKI SILK-23", "D ANMOL NYLON JARI", "70 NYLON ANMOL DIGITAL", "WONDER STAR-85", "WONDER STAR-70", "KS-10 (A) KOSHKII SILK", "LOG-1", "LOG-1", "GUCCI SILK-78 RAMA", "GUCCI-78 RAMA", "HH-01-RED", "HH-01-GREEN", "HH-01-BLUE", "PURE-12-REXONA", "PURE-12-RANI", "PURE-12-PECOCK", "PURE-12 JAMUNI", "PURE-46-LAVENDER", "PURE-46-JAMUNI", "PURE-46-REXONA", "PURE-46-PEACOCK", "PURE-46-RANI", "PURE-17-JAMUNI", "PURE-17-PEACOCK", "PURE-17-RANI", "PURE-17-REXONA", "PURE-22-PEACOCK", "PURE-22-JAMUNI", "PURE-22-REXONA", "PURE-22-RANI", "PURE-27-RANI", "PURE-27-REXONA", "PURE-27-JAMUNI", "PURE-27-PEACOCK", "PURE-30-JAMUNI", "PURE-30-REXONA", "PURE-30-PEACOCK", "PURE-30-RANI", "PURE-20-JAMUNI", "PURE-20-REXONA", "PURE-20-RANI", "PURE-20-PEACOCK", "PURE-14-JAMUNI", "PURE-14-PEACOCK", "PURE-14-REXONA", "PURE-14-CHIKOO", "PURE-24-PISTA", "PURE-24-PINK", "PURE-24-MUSTARD", "PURE-24-RANA", "PURE-24-PEACOCK", "PURE-18-REXONA", "PURE-18-JAMUNI", "PURE-18-RANI", "PURE-18-PEACOCK", "PURE-15-JAMUNI", "PURE-15-RANI", "PURE-15-PEACOCK", "PURE-15-REXONA", "PURE-19-CHIKOO", "PURE-19-PINK", "PURE-19-JAMUNI", "PURE-19-REXONA", "PURE-21-RANI", "PURE-21-REXONA", "PURE-21-PISTA", "P P-01-REXONA", "P P-01-JAMUNI", "P P-01-RANI", "P P-01-REACOCK", "P P-02-GREAY", "P P-02-RANI", "P P-02-REXONA", "RADHA RANI-01", "GUCCI SILK-108", "ELEGANAZA-12", "MAHARANI-01", "SAMPLE SAREES", "BAHURANI SILK-24", "KS-01 KOSHKII SILK-GAJARI", "KS-01 KOSHKII SILK-PISTA", "KS-01 KOSHKII SILK-PINK", "KS-01 KOSHKII SILK-C.GREEN", "KS-01 KOSHKII SILK-RAMA", "KS-19 KOSHKII SILK-RAMA", "KS-19 KOSHKII SILK-FIROJI", "KS-19 KOSHKII SILK-MEHNDI", "KS-19 KOSHKII SILK-LEVENDER", "KS-19 KOSHKII SILK-RANI", "KS-34 KOSHKII SILK-RAMA", "KS-34 KOSHKII SILK-FIROJI", "KS-34 KOSHKII SILK-B.GREEN", "KS-34 KOSHKII SILK-LAVENDER", "KS-34 KOSHKII SILK-PINK", "KS-40 KOSHKII SILK-FIROJI", "KS-40 KOSHKII SILK-LAVENDER", "KS-40 KOSHKII SILK-MEHNDI", "KS-40 KOSHKII SILK-RAMA", "KS-40 KOSHKII SILK-GAJRI", "KS-28 KOSHKII SILK-RAMA", "KS-28 KOSHKII SILK-GOLD", "KS-28 KOSHKII SILK-D.GAJARI", "KS-28 KOSHKII SILK-D.PINK", "KS-28 KOSHKII SILK-GREY", "KS-28 KOSHKII SILK-LAVENDER", "KS-28 KOSHKII SILK -B.GREEN", "KS-28 KOSHKII SILK -LEVENDER", "KS-28 KOSHKII SILK -CHIKOO", "KS-28 KOSHKII SILK -GAJRI", "KS-28 KOSHKII SILK -BULE", "KS-31 KOSHKII SILK-FIROJI", "KS-31 KOSHKII SILK-LAVENDER", "KS-31 KOSHKII SILK-RANI", "KS-31 KOSHKII SILK-RAMA", "KS-31KOSHKII SILK-B.GREEN", "KS-12-RANI", "KS-12-LAVENDER", "KS-12-B.GREEN", "KS-12-SKY BULE", "KS-12-PISTA", "KS-12-MUSTED", "KS-12-CHIKOO", "KS-12-GREY", "KS-12-RAMA", "KS-24 KOSHKII SILK-LAVENDER", "KS-24 KOSHKII SILK-RANI", "KS-24 KOSHKII SILK-GAJARI", "KS-24 KOSHKII SILK-RAMA", "KS-24 KOSHKII SILK-FIROJI", "KS-24 KOSHKII SILK-GREY", "KS-21 KOSHKII SILK-PURPLE", "KS-21 KOSHKII SILK-GAJARI", "KS-21 KOSHKII SILK-LAVENDER", "KS-21 KOSHKII SILK-B.GREEN", "KS-21 KOSHKII SILK-RAMA", "KS-21 KOSHKII SILK-BLACK", "KS-14 KOSHKII SILK-CHIKOO", "KS-14 KOSHKII SILK-LAVENDER", "KS-14 KOSHKII SILK-GAJARI", "KS-14 KOSHKII SILK-RANI", "KS-14 KOSHKII SILK-RAMA", "KS-17 KOSHKII SILK-RAMA", "KS-17 KOSHKII SILK-LAVENDER", "KS-17 KOSHKII SILK-B.GREEN", "KS-17 KOSHKII SILK-PINK", "KS-17 KOSHKII SILK-D.PINK", "KS-17 KOSHKII SILK-GREY", "KS-11 KOSHKII SILK-PINK", "KS-11 KOSHKII SILK-GAJARI", "KS-11 KOSHKII SILK-LAVENDR", "KS-11 KOSHKII SILK-B.GREEN", "KS-11 KOSHKII SILK-RAMA", "KS-11 KOSHKII SILK-PURPLE", "KS-36 KOSHKII SILK-FIROJI", "KS-36 KOSHKII SILK-LAVENDER", "KS-36 KOSHKII SILK-B.GREEN", "KS-36 KOSHKII SILK-RANI", "KS-36 KOSHKII SILK-RAMA", "KS-35 KOSKII SILK-FIROJI", "KS-35 KOSKII SILK-B.GREEN", "KS-35 KOSKII SILK-GAJARI", "KS-35 KOSKII SILK-CHIKOO", "KS-04 KOSHKII SILK-SKY.BULE", "KS-04 KOSHKII SILK-PINK", "KS-04 KOSHKII SILK-GAJARI", "KS-04 KOSHKII SILK-GREY", "KS-04 KOSHKII SILK-RAMA", "KS-04 KOSHKII SILK-PISTA", "KS-04 KOSHKII SILK-PEACH", "KS-04 KOSHKII SILK-MEHDI", "KS-04 KOSHKII SILK-CHIKOO", "KS-20 KOHKII SILK-B.GREEN", "KS-20 KOHKII SILK-LAVENDER", "KS-20 KOHKII SILK-D.PINK", "KS-20 KOHKII SILK-GAJARI", "KS-22 KOSHKII SILK-CHIKOO", "KS-22 KOSHKII SILK-RAMA", "KS-22 KOSHKII SILK-LAVENDER", "KS-22 KOSHKII SILK-D.PINK", "KS-22 KOSHKII SILK-GAJARI", "KS-22 KOSHKII SILK-B.GREEN", "KS-29 KOSHKII SILK-B.GREEN", "KS-29 KOSHKII SILK-GREY", "KS-29 KOSHKII SILK-RAMA", "KS-29 KOSHKII SILK-GOLD", "KS-29 KOSHKII SILK-GAJARI", "KS-29 KOSHKII SILK-D.PINK", "DIGITAL PRINT", "GUCCI SILK-89", "GUCCI SILK-106", "SOLITARE SILK", "RADHARANI-05", "RANGOLI-11", "MAHARANI-05", "GUCCI SILK-110", "Gen-Z-110", "RAJGHARANA", "ZAIRA SILK", "BAHURANI SILK-25", "ROLEX CONTRAST", "BAHURANI SILK-13", "RABARI SILK(B)", "JASMIN SILK-11", "AARYA SILK-101", "KS-47 KOSHKII SILK", "BAHURANI SILK-02", "ROLEX SILK-07", "WONDER STAR-92", "WONDER STAR-86", "WONDER STAR-89", "WONDER STAR-103", "AARYA SILK-109", "JASMIN SILK-70", "JASMIN SILK-105", "KALKI SILK-27", "MAHARANI-03", "ROLEX SILK-86", "ROLEX SILK-89", "BAHURANI SILK-10", "BAHURANI SILK-01", "MS-05 ZARKAN (MERAKI SILK)", "MS-19 ZARKAN", "MS-24 ZARKAN (MERAKI SILK)", "GUCCI SILK-66", "KALKI SILK-11 (PASTEL)", "KALKI SILK-03 (PASTEL)", "KALKI SILK-07 (FRUIT)", "RADHA RANI-01 (FRUIT)", "JASMIN SILK-102", "JASMIN SILK-103", "JASMIN SILK-94", "CHERRY SILK- 91", "CHERRY SILK- 36", "RADHARANI-09", "BAHURANI SILK-12", "SABURI SILK-02", "SABURI SILK-03", "RAJWADI SILK-04", "SABURI SILK-05", "60 VISCOSE TPM", "F.L.H (110) BANARSI JARI", "BAHURANI SILK-21", "BAHURANI SILK-38", "GUCCI SILK-113 (L)", "GUCCI SILK-119 (L)", "CHERRY SILK-38", "JASMIN SILK-78", "CHERRY SILK-21", "CHERRY SILK-09", "MAHARANI-02", "STATIONERY EXP", "ELEGANAZA-54", "GUCCI SILK-112", "GUCCI SILK-101", "AARYA SILK-108", "SOLITRE SILK-04", "SOLITRE SILK-05", "SOLITRE SILK-10", "CHINAYA SILK-01", "RAINBOW SILK-29", "RAINBOW SILK-08", "RAINBOW SILK-05", "KS-49 KOSHKII SILK", "KS-48 KOSHKII SILK", "KALKI SILK-34 (FRUIT)", "RADHA RANI-04 (FRUIT)", "RADHA RANI-10 (FRUIT)", "RAJ HANS-10 (FRUIT)", "GOLDEN TEMPLE-36 (ZARKAN)", "RAJ HANS-10", "RADHA RANI-10", "ELEGANAZA-101", "RADHA RANI-04", "RAJWADI-05", "HERITAGE-01 (NAZAKAT)", "RAJWADI SILK-03", "RAJWADI SILK-02", "KANCHANA SILK-14A", "KANCHANA SILK-11", "ELEGANAZA-01", "KANCHANA SILK-03", "KANCHANA SILK-02", "KANCHANA SILK-05", "GUCCI SILK-02 (L)", "KADAMBARI SILK-01", "KS-39 KOSHKII SILK", "RAINBOW SILK-33", "RAJGHARANA-11", "GUCCI SILK-108 (PASTEL)", "GUCCI SILK-104 (PASTEL)", "MADHUSUDAN-01", "MADHUSUDAN-02", "KALKI SILK-12 (PASTEL)", "GUCCI SILK-79 (FRUIT)", "GUCCI SILK-119", "GUCCI SILK-120", "NAZAKAT SILK-04", "NAZAKAT SILK-01", "NAZAKAT SILK-03", "NAZAKAT SILK-06", "NAZAKAT SILK-07", "NAZAKAT SILK-05", "47/600 BRT CHIKU JT-18016 SR", "SANGAM-2", "SANGAM-19", "SANGAM-20", "ELEGANAZA-09", "ALBELI SILK-01(D)", "ALBELI SILK-01", "CHINAYA SILK-02", "SAREES", "KOHINOOR SILK-01", "GUCCI SILK-113", "GUCCI SILK-117", "MADHUSUDAN-03", "PURE-22 (HK) HARIPRIYA SILK", "JASMIN SILK-71", "ELEGANAZA-26", "ELEGANAZA-43", "ELEGANAZA-06", "KALKI SILK-03 (FRUIT)", "KALKI SILK-05 (FRUIT)", "KALKI SILK-20 (FRUIT)", "KALKI SILK-14 (FRUIT)", "GUCCI SILK-118", "SANGAM-21", "PURE-19 (HK) HARIPRIYA SILK", "MADHUSUDAN-05", "KANCHANA SILK-20", "SOLITARE SILK-02", "SOLITARE SILK-04", "RAJPRIYA SILK-07", "RAJPRIYA SILK-20", "RAJPRIYA SILK-34", "RAJPRIYA SILK-11", "KOHINOOR SILK-02", "KOHINOOR SILK-04", "KANCHANA SILK-07 (METALLIC)", "KANCHANA SILK-20 (METALLIC)", "KANCHANA SILK-34 (METALLIC)", "KANCHANA SILK-11 (METALLIC)", "RABARI SILK (D)", "MADHUSUDAN-04", "KANCHANA SILK-03 (METALLIC)", "MILL DYEING", "CHERRY SILK-26", "HERITAGE-02", "KANCHANA SILK-38 (METALIC)", "CHINAYA SILK-05", "CHINAYA SILK-04", "G-120", "RAJWADI -01", "ELEGANAZA-13", "110/MONA YARNS", "ELEGANAZA-16(METALIC)", "ALBELI SILK-02", "KANCHANA SILK-14(FRUIT)", "CHERRYSILK-22", "KALKI SILK-12", "ELEGANZA-16", "AARYA SILK FF-01", "ELEGANZA-101", "PURE-45 HARIPRIYA SILK", "RATE DIFF 540710", "BT-01", "BT-02", "SHIKARA SILK-17", "BAHURANI SILK-11", "PIHU SILK-19", "PIHU SILK-22", "SANGAM-02", "GUCCI SILK-84", "PIHU SILK-20", "CHINAYA SILK-07", "MIXED SAREE", "PIHU SILK-21", "J ANMOL 10 NYLON", "D ANMOL 75 POLYSTER DIGITAL", "ZERO ZERO PROCESS", "KALKI SILK-12(METALIC)", "REPAIR & MAINTAINENCE", "BOPP BAG", "SATIN RIBBON", "CHINAYA SILK-03", "FRIEGHT CHARGES", "G-08", "R COPPER 75/1 KASAB JARI", "150 BSP OW P.GREEN", "LM-89598 BOBBY", "LM-89597 BOBBY", "INDUSTRIAL EXHAUST FAN", "AT WATER 75 POLYSTER (DIGITAL)", "D ANMOL 70 NYLON (DIGITAL)", "NARROW FAMRICS LACE", "KOHINOOR SILK-05", "WONDER STAR-106", "IVORY JARI CON", "150/72 LICHI SL 15047", "BOBBY", "150/72 LICHI SL 15055", "MADHUSUDAN-06", "RAINBOW SILK-35", "PATOLA-11", "PATOLA-08", "ROLEX SILK-19", "MADHUSUDAN (TRANGLE)", "MADHUSUDAN (PATALI)", "MADHUSUDAN (LEHIRYA)", "ROLEX SILK-03", "PATOLA-12", "PATOLA-07", "HERITAGE-02(SINGLE DEYING)", "LOAN CHARGES", "WATER-10", "MJ BCH 305", "ORDER FORM BOOKS", "PLASTIC BOX GLASS FILLED", "PLASTIC BOX", "FLAMINGO SILK", "KASTURI SILK-01", "PATOLA-13", "ELEGANZA-15", "MAHARANI-07", "PANKHUDI-01", "NAZAKAT SILK-105", "KOHINOOR SILK-103", "KOHINOOR-03", "RAJGHARANA-49", "FLAMINGO-01", "75 JK ANMOL DHAGA", "KOHINOOR SILK-105", "KOHINOOR SILK-120", "NAZAKAT SILK-106", "NAZAKAT SILK-107", "PATOLA-15 (A)", "NAZAKAT-101", "60/24/2000 TPM VISCOSE CREPE", "PATOLA-14", "PATOLA-10", "PATOLA-15", "PIHU SILK-17", "KALKI SILK-12 (L)", "KOHINOOR SILK-107", "KOHINOOR SILK-07", "MULTY BLOUSE", "PATOLA-12 (A)", "MOHA SAREE POSTER", "KOHINOOR SILK-03", "GOWRI SILK-01", "GOWRI SILK-02", "50/24 VISCOSE WHITE", "90/24/1000 NYLON CREPE YARN", "60/24/2000 VISCOSE TWIS S", "60/24/2000 VISCOSE TWIS Z", "BUSINESS PRMOTION EXP", "PACKING EXPENSE", "PIHU SILK-18", "110/SLUB U6917 WHITE", "JOB WARPING GST", "PURE-26 HARIPRIYA SILK", "PIHU SILK-16", "INTERNET EXP", "PIHU SILK-15", "AMOHA SAREE", "ASTHA SILK-01", "ASTHA SILK-02", "ASTHA SILK-03", "PATOLA -12", "AMOHA SAREE POSTER", "INTEREST ON LATE PAYMENT", "CHINAYA SILK-88", "AASTHA-02", "AASTHA-03", "ORGANZA (RF)", "MOHA SILK SAREE (RF).", "TOP DYED MIX", "KOHINOOR SILK-06", "KOHINOOR SILK-106", "RFD-KANJIPURAM-02 (NET RATE)", "TRANSPORT EXP", "PVC BAG", "RFD-MADHUSUDAN", "SAMPLE FABRIC - VISCOSE CREPE", "RFD- MADHUSUDAN-02 NET RATE", "RFD- MADHUSUDAN-04", "RFD-KALKI-12 (NET RATE)", "RFD-KOHINOOR-07 (NET RATE)", "RFD-NAZAKAT-13", "RFD-MADHUSUDAN-03 (NET RATE)", "RFD-RAJKUMARI-01 (NET RATE)", "RFD-RAJKUMARI-02 (NET RATE)", "RFD-RAJKUMARI-04 (NET RATE)", "WATER 10 20NY", "35 KOTA VIOLET", "35 KOTA DYED", "J ANMOL KASAB", "JIRAF WATER", "ATN 360 KASAB JARI", "AASTHA-01", "RDF-NYCREPE-07", "JASMIN SILK-04", "JASMIN SILK-106", "CHERRY SILK-03", "STICKER", "TRAVEL EXP", "ALBELI SILK-21", "KOHINOOR SILK-102", "GOLDENTEMPLE-37", "MS-33 (ZARKAN) MERAKI SILK", "KS-03 (HK) HAST KALA", "ATN 369 KASAB JARI", "ATN 370 KASAB JARI", "RDF- MASTER-01 (NET RATE)", "RFD-NAZAKAT-13 (NET RATE)", "MAHARANI-04", "DEEPMALA-01", "MADHUSUDHAN-08", "RDF-KALKI-14 (NET RATE)", "RDF-KALKI-38(NET RATE)", "RFD-NATRAJ-02 (NET RATE)", "RFD-MADHUSUDAN-04 (NET RATE)", "RFD-KALKI-12 (NET RATE)", "RFD-RAJGHARANA-09 (NET RATE)", "RFD-KALKI-26 (NET RATE)", "RFD-KALKI-16 (NET RATE)", "RFD-KALKI-38 (NET RATE)", "AASTHA-01(NET RATE)", "MADHUSUDAN-07", "CHINAYA SILK-102", "RFD-KALKI-33 (NET RATE)", "RFD-MADHUSUDAN-06 (NET RATE)", "RFD-PIHU-21 (NET RATE)", "RFD-PIHU-22 (NET RATE)", "RFD-RADHARANI-01 (NET RATE)", "RFD-HERITGE-01 (NAZAKAT)(NET RATE)", "RFD-RADHARANI-10 (NET RATE)", "RFD-KALKI-15 (NET RATE)", "RFD-KALKI-14 (NET RATE)", "RFD-KOHINOOR-05 (NET RATE)", "RFD-KOHINOOR-04 (NET RATE)", "RFD-MADHUSUDAN-01 (NET RATE)", "RFD-MADHUSUDAN-02 (NET RATE)", "RFD-MADHUSUDAN-07 (NET RATE)", "RFD-MADHUSAUDAN-05 (NET RATE)", "RFD-RANGOLI-11 (NET RATE)", "RFD-PIHU-19 (NET RATE)", "RFD-MASTAR-02 (NET RATE)", "RFD-KALKI-09 (NET RATE)", "RFD-NATRAJ-03 (NET RATE)", "RFD-KANJIPURAM-01 (NET RATE)", "ELEGANZA-116", "ELEGANZA-117", "KADAMBARI SILK-15", "CHINAYA SILK-103", "PIHU SILK-01", "KS-05 KAVERI SILK", "PURE NEW DESING", "K-05 KAVERI SILK", "RFD NYLON CREPE BY CREPE (KOHINNOR-03 DESIGN) DOUBLE ZARI", "RFD-KOHINOOR-03 (NET RATE)", "RFD-RAJWADI-01 (NET RATE)", "OFFICE EXP", "TRAVEL SERVICE", "SHOP RENT", "HERITAGE-01 (2D)", "KANCHIPURAM-01", "KOHINOOR-10", "AASTHA-12", "AASTHA-01 (B)", "RFD-MADHUSUDAN-09 (NET RATE)", "RFD-KOHINOOR-01 (NET RATE)", "RFD-KOHINOOR-06 (NET RATE)", "RFD-GUCCI-86 (NET RATE)", "KANJIPURAM-01", "KALAKIRTI SILK-23", "KALAKIRTI SILK-06", "KOHINOOR SILK-101", "CHINAYA SILK-06", "RFD-NAZAKAT-07 (NET RATE)", "NERAMAY-01", "NERAMAY-02", "PURE-05 HARIPRIYA SILK", "PURE-39 HARIPRIYA SILK", "PURE-29 HARIPRIYA SILK", "RFD-MADHUSUDAN-10 (NET RATE)", "RFD-NATRAJ-01 (NET RATE)", "ASTHA SILK-12", "RFD-KOHINOOR-02 (NET RATE)", "RFD-MADHUSUDAN-08 (NET RATE)", "RFD-MADHUSUDAN-05 (NET RATE)", "AARYA SILK-107", "RFD-KALKI SILK-11 (NET RATE)", "RFD-KALKI SILK-20 (NET RATE)", "SHIPPING CHARGE", "RFD-NAZAKAT-06 (NET RATE)", "RFD-ROOP NIKHAAR-01 (NET RATE)", "PROFESSIONAL FEES", "RFD-RADHARANI-33 (NET RATE)", "RFD-KOHINOOR-08 (MAHARANI) (NET RATE)", "PURE-55 HARIPRIYA SILK", "PURE-53 HARIPRIYA SILK", "PURE-52 HARIPRIYA SILK", "ELEGANZA SILK-23", "AARYA SILK-54", "RFD-GUCCI-92 (NET RATE)", "ELEGANZA-12", "NAZAKAT SILK-101", "ANMOL 904 (75/1) KASAB JARI", "NAZAKAT SILK-13", "RFD-PANNA-01 (NET RATE)", "HY-01(S) HIYA SILK", "HY-09(S) HIYA SILK", "RFD-KALKI SILK-14 (NET RATE)", "PURE-14 (A) HARIPRIYA SILK", "FANCY YARN", "NERAMAY-03", "RFD NYLON CREPE BY CREPE (KOHINNOR-03 DESIGN) DOUBLE ZARIRFD", "KS-01(HK)", "RFD-GUCCI-108 (NET RATE)", "RFD-GUCCI-113 (NET RATE) - NYLON", "G-100(HK)", "G-98(HK)", "KOHINOOR SILK-20", "RAJGHARANA-09", "AARYA SILK-43", "PANKHUDI-02", "RAJGHARANA-33", "GUCCI-103", "RADHA RANI-05", "NATRAJ-01", "MS-33 MERAKI SILK", "MS-35 (MEREAKI SILK)", "MAHARANI-106", "CHERRY SILK-28", "PURE-51 HARIPRIYA SILK", "JASMIN SILK-86", "PURE-11(DARK) HARIPRIYA SILK", "PURE-10(DARK) HARIPRIYA SILK", "NAZAKAT SILK-08", "NERAMAY-04", "RFD-NERAMAY EMBROIDERY - DN. L-429", "RFD-NERAMAY EMBROIDERY - DN. L-426", "RFD-NERAMAY EMBROIDERY - DN. L-427", "VISCOSE RAY FILA YARN", "50/08/1000 VISCOSE TWIST S", "60/24 1000 VISCOSE", "RFD-PARASMANI-01 (NET RATE)", "RFD-PARASMANI-02 (NET RATE)", "RFD-PARASMANI-03 (NET RATE)", "RFD-PARASMANI-04 (NET RATE)", "RFD-PARASMANI-05 (NET RATE)", "RFD-PARASMANI-06 (NET RATE)", "SHIKARA SILK-01", "BAHURANI SILK-12(A)", "BAHURANI SILK-04", "BT-8012 FANCY YARN S", "RFD-NERAMAY EMBROIDERY - DN. L-428", "RAJKUMARI-01", "NERAMAY-05", "RAJKUMARI-02", "PURE-09 HARIPRIYA SILK", "HY-02(S) HIYA SILK", "G-03(S) HIYA SILK", "G-82(HK) AMOHA SILK", "BAHURANI SILK-23", "G-106(HK) AMOHA SILK", "MS-35 (ZARKAN) MERAKI SILK", "CHEERY SILK-07", "KASTURI SILK-01(DUSTY)", "MADHUSUDAN-06(A)", "RFD-KALKI SILK-01 (NET RATE)", "RFD-MAHARANI-01 (NET RATE)", "NERAMAY-06", "AARYA SILK-09(HK)", "AARYA SILK - FF-01(HK)", "JASMIN SILK-84", "AASTHA-101", "ELEGANZA-15(A)", "RFD-PANNA-02 (NET RATE)", "RFD-PANNA-03 (NET RATE)", "RFD-NATRAJ-04 (NET RATE)", "RFD-NATRAJ-05 (NET RATE)", "RFD-NATRAJ-06 (NET RATE)", "ORIGINAL SAREE RETURN", "RFD-PARASMANI-08 (NET RATE)", "RFD-RADHARANI-16 (NET RATE)", "RFD-PARASMANI-11 (NET RATE)", "RFD-PARASMANI-09 (NET RATE)", "RFD-PARASMANI-07 (NET RATE)", "RFD-NAZAKAT-03 (NET RATE)", "RFD-KALKI-23 (NET RATE)", "RFD-KALKI-05 (NET RATE)", "MS-04 MERAKI SILK", "150/72 LICHI 1996 MUSTRED", "GEN Z-01 (DUSTY)", "RFD-JUMBO  3 DESING", "KOHINOOR SILK-01(DUSTY)", "KOHINOOR SILK-06(DUSTY)", "NAZAKAT SILK-07(DUSTY)", "NAZAKAT JALL (DUSTY)", "DEEPMALA-02", "MS-32(ZARKAN) MERAKI SILK", "JUMBO-01(DUSTY)", "NEW DESING", "RFD-NAZAKAT GHARCHOLA (NET RATE)", "MAHARANI-101 A", "VASTRAM-01 ZIRAF POSITION PRINT", "KOHINOOR SILK-10 (DUSTY)", "KOHINOOR SILK-03(DUSTY)", "RFD-NAZAKAT-31 (NET RATE)", "RFD-NAZAKAT-21 (NET RATE)", "RFD-NAZAKAT-23 (NET RATE)", "RFD-G-24 (NET RATE)", "ZAIRA -03", "150/72 1997-C MEHANDI", "KALKI SWAROVSKI", "KALKI SILK-12 (DUSTY)", "ANNY-01", "RFD-CBORDER -03 (NET RATE)", "RFD-CBORDER -01 (NET RATE)", "RFD-CBORDER -04 (NET RATE)", "RFD-NAZAKAT-45 (NET RATE)", "RFD-NAZAKAT-47 (NET RATE)", "RFD-NAZAKAT-49 (NET RATE)", "MS-27 ZARAKAN", "60/24/850 VISCOSE TWIST S", "60/24/850 VISCOSE TWIST Z", "RFD-NAZAKAT-05 (NET RATE)", "RFD-NAZAKAT-52 (NET RATE)", "ELEGANZA-47", "JUMBO-02(DUSTY)", "PANNA-02", "PANNA-03", "NAZAKAT SILK-10", "RAJKUMARI-04", "NATRAJ-02", "KANCHANA-09 (FRUIT CHAT)", "KOHINOOR SILK-14", "KOHINOOR SILK-13", "KOHINOOR TEMPLE", "NATRAJ-03", "MAHARANI-101", "BAHURANI SILK", "PURE HANDWORK", "MOR FRUIT", "BAHURANI SILK-03", "BAHURANI SILK-20", "KANCHANA SILK-33(DUSTY)", "KANCHANA SILK-26(DUSTY)", "KANCHANA SILK-09(DUSTY)", "RFD-SUGARCOAT-03 (NET RATE)", "RFD-SUGARCOAT-02 (NET RATE)", "RFD-SUGARCOAT-01 (NET RATE)", "BT 8012 FANCY YARN Z", "60/24 GEORGETTE", "SAMPLES OF 3 DYED PANNA SAREES (FOR WIDTH CHECKING - 44INCH AFTER DYEING", "JOB WORK BUTTA CUTTING GST", "130 BISCOSE RADHEY", "AT WATER 70 NYLON DG", "175 VISCOSE DK", "KLUBERSYNTH 80 KV", "INT ON LATE PAYMENT 12%", "CHERRY-36", "JASMIN SILK-75", "PANNA-01", "NAZAKAT SILK-37(DARK DUSTY)", "NAZAKAT SILK-07 (DARK DUSTY)", "NAZAKAT SILK-09", "KALKI SILK-109", "RFD-ALLOVER-PARASMANI-08", "RFD-ALLOVER-PARASMANI-07", "RFD-ALLOVER-PARASMANI-05", "RFD-ALLOVER-PARASMANI-04", "RFD-ALLOVER-PARASMANI-03", "RFD-ALLOVER-PARASMANI-02", "RFD-ALLOVER-PARASMANI-11", "RFD-ALLOVER-PARASMANI-01", "HY-36 (S) HIYA SILK", "RFD-SHOBHA SILK-06 (NET RATE)", "RFD-SHOBHA SILK-03 (NET RATE)", "RFD-SHOBHA SILK-05 (NET RATE)", "RFD-JUMBO-08 (NET RATE)", "RFD-JUMBO-06 (NET RATE)", "RFD-JUMBO-09 (NET RATE)", "RFD-PANNA-11 (NET RATE)", "RFD-PANNA-10 (NET RATE)", "RFD-KOHINOOR-09 (NET RATE)", "RFD-KANJIPURAM-14 NET RATE)", "NAZAKAT SILK-49", "JUMBO-10 (LIGHT)", "JUMBO-08 (LIGHT)", "RFD-NATRAJ-08 (NET RATE)", "RFD-CBORDER-02 (NET RATE)", "RFD-NAZAKAT JALL (NET RATE)", "RFD-MADHUSUDAN-04A (NET RATE)", "RFD-GUCCI-120 (NET RATE)", "RFD-JUMBO-01 (NET RATE)", "RFD-JUMBO-10 (NET RATE)", "RFD-KOHINOOR-13 (NET RATE)", "G-68 (S)", "GUCCI SILK-116", "60/24/1800 VISCOSE TWIST S", "60/24/1800 VISCOSE TWIST Z", "ELEGANZA-115", "KANCHANA SILK-23", "NAZAKAT SILK-47", "RFD-SHOBHA SILK-01 (NET RATE)", "RFD-SHOBHA SILK-02 (NET RATE)", "RFD-SHOBHA SILK-04 (NET RATE)", "RFD-NATRAJ-04 BUTTI (NET RATE)", "ALBELI SILK-04", "ALBELI SILK-05", "G-106 PURE SILK", "G-163 PURE SILK", "G-142 PURE SILK", "G-247 PURE SILK", "RFD-JUMBO-13 (NET RATE)", "RFD-SHOBHA SILK-08 (NET RATE)", "RFD-ALLOVER-PANNA-06", "RFD-ALLOVER-PANNA-04", "RFD-ALLOVER-NATRAJ-03", "RFD-ALLOVER-NATRAJ-06", "G-109", "G-1420", "G-1090", "G-74", "G-010", "G-311", "RFD-DULHAN-01 (NET RATE)", "RFD-DULHAN-02 (NET RATE)", "MAHARANI-06", "GOWRI SILK-03", "GOWRI SILK-05", "160 RADHIKA VISCOSE", "160 BARSAT VISCOSE", "200 KHADI SILK", "LEGAL EXP", "BARCODE ROLLS", "SHOBHA SILK SAREES", "NAZAKAT SILK SAREES", "NATRAJ SILK SAREES", "JOB WORK DIGITAL PRINTING", "SAREE VDS4631", "KANCHANA SILK-33", "NATRAJ-04(LIGHT)", "MADHUSUDAN-08", "RFD-DULHAN-03 (NET RATE)", "RFD-SHOBHA SILK-11 (NET RATE)", "RFD-SHOBHA SILK-10 (NET RATE)", "MYSORE SILK-01", "VISCOSE YARN", "RFD-SHOBHA SILK-12 (NET RATE)", "RFD-SHOBHA SILK-13 (NET RATE)", "RFD-G-36 (NET RATE)", "RFD-G-37 (NET RATE)", "RFD-G-39 (NET RATE)", "RFD-NAZAKAT-36 (NET RATE)", "RFD-NAZAKAT-18 (NET RATE)", "RFD-NAZAKAT-39 (NET RATE)", "RFD-NAZAKAT-30 (NET RATE)", "RFD-HARSH SUIT-01 (NET RATE)", "RFD-HARSH SUIT-02 (NET RATE)", "JASMIN SILK-77", "KANCHANA SILK-109", "ANOKHI-04", "ANOKHI-05", "WONDER STAR-79", "RADHA RANI-04 (DARK)", "ALBELI SILK-03", "KASTURI SILK-02", "SHOBHA SILK-03", "SHOBHA SILK-06", "ALBELI SILK-06", "BT-65 16", "SAREE WAX & HAND FOLD", "SAREE VDS 4623", "RFD-KOHINOOR-12 (NET RATE)", "KIYA SILK-01", "RFD-DHARMA-04 (NET RATE)", "RFD-DHARMA-03 (NET RATE)", "RFD-DHARMA-05 (NET RATE)", "RFD-DHARMA-08 (NET RATE)", "RFD-DHARMA-02 (NET RATE)", "RFD-JUMBO-02 (NET RATE)", "RFD-JUMBO-03 (NET RATE)", "RFD-JUMBO-12 (NET RATE)", "RFD-DULHAN-06 (NET RATE)", "RFD-DHARMA-01 (NET RATE)", "KIYA SILK-02", "JUMBO SILK-10", "ELEGANZA-13", "RFD-DHARMA-06 (NET RATE)", "CREPE SUIT-01", "GOWRI SILK-04", "KOHINOOR-13", "RDF-DHARMA-01 (NET RATE)", "NAZAKAT SILK-39 (LIGHT)", "JUMBO-08 (DUSTY)", "JUMBO-06(DUSTY)", "WONDER STAR-66", "NAZAKAT SILK-37 (LIGTH)", "RFD-PANNASUITS-01", "RFD-PANNASUITS-02", "RFD-PANNASUITS-03", "RFD-NAZAKAT-16 (NET RATE)", "NAZAKAT SILK-45", "NAZAKAT SILK-36 (LIGHT)", "NAZAKAT SILK-24(LIGHT)", "NAZAKAT SILK-37(LIGHT)", "NAZAKAT SILK-18 (LIGHT)", "9406 NYLON YARN", "PARASMANI-08", "NAZKAT-10", "NAZAKAT-11", "SADBHAVNA SILK-08", "PARASMANI-04", "JUMBO-04", "JUMBO-09 (DUSTY)", "NAZAKAT SILK-21 (LIGHT)", "C.BORDER-01", "NATRAJ SILK-12", "JUMBO-10 (DUSTY)", "GUCCI SILK-01", "RFD-PANNA-18 (NET RATE)", "SHOBHA SILK-11", "SHOBHA SILK-10", "ELEGANZA-11", "ELEGANZA-26", "RFD-SUGARCOAT-04 (NET RATE)", "MADHUSUDAN-04 (A)", "NATRAJ-03 (LIGHT)", "NAZAKAT SILK-52", "ELEGANZA-54", "RFD-PANNA-17 (NET RATE)", "RFD-PANNA-19 (NET RATE)", "RFD-PANNA-21 (NET RATE)", "RFD-PANNA-23 (NET RATE)", "RFD-SUGARCOAT-05 (NET RATE)", "RFD-SUGARCOAT-06 (NET RATE)", "RFD-PANNA-20 (NET RATE)", "NAZAKAT SILK-11", "RFD-PANNA-16 (NET RATE)", "ANOKHI-02", "ANOKHI-01", "SHOBHA SILK-02", "RFD-NAZAKAT-15 (NET RATE)", "PARASMANI-03", "RFD-PANNA-22 (NET RATE)", "RFD-SUGARCOAT SUIT -02", "RFD-SUGARCOAT SUIT-03", "RFD-PANNA SUIT-19", "RFD-SUGARCOAT SUIT-05", "RFD-SUGARCOAT SUIT-06", "RFD-SUGARCOAT SUIT-01", "PURE-08 HARIPRIYA SILK", "ELEGANZA-41", "SHOBHA SILK-05", "NAZAKAT SILK-30 (LIGHT)", "CHARGES", "AT WATER 20 NYLON", "JK ANMOL 20 NYLON", "PP WOVEN", "PRINTING", "RFD-NAZAKAT-28 (NET RATE)", "RFD-NAZAKAT-55 (NET RATE)", "AASTHA-103", "ELEGANZA-06", "NATRAJ-05", "RFD-KALKI SILK-24(NET RATE)", "ELEGANZA-41 LIGHT", "RFD-PANNA-07 (NET RATE)", "RFD-PANNA-08 (NET RATE)", "ELEGANZA-11 LIGHT", "KANCHANA-109 LIGHT CHART", "DHARMA-04", "ALBELI SILK-07", "NATRAJ-101 (LIGHT)", "DHARMA-08", "DHARMA-03", "PARASMANI-11", "RFD-PANNA-03 (WITH BROCADE BLOUSE)"];
+</script>
 </body>
 </html>
