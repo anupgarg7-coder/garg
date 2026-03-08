@@ -428,8 +428,23 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
 .dc-autocomplete-item:last-child{border-bottom:none;}
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1410;color:#f5f0e8;padding:10px 20px;border-radius:20px;font-size:0.7rem;letter-spacing:1px;z-index:99999;opacity:0;transition:opacity 0.3s;pointer-events:none;}
 #toast.show{opacity:1;}
-.out-src-btn{flex:1;padding:10px 8px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:0.65rem;font-weight:600;letter-spacing:1px;cursor:pointer;text-align:center;line-height:1.5;transition:all .15s;}
-.out-src-btn.out-src-active{background:var(--out);color:#fff;border-color:var(--out);}
+.out-src-btn{flex:1;padding:10px 8px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:0.65rem;font-weight:600;letter-spacing:1px;cursor:pointer;text-align:center;line-height:1.6;transition:all .15s;}
+.out-src-btn.out-src-active{background:var(--out-color);color:#fff;border-color:var(--out-color);}
+#out-party-dd{position:absolute;top:100%;left:0;right:0;background:#fdfaf4;border:1px solid var(--border);border-radius:8px;z-index:9999;max-height:160px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.08);display:none;}
+.out-src-badge{font-size:0.55rem;padding:2px 7px;border-radius:10px;letter-spacing:1px;}
+.out-src-badge.wh{background:#e3f2fd;color:#1565c0;}
+.out-src-badge.shop{background:#f3e5f5;color:#7b1fa2;}
+.party-dd-item{padding:9px 12px;font-size:0.68rem;cursor:pointer;border-bottom:1px solid #f0ece4;font-family:'IBM Plex Mono',monospace;}
+.party-dd-item:hover{background:#fdf7ee;}
+/* Output tab item dropdown */
+.out-item-dd{position:absolute;top:100%;left:0;right:0;background:#fdfaf4;border:1.5px solid var(--out-border);border-radius:10px;z-index:9999;max-height:220px;overflow-y:auto;box-shadow:0 6px 18px rgba(0,0,0,0.1);display:none;margin-top:2px;}
+.out-item-opt{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;cursor:pointer;border-bottom:1px solid #f0ece4;font-family:'IBM Plex Mono',monospace;font-size:0.66rem;}
+.out-item-opt:last-child{border-bottom:none;}
+.out-item-opt:hover,.out-item-opt.focused{background:var(--out-light);}
+.out-item-name{flex:1;font-weight:600;color:var(--ink);}
+.out-item-qty{font-size:0.58rem;color:var(--stock);font-weight:700;background:#e8f5e9;padding:2px 7px;border-radius:8px;margin-left:8px;white-space:nowrap;}
+.out-item-qty.zero{color:#e53935;background:#fdecea;}
+.out-item-new{font-size:0.56rem;color:#e65100;background:#fff3e0;padding:2px 7px;border-radius:8px;margin-left:8px;font-weight:700;}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -532,26 +547,39 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
       <div id="out-scan-status" class="scan-status out-s" style="display:none"><div class="spinner"></div><span id="out-scan-msg"></span></div>
       <div id="out-review-panel"></div>
       <div style="text-align:center;font-size:0.5rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin:8px 0 10px">— or enter manually —</div>
+
       <div class="field"><label>Output Challan No.</label><input id="out-challan" type="text" placeholder="e.g. OUT-001"></div>
       <div class="field"><label>Date</label><input id="out-date" type="date"></div>
+
       <div class="field">
         <label>Dispatch From</label>
-        <div style="display:flex;gap:8px;margin-top:4px;">
-          <button id="out-src-warehouse" class="out-src-btn out-src-active" onclick="setOutSource('warehouse')">🏭 Warehouse<br><span style="font-size:0.5rem;font-weight:400;">GARG INDUSTRIES</span></button>
-          <button id="out-src-shop" class="out-src-btn" onclick="setOutSource('shop')">🏪 Shop<br><span style="font-size:0.5rem;font-weight:400;">AMOHA SILK</span></button>
+        <div style="display:flex;gap:8px;margin-top:6px;">
+          <button id="out-src-warehouse" class="out-src-btn out-src-active" onclick="setOutSource('warehouse')">
+            🏭 Warehouse<br><span style="font-size:0.5rem;font-weight:400;opacity:0.85;">GARG INDUSTRIES</span>
+          </button>
+          <button id="out-src-shop" class="out-src-btn" onclick="setOutSource('shop')">
+            🏪 Shop<br><span style="font-size:0.5rem;font-weight:400;opacity:0.85;">AMOHA SILK</span>
+          </button>
         </div>
       </div>
-      <div class="field"><label>Party Name</label><input id="out-party" type="text" placeholder="e.g. M/s Sharma Traders"></div>
+
+      <div class="field" style="position:relative;">
+        <label>Party Name</label>
+        <input id="out-party" type="text" placeholder="e.g. M/s Sharma Traders" autocomplete="off" >
+        <div id="out-party-dd"></div>
+      </div>
+
       <div class="items-header"><span class="items-label">Items Sent Out</span><button class="add-item-btn" onclick="addOutItem()">+ ADD ITEM</button></div>
       <div class="item-col-heads"><span>Item Name</span><span>Pcs</span><span>Type</span><span></span></div>
       <div id="out-items-list"></div>
+
       <div style="display:flex;gap:8px;margin-top:12px;">
-        <button class="submit-btn out-btn" style="flex:1;" onclick="saveOutput()">SAVE OUTPUT CHALLAN</button>
-        <button class="submit-btn" style="flex:0 0 auto;background:#1a1410;color:#f5f0e8;border-color:#1a1410;" onclick="saveAndDownloadOutput()">💾 SAVE & PDF</button>
+        <button class="submit-btn out-btn" style="flex:1;" onclick="saveOutput()">💾 SAVE</button>
+        <button class="submit-btn" style="flex:1;background:#1a1410;color:#f5f0e8;border-color:#1a1410;" onclick="printOutChallan()">🖨 SAVE & PRINT</button>
       </div>
     </div>
     <div class="section-label">Output Challans</div>
-    <div class="filter-row"><input id="out-search" type="text" placeholder="Search..." oninput="renderOutputList()"></div>
+    <div class="filter-row"><input id="out-search" type="text" placeholder="Search challan / party / item..." oninput="renderOutputList()"></div>
     <div id="out-list"></div>
   </div>
 
