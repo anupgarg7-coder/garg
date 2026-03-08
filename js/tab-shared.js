@@ -144,7 +144,7 @@ function switchTab(tab) {
     document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
     document.getElementById('page-'+tab).classList.add('active');
     document.querySelector('.tab.'+tab).classList.add('active');
-    if(tab==='out') renderOutputList();
+    if(tab==='out') { if(typeof initOutTab==='function') initOutTab(); renderOutputList(); }
     if(tab==='in') renderInputList();
     if(tab==='book') renderBook();
     if(tab==='stock') { renderStockInputRows(); renderStockRegister(); }
@@ -174,6 +174,7 @@ async function autoLogin() {
   try { startRealtimeSync(SHARED_USER); } catch(e) { console.warn('Realtime sync failed:', e); }
   try { setTodayDates(); } catch(e) {}
   try { addOutItem(); } catch(e) {}
+  try { if(typeof initOutTab==='function') initOutTab(); } catch(e) {}
   try { renderOutputList(); } catch(e) {}
   try { renderInputList(); } catch(e) {}
 }
