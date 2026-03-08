@@ -139,6 +139,10 @@ function getWhInQty(n){
     let tot=0;
     data.inputs.forEach(inp=>{
       if(!challanCountable(inp.date, cutoff)) return;
+      // Only warehouse-destined, ready goods count toward warehouse stock
+      const dest   = inp.inDest || (inp.inType==='packing' ? 'shop' : 'warehouse');
+      const status = inp.inStatus || 'ready';
+      if(dest !== 'warehouse' || status !== 'ready') return;
       inp.items.filter(i=>i.name.toLowerCase()===n.toLowerCase()).forEach(i=>{tot+=i.pcs;});
     });
     return tot;
@@ -161,8 +165,12 @@ function getShInDeduction(n){
   try {
     const cutoff = getLatestPreStockDate(n);
     let tot=0;
-    data.inputs.filter(inp=>inp.inType==='packing').forEach(inp=>{
+    data.inputs.forEach(inp=>{
       if(!challanCountable(inp.date, cutoff)) return;
+      // Only shop-destined, ready goods add to shop stock
+      const dest   = inp.inDest || (inp.inType==='packing' ? 'shop' : 'warehouse');
+      const status = inp.inStatus || 'ready';
+      if(dest !== 'shop' || status !== 'ready') return;
       inp.items.filter(i=>i.name.toLowerCase()===n.toLowerCase()).forEach(i=>{tot+=i.pcs;});
     });
     return tot;
