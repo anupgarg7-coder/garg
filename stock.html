@@ -457,6 +457,14 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
 /* tr-item-row reuses item-row grid — override 4th col for avail badge */
 .tr-item-row{display:grid;grid-template-columns:1fr 70px 60px 28px;gap:6px;align-items:center;margin-bottom:6px;}
 .tr-name-wrap{position:relative;}
+.in-dest-btn{flex:1;padding:10px 8px;border-radius:10px;border:1.5px solid var(--in-border);background:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:0.65rem;font-weight:700;letter-spacing:0.5px;cursor:pointer;text-align:center;line-height:1.6;color:var(--ink);transition:all .15s;}
+.in-dest-btn.in-dest-active{background:var(--in-color);color:#fff;border-color:var(--in-color);}
+.in-status-btn{flex:1;padding:10px 8px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:0.65rem;font-weight:700;letter-spacing:0.5px;cursor:pointer;text-align:center;line-height:1.6;color:var(--ink);transition:all .15s;}
+.in-status-btn.in-status-active{background:#2e7d32;color:#fff;border-color:#2e7d32;}
+.in-status-process-active{background:#e65100 !important;border-color:#e65100 !important;}
+.in-process-badge{font-size:0.55rem;padding:2px 7px;border-radius:8px;background:#fff3e0;color:#e65100;font-weight:700;letter-spacing:1px;margin-left:4px;}
+.in-dest-badge-wh{font-size:0.55rem;padding:2px 7px;border-radius:8px;background:#e3f2fd;color:#1565c0;font-weight:700;letter-spacing:1px;margin-left:4px;}
+.in-dest-badge-sh{font-size:0.55rem;padding:2px 7px;border-radius:8px;background:#f3e5f5;color:#7b1fa2;font-weight:700;letter-spacing:1px;margin-left:4px;}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -654,10 +662,25 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
       <div class="field"><label>Input Challan No.</label><input id="in-challan" type="text" placeholder="e.g. IN-001"></div>
       <div class="field"><label>Date</label><input id="in-date" type="date"></div>
       <div class="field">
-        <label>Challan Type</label>
-        <div class="in-type-row">
-          <button class="in-type-btn dyeing active" id="in-type-dyeing" onclick="setInType('dyeing')">🔵 After Dyeing<br><span style="font-size:0.52rem;font-weight:400">Adds to Warehouse</span></button>
-          <button class="in-type-btn packing" id="in-type-packing" onclick="setInType('packing')">🟢 For Packing<br><span style="font-size:0.52rem;font-weight:400">Warehouse + Reduces Shop</span></button>
+        <label>Input Destination</label>
+        <div style="display:flex;gap:8px;margin-top:6px;">
+          <button id="in-dest-warehouse" class="in-dest-btn in-dest-active" onclick="setInDest('warehouse')">
+            🏭 Warehouse<br><span style="font-size:0.5rem;font-weight:400;opacity:0.85;">GARG INDUSTRIES</span>
+          </button>
+          <button id="in-dest-shop" class="in-dest-btn" onclick="setInDest('shop')">
+            🏪 Shop<br><span style="font-size:0.5rem;font-weight:400;opacity:0.85;">AMOHA SILK</span>
+          </button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Goods Status</label>
+        <div style="display:flex;gap:8px;margin-top:6px;">
+          <button id="in-status-ready" class="in-status-btn in-status-active" onclick="setInStatus('ready')">
+            ✅ Ready Goods<br><span style="font-size:0.5rem;font-weight:400;opacity:0.85;">Adds to inventory</span>
+          </button>
+          <button id="in-status-process" class="in-status-btn" onclick="setInStatus('process')">
+            ⚙️ Under Process<br><span style="font-size:0.5rem;font-weight:400;opacity:0.85;">No inventory change</span>
+          </button>
         </div>
       </div>
       <div class="field">
