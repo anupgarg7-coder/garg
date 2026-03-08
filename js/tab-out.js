@@ -158,7 +158,7 @@ function makeOutItemRow(typePrefill) {
   pcsInp.type = 'number'; pcsInp.placeholder = 'Pcs'; pcsInp.min = '0'; pcsInp.className = 'item-pcs-inp';
   var typeSel = document.createElement('select');
   typeSel.className = 'item-type-sel type-' + typePrefill;
-  typeSel.innerHTML = '<option value="grey">⬜ Grey</option><option value="sample">🟢 Sample</option><option value="packing">🔵 Packing</option>';
+  typeSel.innerHTML = '<option value="grey">⬜ Grey Stage</option><option value="packing">🔵 For Packing</option><option value="sample">🟢 For Shop Sample</option>';
   typeSel.value = typePrefill;
   typeSel.onchange = function() { typeSel.className = 'item-type-sel type-' + typeSel.value; };
   var rmBtn = document.createElement('button'); rmBtn.className = 'remove-item'; rmBtn.textContent = '✕';
