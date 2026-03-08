@@ -961,11 +961,7 @@ let itemCatalog = {};
 let hwCorrections = [];
 let lookupSelected = new Set();
 let rvIdx = { out:500, in:500 };
-// Tab state globals
-let currentOutSource = 'warehouse';
-let currentInDest    = 'warehouse';
-let currentInStatus  = 'ready';
-let _partyACInit     = false;
+// Tab state globals (declared once here, used by all tabs)
 
 function setSyncStatus(status) {
   const dot = document.getElementById('sync-dot');
