@@ -434,6 +434,7 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
 .out-src-badge{font-size:0.55rem;padding:2px 7px;border-radius:10px;letter-spacing:1px;}
 .out-src-badge.wh{background:#e3f2fd;color:#1565c0;}
 .out-src-badge.shop{background:#f3e5f5;color:#7b1fa2;}
+.out-src-badge.transfer{background:#e8f5e9;color:#2e7d32;}
 .party-dd-item{padding:9px 12px;font-size:0.68rem;cursor:pointer;border-bottom:1px solid #f0ece4;font-family:'IBM Plex Mono',monospace;}
 .party-dd-item:hover{background:#fdf7ee;}
 /* Output tab item dropdown */
@@ -445,6 +446,17 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
 .out-item-qty{font-size:0.58rem;color:var(--stock);font-weight:700;background:#e8f5e9;padding:2px 7px;border-radius:8px;margin-left:8px;white-space:nowrap;}
 .out-item-qty.zero{color:#e53935;background:#fdecea;}
 .out-item-new{font-size:0.56rem;color:#e65100;background:#fff3e0;padding:2px 7px;border-radius:8px;margin-left:8px;font-weight:700;}
+.tr-btn{flex:1;padding:10px 6px;border-radius:10px;border:1.5px solid #a5d6a7;background:#fff;font-family:'IBM Plex Mono',monospace;font-size:0.62rem;font-weight:700;letter-spacing:0.5px;cursor:pointer;text-align:center;transition:all .15s;color:#2e7d32;}
+.tr-btn.tr-btn-active{background:#2e7d32;color:#fff;border-color:#2e7d32;}
+.tr-item-avail{font-size:0.58rem;color:#2e7d32;font-weight:700;white-space:nowrap;padding:0 4px;text-align:center;}
+.tr-item-avail.zero{color:#e53935;}
+.tr-history-card{background:#fff;border:1px solid #c8e6c9;border-radius:10px;padding:10px 12px;margin-bottom:8px;}
+.tr-history-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.tr-history-dir{font-size:0.65rem;font-weight:700;color:#2e7d32;}
+.tr-history-date{font-size:0.6rem;color:var(--muted);}
+/* tr-item-row reuses item-row grid — override 4th col for avail badge */
+.tr-item-row{display:grid;grid-template-columns:1fr 70px 60px 28px;gap:6px;align-items:center;margin-bottom:6px;}
+.tr-name-wrap{position:relative;}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -536,6 +548,8 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
 
   <!-- OUTPUT -->
   <div class="page active" id="page-out">
+
+    <!-- ── Output Challan form ── -->
     <div class="form-card out-card">
       <div class="section-label">New Output Challan</div>
       <label style="margin-bottom:5px;display:block">📷 Scan Challan Photo — AI Auto-Fill</label>
@@ -565,7 +579,7 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
 
       <div class="field" style="position:relative;">
         <label>Party Name</label>
-        <input id="out-party" type="text" placeholder="e.g. M/s Sharma Traders" autocomplete="off" >
+        <input id="out-party" type="text" placeholder="e.g. M/s Sharma Traders" autocomplete="off">
         <div id="out-party-dd"></div>
       </div>
 
@@ -578,6 +592,47 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
         <button class="submit-btn" style="flex:1;background:#1a1410;color:#f5f0e8;border-color:#1a1410;" onclick="printOutChallan()">🖨 SAVE & PRINT</button>
       </div>
     </div>
+
+    <!-- ── Stock Transfer card ── -->
+    <div class="form-card" style="border:2px solid #2e7d32;background:#f1f8e9;margin-top:0;">
+      <div class="section-label" style="color:#2e7d32;">🔄 Stock Transfer</div>
+
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button id="tr-btn-g2a" class="tr-btn tr-btn-active" onclick="setTransferDir('garg_to_amoha')">
+          🏭 Garg → Amoha 🏪
+        </button>
+        <button id="tr-btn-a2g" class="tr-btn" onclick="setTransferDir('amoha_to_garg')">
+          🏪 Amoha → Garg 🏭
+        </button>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;font-size:0.6rem;font-weight:700;letter-spacing:1px;margin-bottom:10px;">
+        <span id="tr-from-label" style="color:#c0392b;">From: Garg Industries (Warehouse)</span>
+        <span id="tr-to-label"   style="color:#9c27b0;">To: Amoha Silk (Shop)</span>
+      </div>
+
+      <input type="hidden" id="tr-dir" value="garg_to_amoha">
+
+      <div class="field"><label>Transfer Date</label><input id="tr-date" type="date"></div>
+      <div class="field"><label>Note (optional)</label><input id="tr-note" type="text" placeholder="e.g. Monthly stock shift" style="background:#fff;"></div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-size:0.6rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Items to Transfer</span>
+        <button class="add-item-btn" onclick="addTransferItem()">+ ADD ITEM</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 70px 60px 28px;gap:6px;font-size:0.52rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;padding:0 2px;">
+        <span>Item Name</span><span>Pcs</span><span>Avail</span><span></span>
+      </div>
+      <div id="tr-items-list"></div>
+
+      <button class="submit-btn" style="margin-top:12px;width:100%;background:#2e7d32;border-color:#2e7d32;color:#fff;" onclick="saveStockTransfer()">✔ CONFIRM TRANSFER</button>
+    </div>
+
+    <!-- ── Transfer history ── -->
+    <div class="section-label" style="margin-top:8px;">Transfer History</div>
+    <div id="tr-history"></div>
+
+    <!-- ── Challan list ── -->
     <div class="section-label">Output Challans</div>
     <div class="filter-row"><input id="out-search" type="text" placeholder="Search challan / party / item..." oninput="renderOutputList()"></div>
     <div id="out-list"></div>
