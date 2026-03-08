@@ -147,6 +147,7 @@ function switchTab(tab) {
     document.getElementById('page-'+tab).classList.add('active');
     document.querySelector('.tab.'+tab).classList.add('active');
     if(tab==='out') { if(typeof initOutTab==='function') initOutTab(); renderOutputList(); }
+    if(tab==='transfer') { if(typeof initTransferTab==='function') initTransferTab(); }
     if(tab==='in') { if(typeof setInDest==='function') setInDest('warehouse'); if(typeof setInStatus==='function') setInStatus('ready'); renderInputList(); }
     if(tab==='book') renderBook();
     if(tab==='stock') { renderStockInputRows(); renderStockRegister(); }
