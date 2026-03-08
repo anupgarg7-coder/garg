@@ -43,7 +43,7 @@ async function loadUserData(uid) {
     const ref = getUserDocRef(uid); if(!ref){ throw new Error('no-db'); } const snap = await ref.get();
     if (snap.exists) {
       const d = snap.data();
-      return { outputs:d.outputs||[], inputs:d.inputs||[], stock:d.stock||[], salesReports:d.salesReports||[], processList:d.processList||['Dyeing','Printing','Stitching','Embroidery','Washing'], processChallans:d.processChallans||[], outCounter:d.outCounter||1, inCounter:d.inCounter||1 };
+      return { outputs:d.outputs||[], inputs:d.inputs||[], stock:d.stock||[], salesReports:d.salesReports||[], processList:d.processList||['Dyeing','Printing','Stitching','Embroidery','Washing'], processChallans:d.processChallans||[], stockTransfers:d.stockTransfers||[], outCounter:d.outCounter||1, inCounter:d.inCounter||1 };
     }
   } catch(e) { console.warn('Load error:', e); }
   // Fallback to localStorage
@@ -95,6 +95,7 @@ function save() {
           salesReports: data.salesReports,
           processList: data.processList,
           processChallans: data.processChallans,
+          stockTransfers: data.stockTransfers || [],
           outCounter: data.outCounter,
           inCounter: data.inCounter,
           updatedAt: new Date().toISOString()
@@ -135,6 +136,7 @@ function setTodayDates() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('out-date').value = today;
     document.getElementById('in-date').value = today;
+    var trd = document.getElementById('tr-date'); if(trd) trd.value = today;
   } catch(e) { console.warn('[shared:setTodayDates] error:', e); }
 }
 
