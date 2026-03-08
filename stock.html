@@ -618,7 +618,6 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
     </div>
     <div class="tabs2">
       <button class="tab stock" onclick="switchTab('stock')">📦 STOCK</button>
-      <button class="tab challan" onclick="switchTab('challan')">🖨 CHALLAN</button>
       <button class="tab process" onclick="switchTab('process')">🔄 PROCESS</button>
       <button class="tab report" onclick="switchTab('report')">📊 SALES REPORT</button>
       <button class="tab lookup" onclick="switchTab('lookup')">🔍 ITEM LOOKUP</button>
@@ -863,36 +862,6 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
     <div id="stock-register-container"></div>
   </div>
 
-
-  <!-- CHALLAN PAGE -->
-  <div class="page" id="page-challan">
-    <div class="form-card" style="border-top:3px solid #0d9488;">
-      <div class="section-label">Create Digital Challan</div>
-      <div class="out-type-selector">
-        <button class="out-type-btn active regular" onclick="setChallanType('regular')" id="ctype-regular">📦 REGULAR OUT<br><span style="font-size:0.5rem;font-weight:400;">Reduces inventory</span></button>
-        <button class="out-type-btn" onclick="setChallanType('process')" id="ctype-process">🔄 PROCESS OUT<br><span style="font-size:0.5rem;font-weight:400;">Sent for process</span></button>
-        <button class="out-type-btn" onclick="setChallanType('input')" id="ctype-input">📥 INPUT<br><span style="font-size:0.5rem;font-weight:400;">Goods received</span></button>
-      </div>
-      <div id="process-type-row" style="display:none;margin-bottom:12px;">
-        <label style="font-size:0.58rem;letter-spacing:1px;color:var(--muted);">PROCESS TYPE</label>
-        <select id="challan-process-type" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:0.68rem;margin-top:4px;outline:none;"><option value="">-- Select --</option></select>
-      </div>
-      <div class="field"><label>Party Name</label><input id="dc-party" type="text" placeholder="e.g. Amoha Silk" autocomplete="off"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div class="field"><label>Challan No.</label><input id="dc-challan-no" type="text" readonly style="background:var(--bg);color:var(--muted);cursor:default;"></div>
-        <div class="field"><label>Date</label><input id="dc-date" type="date"></div>
-      </div>
-      <div class="items-header" style="margin-top:8px;">
-        <span class="items-label">Items</span>
-        <button class="add-item-btn" onclick="addDcItem()">+ ADD ITEM</button>
-      </div>
-      <div id="dc-items-list" style="margin-top:6px;"></div>
-      <button class="submit-btn" id="dc-save-btn" onclick="saveDcChallan()" style="width:100%;margin-top:14px;background:#0d9488;border-color:#0d9488;">SAVE &amp; PREVIEW</button>
-    </div>
-    <div class="section-label" style="margin-top:4px;">Saved Challans</div>
-    <div class="filter-row"><input type="text" id="dc-search" placeholder="Search by party, challan no, item..." oninput="renderDcList()" style="width:100%;box-sizing:border-box;"></div>
-    <div id="dc-list"></div>
-  </div>
 
   <!-- PROCESS TRACKER PAGE -->
   <div class="page" id="page-process">
@@ -1260,7 +1229,6 @@ function switchTab(tab) {
   if(tab==='in') { try{setInDest(currentInDest);}catch(e){} try{setInStatus(currentInStatus);}catch(e){} renderInputList(); }
   if(tab==='book') renderBook();
   if(tab==='stock') { renderStockRegister(); }
-  if(tab==='challan') { initChallanTab(); renderDcList(); }
   if(tab==='process') { renderProcessTracker(); }
   if(tab==='report') { renderReportList(); renderFinalStock(); populateReportFilterMonths(); }
   if(tab==='lookup') { renderCatalogEditor(); renderLookupGrid(); }
