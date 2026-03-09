@@ -622,13 +622,23 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
       <div class="section-label">Add / Update Pre-Stock</div>
       <div class="items-header">
         <span class="items-label">Stock Items</span>
-        <button class="add-item-btn" style="background:var(--stock-light);color:var(--stock);border-color:var(--stock);" onclick="addStockRow()">+ ADD ITEM</button>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <button class="add-item-btn" style="background:var(--stock-light);color:var(--stock);border-color:var(--stock);" onclick="addStockRow()">+ ADD ITEM</button>
+          <button class="excel-btn" style="background:#1a6b3a;color:#fff;" onclick="downloadStockTemplate()">⬇ EXCEL TEMPLATE</button>
+          <label class="excel-btn" style="background:var(--stock);color:#fff;cursor:pointer;" title="Upload filled Excel/CSV to bulk update stock">
+            ⬆ UPLOAD EXCEL
+            <input type="file" id="stock-upload-input" accept=".csv,.xlsx,.xls" style="display:none" onchange="uploadStockExcel(event)">
+          </label>
+        </div>
       </div>
       <div style="font-size:0.58rem;color:var(--muted);margin-bottom:10px;line-height:1.6">Enter opening stock per shelf/location. Warehouse and Shop totals are calculated automatically from shelf quantities.</div>
       <div id="stock-input-list"></div>
       <button class="submit-btn stock-btn" style="margin-top:12px;" onclick="saveStockItems()">SAVE STOCK</button>
     </div>
-    <div class="section-label">Live Stock Register</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <div class="section-label" style="margin:0">Live Stock Register</div>
+      <button class="excel-btn" onclick="downloadStockExcel()">⬇ EXCEL</button>
+    </div>
     <div class="filter-row"><input id="stock-search" type="text" placeholder="Search item..." oninput="renderStockRegister()"></div>
     <div class="summary-bar">
       <div class="sum-box stk-box"><div class="val" id="stk-total-items">0</div><div class="lbl">Items</div></div>
@@ -1990,6 +2000,149 @@ function downloadSelPhotos(){
 
 
 // ── output type helpers ──
+// ══ STOCK EXCEL IMPORT / EXPORT ══
+
+function downloadStockTemplate(){
+  // Build template with current stock data pre-filled
+  // Columns: Item Name | WH Shelf | WH Qty | Shop Shelf | Shop Qty | Low Warn | Pre-Stock Date
+  // One row per shelf row. If item has multiple shelves, multiple rows.
+  const rows=[['Item Name','WH Shelf','WH Qty','Shop Shelf','Shop Qty','Low Warn','Pre-Stock Date']];
+  const names=new Set();
+  data.stock.forEach(s=>names.add(s.name));
+  // Also include items from challans that aren't in stock yet
+  data.outputs.forEach(o=>o.items.forEach(i=>{if(i.name)names.add(i.name);}));
+  data.inputs.forEach(inp=>inp.items.forEach(i=>{if(i.name)names.add(i.name);}));
+
+  [...names].sort().forEach(name=>{
+    const se=data.stock.find(s=>s.name.toLowerCase()===name.toLowerCase());
+    const whShelves=(se&&se.shelves)?se.shelves.filter(s=>s.loc==='wh'):[];
+    const shShelves=(se&&se.shelves)?se.shelves.filter(s=>s.loc==='sh'):[];
+    const lowWarn=se?se.lowWarn||0:0;
+    const date=se?se.preStockDate||'':'';
+    // If no shelves at all, output one blank row
+    if(!whShelves.length&&!shShelves.length){
+      rows.push([name,'',se?se.preStockWarehouse||se.preStock||0:0,'',se?se.preStockShop||0:0,lowWarn,date]);
+      return;
+    }
+    // Interleave WH and Shop rows — one row per max(whShelves,shShelves) 
+    const maxRows=Math.max(whShelves.length||1, shShelves.length||1);
+    for(let i=0;i<maxRows;i++){
+      const wh=whShelves[i]||{shelf:'',qty:''};
+      const sh=shShelves[i]||{shelf:'',qty:''};
+      rows.push([i===0?name:'', wh.shelf||'', wh.qty!==undefined?wh.qty:'', sh.shelf||'', sh.qty!==undefined?sh.qty:'', i===0?lowWarn:'', i===0?date:'']);
+    }
+  });
+
+  const csv=rows.map(r=>r.map(v=>'"'+(String(v===undefined||v===null?'':v).replace(/"/g,'""'))+'"').join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download='stock_template.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  toast('✔ Template downloaded! Fill it and upload back.');
+}
+
+function downloadStockExcel(){
+  // Full stock register export with computed totals
+  const rows=[['Item','WH Pre-Stock','WH Input (auto)','WH Out-to-Shop (auto)','WH Total','Shop Pre-Stock','Shop Out (auto)','Shop In-Ded (auto)','Sales (auto)','Shop Total','Low Warn','Pre-Stock Date']];
+  const names=new Set();
+  data.stock.forEach(s=>names.add(s.name));
+  data.inputs.forEach(inp=>inp.items.forEach(i=>names.add(i.name)));
+  data.outputs.forEach(o=>o.items.forEach(i=>{if(i.type==='sample'||i.type==='packing')names.add(i.name);}));
+  [...names].sort().forEach(name=>{
+    const se=data.stock.find(s=>s.name.toLowerCase()===name.toLowerCase());
+    const preWH=se?(se.preStockWarehouse||se.preStock||0):0;
+    const preSH=se?(se.preStockShop||0):0;
+    const lowWarn=se?(se.lowWarn||0):0;
+    const date=se?se.preStockDate||'':'';
+    const whIn=getWhInQty(name);
+    const shOut=getShOutQty(name);
+    const shDed=getShInDeduction(name);
+    const salesQty=getSalesQtyForItem(name);
+    rows.push([name,preWH,whIn,shOut,preWH+whIn-shOut,preSH,shOut,shDed,salesQty,preSH+shOut-shDed-salesQty,lowWarn,date]);
+  });
+  const csv=rows.map(r=>r.map(v=>'"'+(String(v===undefined||v===null?'':v).replace(/"/g,'""'))+'"').join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download='stock_register.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function uploadStockExcel(event){
+  const file=event.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const text=e.target.result;
+      const lines=text.split(/\r?\n/).filter(l=>l.trim());
+      if(lines.length<2){toast('⚠ File is empty or has no data rows.');return;}
+      // Parse CSV (handle quoted fields)
+      function parseCSVLine(line){
+        const result=[]; let cur=''; let inQ=false;
+        for(let i=0;i<line.length;i++){
+          const c=line[i];
+          if(c==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}
+          else if(c===','&&!inQ){result.push(cur.trim());cur='';}
+          else cur+=c;
+        }
+        result.push(cur.trim());
+        return result;
+      }
+      const header=parseCSVLine(lines[0]).map(h=>h.replace(/^"|"$/g,'').toLowerCase().trim());
+      // Find column indices
+      const colItem=header.findIndex(h=>h.includes('item'));
+      const colWhShelf=header.findIndex(h=>h.includes('wh shelf'));
+      const colWhQty=header.findIndex(h=>h.includes('wh qty'));
+      const colShShelf=header.findIndex(h=>h.includes('shop shelf'));
+      const colShQty=header.findIndex(h=>h.includes('shop qty'));
+      const colWarn=header.findIndex(h=>h.includes('warn'));
+      const colDate=header.findIndex(h=>h.includes('date'));
+      if(colItem===-1||colWhQty===-1){toast('⚠ Could not find "Item Name" or "WH Qty" columns. Use the template.');return;}
+      // Parse rows - group consecutive rows with same item name
+      const itemMap={};
+      let lastItem='';
+      lines.slice(1).forEach(line=>{
+        const cols=parseCSVLine(line);
+        const rawName=colItem>=0?(cols[colItem]||'').replace(/^"|"$/g,'').trim():'';
+        const name=rawName||lastItem;
+        if(!name)return;
+        if(rawName)lastItem=rawName;
+        if(!itemMap[name])itemMap[name]={name,whShelves:[],shShelves:[],lowWarn:0,preStockDate:''};
+        const entry=itemMap[name];
+        const whShelf=colWhShelf>=0?(cols[colWhShelf]||'').replace(/^"|"$/g,'').trim():'';
+        const whQty=parseInt((cols[colWhQty]||'').replace(/^"|"$/g,''))||0;
+        const shShelf=colShShelf>=0?(cols[colShShelf]||'').replace(/^"|"$/g,'').trim():'';
+        const shQty=colShQty>=0?parseInt((cols[colShQty]||'').replace(/^"|"$/g,''))||0:0;
+        if(whShelf||whQty)entry.whShelves.push({loc:'wh',shelf:whShelf,qty:whQty});
+        if(shShelf||shQty)entry.shShelves.push({loc:'sh',shelf:shShelf,qty:shQty});
+        if(rawName){
+          if(colWarn>=0){const w=parseInt((cols[colWarn]||'').replace(/^"|"$/g,''));if(!isNaN(w))entry.lowWarn=w;}
+          if(colDate>=0){const d=(cols[colDate]||'').replace(/^"|"$/g,'').trim();if(d)entry.preStockDate=d;}
+        }
+      });
+      // Merge into data.stock
+      let updated=0, added=0;
+      Object.values(itemMap).forEach(entry=>{
+        const shelves=[...entry.whShelves,...entry.shShelves];
+        const preStockWarehouse=entry.whShelves.reduce((s,r)=>s+r.qty,0);
+        const preStockShop=entry.shShelves.reduce((s,r)=>s+r.qty,0);
+        const existing=data.stock.findIndex(s=>s.name.toLowerCase()===entry.name.toLowerCase());
+        const obj={name:entry.name,shelves,preStockWarehouse,preStockShop,lowWarn:entry.lowWarn,preStockDate:entry.preStockDate};
+        if(existing>=0){data.stock[existing]=obj;updated++;}
+        else{data.stock.push(obj);added++;}
+      });
+      save();
+      renderStockInputRows();
+      renderStockRegister();
+      toast('✔ Imported! '+updated+' updated, '+added+' new items.',3500);
+    }catch(err){
+      toast('❌ Error reading file: '+err.message,4000);
+      console.error(err);
+    }
+  };
+  reader.readAsText(file,'UTF-8');
+  event.target.value='';
+}
+
 function typeLabel(t){return t==='sample'?'🟢 Sample/Shop':t==='packing'?'🔵 Packing/Shop':'⬜ Grey Stage';}
 function typeCls(t){return t==='sample'?'sample':t==='packing'?'packing':'grey';}
 
