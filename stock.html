@@ -2879,20 +2879,24 @@ function initTransferTab(){
 function renderTransferHistory(){
   const q=(document.getElementById('tr-search').value||'').toLowerCase();
   const container=document.getElementById('tr-history'); if(!container)return;
-  const all=(data.stockTransfers||[]).filter(tr=>
-    tr.challan.toLowerCase().includes(q)||(tr.note||'').toLowerCase().includes(q)||
-    (tr.items||[]).some(i=>i.name.toLowerCase().includes(q))
-  );
+  const all=(data.stockTransfers||[]).filter(tr=>{
+    if(!tr||!tr.id) return false;
+    return (tr.challan||'').toLowerCase().includes(q)||
+           (tr.note||'').toLowerCase().includes(q)||
+           (tr.items||[]).some(i=>(i.name||'').toLowerCase().includes(q));
+  });
   if(!all.length){container.innerHTML='<div class="empty"><div class="empty-icon">🔄</div>No transfers yet.</div>';return;}
   container.innerHTML=all.slice().reverse().map(tr=>{
-    const total=(tr.items||[]).reduce((s,i)=>s+i.pcs,0);
-    const dirLbl=tr.dir==='g2a'?'🏭→🏪':'🏪→🏭';
+    const total=(tr.items||[]).reduce((s,i)=>s+(i.pcs||0),0);
+    const dirLbl=tr.dir==='g2a'?'🏭→🏪 Warehouse→Shop':'🏪→🏭 Shop→Warehouse';
+    const challanNo=tr.challan||tr.id||'—';
+    const trDate=tr.date||'';
     return `<div class="challan-card">
       <div class="challan-header" style="background:var(--lookup);color:#fff;border-radius:10px 10px 0 0;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;">
-        <div><div style="font-size:0.8rem;font-weight:700">${tr.challan}</div><div style="font-size:0.58rem;opacity:0.85">${tr.date}</div></div>
+        <div><div style="font-size:0.8rem;font-weight:700">${challanNo}</div><div style="font-size:0.58rem;opacity:0.85">${trDate}</div></div>
         <div style="display:flex;gap:6px;align-items:center">
           <span style="font-size:0.62rem;background:rgba(255,255,255,.2);padding:3px 8px;border-radius:5px">${dirLbl}</span>
-          <button class="del-ch-btn" style="background:rgba(255,0,0,.2)" onclick="deleteTransfer('${tr.id}')">🗑</button>
+          <button class="del-ch-btn" style="background:rgba(255,0,0,.2)" onclick="deleteTransfer('${tr.id||''}')" title="Delete">🗑</button>
         </div>
       </div>
       <div class="challan-body">
