@@ -538,6 +538,18 @@ select.item-type-sel.type-proc{background:#f0ebff;color:#6b21a8;border-color:#d8
       <div class="field"><label>Output Challan No.</label><input id="out-challan" type="text" placeholder="e.g. OUT-001"></div>
       <div class="field"><label>Date</label><input id="out-date" type="date"></div>
       <div class="field">
+        <label>Process Type (optional)</label>
+        <select id="out-process-type" onchange="onOutProcessTypeChange(this.value)" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:0.68rem;outline:none;color:var(--ink);">
+          <option value="">-- None / General Delivery --</option>
+        </select>
+      </div>
+      <div class="field" id="out-sub-process-row" style="display:none;">
+        <label>Sub-Process</label>
+        <select id="out-sub-process" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:0.68rem;outline:none;color:var(--ink);">
+          <option value="">-- Select Sub-Process --</option>
+        </select>
+      </div>
+      <div class="field">
         <label>To M/s (Party Name)</label>
         <input id="out-party" type="text" placeholder="Auto-fills from process type or enter manually..." autocomplete="off" style="width:100%;box-sizing:border-box;">
       </div>
@@ -571,6 +583,16 @@ select.item-type-sel.type-proc{background:#f0ebff;color:#6b21a8;border-color:#d8
         <select id="in-process-type" onchange="onInProcessTypeChange(this.value)" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:0.68rem;outline:none;color:var(--ink);">
           <option value="">-- Select Process Type --</option>
         </select>
+      </div>
+      <div class="field" id="in-sub-process-row" style="display:none;">
+        <label>Sub-Process</label>
+        <select id="in-sub-process" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:0.68rem;outline:none;color:var(--ink);">
+          <option value="">-- Select Sub-Process --</option>
+        </select>
+      </div>
+      <div class="field" id="in-from-ms-row" style="display:none;">
+        <label>From M/s (Party Name)</label>
+        <input id="in-party" type="text" placeholder="Auto-fills from process type..." autocomplete="off" style="width:100%;box-sizing:border-box;">
       </div>
       <div class="field" id="in-add-inventory-row" style="display:none;">
         <label>Add to Warehouse Inventory?</label>
@@ -1098,7 +1120,7 @@ function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+tab).classList.add('active');
   document.querySelector('.tab.'+tab).classList.add('active');
-  if(tab==='out'){renderOutputList(); nextOutChallan();}
+  if(tab==='out'){renderOutputList(); nextOutChallan(); refreshOutProcessTypeOptions();}
   if(tab==='in'){renderInputList(); nextInChallan(); refreshInProcessTypeOptions(); if(!document.querySelector('#in-items-list .item-row'))addInItem();}
   if(tab==='book') renderBook();
   if(tab==='stock') { renderStockInputRows(); renderStockRegister(); }
@@ -1237,21 +1259,23 @@ function saveOutput(){
   if(!items.length){toast('⚠ Add at least one item!');return;}
   if(data.outputs.find(o=>o.challan===challan)){toast('⚠ Challan no. already exists!');return;}
   const outParty=(document.getElementById('out-party')?.value||'').trim();
-  // Remember party for each process type used
-  items.forEach(i=>{
-    if(i.type&&i.type.startsWith('proc_')&&outParty){
-      const pn=i.type.replace('proc_','').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
-      if(!data.processParties) data.processParties={};
-      data.processParties[pn]=outParty;
-    }
-  });
-  data.outputs.push({id:Date.now().toString(),challan,date,party:outParty,items});
+  const outProcType=(document.getElementById('out-process-type')?.value||'').trim();
+  const outSubProc=(document.getElementById('out-sub-process')?.value||'').trim();
+  // Remember party for this process type
+  if(outProcType&&outParty){
+    const pt=(data.processTypes||[]).find(p=>p.name===outProcType);
+    if(pt&&!pt.party) pt.party=outParty;
+  }
+  data.outputs.push({id:Date.now().toString(),challan,date,party:outParty,processType:outProcType,subProcess:outSubProc,items});
   save(); toast('✔ Output Challan saved!');
   document.getElementById('out-challan').value='';
   const opEl=document.getElementById('out-party');if(opEl)opEl.value='';
+  const ptEl=document.getElementById('out-process-type');if(ptEl){ptEl.value='';onOutProcessTypeChange('');}
   document.getElementById('out-items-list').innerHTML='';
   addOutItem(); setTodayDates(); renderOutputList();
 }
+
+
 
 // ── Input challan type (dyeing / packing) ──
 let currentInType = 'dyeing';
@@ -1268,26 +1292,75 @@ let currentAddToInventory = true;
 
 function onInProcessTypeChange(val){
   const field=document.getElementById('in-add-inventory-row');
-  if(!val){if(field)field.style.display='none';return;}
-  if(field)field.style.display='block';
-  // Remember last setting
+  const subRow=document.getElementById('in-sub-process-row');
+  const subSel=document.getElementById('in-sub-process');
+  const fromRow=document.getElementById('in-from-ms-row');
+  const partyInp=document.getElementById('in-party');
+  if(!val){
+    if(field) field.style.display='none';
+    if(subRow) subRow.style.display='none';
+    if(fromRow) fromRow.style.display='none';
+    return;
+  }
+  if(field) field.style.display='block';
+  if(fromRow) fromRow.style.display='block';
+  // Auto-fill From M/s from party
+  const pt=(getProcessTypes()||[]).find(p=>p.name===val);
+  if(pt && partyInp && !partyInp.value.trim()) partyInp.value=pt.party||'';
+  // Populate sub-processes
+  if(subSel){
+    const subs=(pt&&pt.subProcesses)||[];
+    subSel.innerHTML='<option value="">-- Select Sub-Process --</option>'
+      +subs.map(sp=>'<option value="'+sp.replace(/"/g,'&quot;')+'">'+sp+'</option>').join('');
+    if(subRow) subRow.style.display=subs.length?'block':'none';
+  }
   const saved=localStorage.getItem('in_add_inventory');
   setAddToInventory(saved===null?true:saved==='true');
-  // Map to legacy inType
   setInType(val==='packing'?'packing':'dyeing');
-  // Populate in-process-type select with processList options
   refreshInProcessTypeOptions();
 }
 
-function refreshInProcessTypeOptions(){
-  const sel=document.getElementById('in-process-type'); if(!sel)return;
+
+
+function refreshOutProcessTypeOptions(){
+  const sel=document.getElementById('out-process-type'); if(!sel) return;
   const cur=sel.value;
-  // Keep base options + add processList entries
-  const base=['<option value="">-- Select Process Type --</option>','<option value="dyeing">🔵 Dyeing</option>','<option value="packing">🟢 Packing</option>'];
-  const proc=(data.processList||[]).filter(p=>p!=='Dyeing'&&p!=='Packing').map(p=>'<option value="'+p+'">🔄 '+p+'</option>');
-  sel.innerHTML=base.join('')+proc.join('');
-  if(cur)sel.value=cur;
+  const types=getProcessTypes();
+  sel.innerHTML='<option value="">-- None / General Delivery --</option>'
+    +types.map(pt=>'<option value="'+pt.name.replace(/"/g,'&quot;')+'">'+pt.name+'</option>').join('');
+  if(cur) sel.value=cur;
 }
+
+function onOutProcessTypeChange(val){
+  const partyInp=document.getElementById('out-party');
+  const subRow=document.getElementById('out-sub-process-row');
+  const subSel=document.getElementById('out-sub-process');
+  if(!val){
+    if(subRow) subRow.style.display='none';
+    return;
+  }
+  // Auto-fill party
+  const pt=(getProcessTypes()||[]).find(p=>p.name===val);
+  if(pt && partyInp && !partyInp.value.trim()) partyInp.value=pt.party||'';
+  // Populate sub-processes
+  if(subSel){
+    const subs=(pt&&pt.subProcesses)||[];
+    subSel.innerHTML='<option value="">-- Select Sub-Process --</option>'
+      +subs.map(sp=>'<option value="'+sp.replace(/"/g,'&quot;')+'">'+sp+'</option>').join('');
+    if(subRow) subRow.style.display=subs.length?'block':'none';
+  }
+}
+
+function refreshInProcessTypeOptions(){
+  const sel=document.getElementById('in-process-type'); if(!sel) return;
+  const cur=sel.value;
+  const types=getProcessTypes();
+  sel.innerHTML='<option value="">-- Select Process Type --</option>'
+    +types.map(pt=>'<option value="'+pt.name.replace(/"/g,'&quot;')+'">'+pt.name+'</option>').join('');
+  if(cur) sel.value=cur;
+}
+
+
 
 function setAddToInventory(yes){
   currentAddToInventory=yes;
@@ -1398,11 +1471,13 @@ function saveInput(mode){
   if(!items.length){toast('⚠ Add at least one item with a quantity!');return;}
   const ptSel=document.getElementById('in-process-type');
   const processType=ptSel?ptSel.value:(currentInType||'');
+  const subProcess=(document.getElementById('in-sub-process')?.value||'').trim();
+  const inParty=(document.getElementById('in-party')?.value||'').trim();
   const inType=processType==='packing'?'packing':'dyeing';
   const addToInventory=currentAddToInventory;
   data.inputs.push({
     id:Date.now().toString(),
-    challan,date,transport,inType,processType,addToInventory,
+    challan,date,transport,inType,processType,subProcess,party:inParty,addToInventory,
     linkedOut:'',linkedOuts:[],linkedOutItems:[],items
   });
   toast('✔ Input Challan saved! Syncing...');
@@ -1412,7 +1487,8 @@ function saveInput(mode){
   const opEl=document.getElementById('in-transport');if(opEl)opEl.value='';
   const tcEl=document.getElementById('in-transport-custom');if(tcEl)tcEl.value='';
   document.getElementById('transport-custom-field')?.classList.remove('show');
-  const ptReset=document.getElementById('in-process-type');if(ptReset)ptReset.value='';
+  const ptReset=document.getElementById('in-process-type');if(ptReset){ptReset.value='';onInProcessTypeChange('');}
+  const partyEl=document.getElementById('in-party');if(partyEl)partyEl.value='';
   const invRow=document.getElementById('in-add-inventory-row');if(invRow)invRow.style.display='none';
   currentAddToInventory=true;
   data.inCounter=(data.inCounter||1)+1;
@@ -1420,18 +1496,39 @@ function saveInput(mode){
   addInItem();
 }
 
+
+
 // ══ RENDER LISTS ══
 function renderOutputList(){
   const q=(document.getElementById('out-search').value||'').toLowerCase();
   const list=document.getElementById('out-list');
-  const filtered=data.outputs.filter(o=>o.challan.toLowerCase().includes(q)||o.items.some(i=>i.name.toLowerCase().includes(q)));
+  const filtered=data.outputs.filter(o=>o.challan.toLowerCase().includes(q)||(o.party||'').toLowerCase().includes(q)||o.items.some(i=>i.name.toLowerCase().includes(q)));
   if(!filtered.length){list.innerHTML='<div class="empty"><div class="empty-icon">📤</div>No output challans yet.</div>';return;}
   list.innerHTML=filtered.slice().reverse().map(o=>{
     const total=o.items.reduce((s,i)=>s+i.pcs,0);
     const li=data.inputs.filter(inp=>(inp.linkedOuts||(inp.linkedOut?[inp.linkedOut]:[])).includes(o.challan));
-    return `<div class="challan-card"><div class="challan-header out"><div><div class="ch-num out">${o.challan}</div><div class="ch-date">${o.date}</div></div><div style="display:flex;align-items:center;gap:8px;"><span class="ch-badge out">OUT</span><button class="del-ch-btn" onclick="deleteOut('${o.id}')">🗑</button></div></div><div class="challan-body">${o.items.map(i=>`<div class="item-line"><span>${i.name}</span><span class="item-pcs">${i.pcs} pcs</span></div>`).join('')}<div class="ch-footer"><span class="ch-total">Total: <strong>${total} pcs</strong></span>${li.length?`<span class="linked-tag">🔗 ${li.length} input(s)</span>`:'<span style="font-size:0.62rem;color:#bbb">No inputs yet</span>'}</div></div></div>`;
+    const ptBadge=o.processType?`<span class="type-badge" style="background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd;margin-left:4px;">${o.processType}${o.subProcess?' › '+o.subProcess:''}</span>`:'';
+    const partyLine=o.party?`<div style="font-size:0.6rem;color:var(--muted);margin-bottom:4px;">📬 To: <strong>${o.party}</strong></div>`:'';
+    return `<div class="challan-card">
+      <div class="challan-header out" style="cursor:pointer;user-select:none;" onclick="toggleCard(this)">
+        <div><div class="ch-num out">${o.challan}</div><div class="ch-date">${o.date}</div></div>
+        <div style="display:flex;align-items:center;gap:4px;">${ptBadge}
+          <span class="ch-badge out">OUT ${total} pcs</span>
+          <button class="process-action-btn btn-print" onclick="event.stopPropagation();printOutChallan('${o.id}')" style="padding:3px 7px;font-size:0.55rem;">🖨</button>
+          <button class="process-action-btn" onclick="event.stopPropagation();editOutChallan('${o.id}')" style="background:#fef9c3;color:#854d0e;padding:3px 7px;font-size:0.55rem;">✏</button>
+          <button class="del-ch-btn" onclick="event.stopPropagation();deleteOut('${o.id}')">🗑</button>
+          <span style="font-size:0.7rem;color:rgba(255,255,255,0.6);">▼</span>
+        </div>
+      </div>
+      <div class="challan-body" style="display:none;">
+        ${partyLine}
+        ${o.items.map(i=>`<div class="item-line"><span>${i.name}</span><span class="item-pcs">${i.pcs} pcs</span></div>`).join('')}
+        <div class="ch-footer"><span class="ch-total">Total: <strong>${total} pcs</strong></span>${li.length?`<span class="linked-tag">🔗 ${li.length} input(s)</span>`:'<span style="font-size:0.62rem;color:#bbb">No inputs yet</span>'}</div>
+      </div>
+    </div>`;
   }).join('');
 }
+
 
 function renderInputList(){
   const q=(document.getElementById('in-search').value||'').toLowerCase();
@@ -1448,6 +1545,8 @@ function renderInputList(){
     const total=inp.items.reduce((s,i)=>s+i.pcs,0);
     const outs=inp.linkedOuts||(inp.linkedOut?[inp.linkedOut]:[]);
     const ptLabel=inp.processType||inp.inType||'dyeing';
+    const subLabel=inp.subProcess?(' › '+inp.subProcess):'';
+    const fromLine=inp.party?'<div style="font-size:0.6rem;color:var(--muted);margin-bottom:4px;">📬 From: <strong>'+inp.party+'</strong>'+(ptLabel?'&nbsp;&nbsp;·&nbsp;&nbsp;'+ptLabel+subLabel:'')+'</div>':'';
     const invBadge=inp.addToInventory===false
       ?'<span class="type-badge" style="background:#fee2e2;color:#c0392b;border:1px solid #fca5a5;margin-left:4px;">&#x1F6AB; Transit</span>'
       :'<span class="type-badge" style="background:var(--in-light);color:var(--in-color);border:1px solid var(--in-border);margin-left:4px;">&#x1F4E6; '+ptLabel+'</span>';
@@ -1468,6 +1567,7 @@ function renderInputList(){
       +'<span style="font-size:0.7rem;color:rgba(255,255,255,0.6);">&#x25BC;</span>'
       +'</div></div>'
       +'<div class="challan-body" style="display:none;">'
+      +fromLine
       +inp.items.map(i=>'<div class="item-line"><span>'+i.name+'</span><span class="item-pcs">'+i.pcs+' pcs</span></div>').join('')
       +'<div class="ch-footer"><span class="ch-total">Total: <strong>'+total+' pcs</strong></span></div>'
       +'<div style="margin-top:6px;">'+(outs.map(lo=>'<span class="linked-tag">&#x1F517; '+lo+'</span>').join('')||'<span style="font-size:0.62rem;color:#bbb">Unlinked</span>')+'</div>'
@@ -1478,7 +1578,7 @@ function renderInputList(){
 
 function printInChallan(id){
   const inp=data.inputs.find(x=>x.id===id);if(!inp)return;
-  showChallanPrint({...inp,type:'input',challanNo:inp.challan,party:inp.party||''});
+  showChallanPrint({...inp,type:'input',challanNo:inp.challan,party:inp.party||'',processType:inp.processType||'',subProcess:inp.subProcess||''});
 }
 function editInChallan(id){
   const inp=data.inputs.find(x=>x.id===id);if(!inp)return;
@@ -1488,7 +1588,10 @@ function editInChallan(id){
   if(inp.transport)document.getElementById('in-transport').value=inp.transport;
   // Set process type
   const ptSel=document.getElementById('in-process-type');
-  if(ptSel){ptSel.value=inp.processType||inp.inType||'dyeing';onInProcessTypeChange(ptSel.value);}
+  refreshInProcessTypeOptions();
+  if(ptSel){ptSel.value=inp.processType||inp.inType||'';onInProcessTypeChange(ptSel.value);}
+  const spSel=document.getElementById('in-sub-process');if(spSel&&inp.subProcess)spSel.value=inp.subProcess;
+  const partyEl=document.getElementById('in-party');if(partyEl)partyEl.value=inp.party||'';
   setAddToInventory(inp.addToInventory!==false);
   addedItems={};
   (inp.items||[]).forEach(it=>{
@@ -2516,7 +2619,7 @@ function toggleCard(header){
 
 function printOutChallan(id){
   const o=data.outputs.find(x=>x.id===id);if(!o)return;
-  showChallanPrint({...o,type:'regular',challanNo:o.challan});
+  showChallanPrint({...o,type:'output',challanNo:o.challan,party:o.party||'',processType:o.processType||'',subProcess:o.subProcess||''});
 }
 
 function editOutChallan(id){
@@ -2526,6 +2629,9 @@ function editOutChallan(id){
   const bc=document.getElementById('out-book-challan');if(bc)bc.value=o.bookChallan||'';
   const pt=document.getElementById('out-party');if(pt)pt.value=o.party||'';
   document.getElementById('out-date').value=o.date;
+  refreshOutProcessTypeOptions();
+  const ptSel=document.getElementById('out-process-type');if(ptSel){ptSel.value=o.processType||'';onOutProcessTypeChange(ptSel.value);}
+  const spSel=document.getElementById('out-sub-process');if(spSel&&o.subProcess)spSel.value=o.subProcess;
   document.getElementById('out-items-list').innerHTML='';
   (o.items||[]).forEach(i=>{
     makeOutItemRow(i.type||'grey');
@@ -2941,37 +3047,115 @@ function markDekaReturn(id) {
   save(); renderProcessTracker(); renderStockRegister(); toast('✔ Deka items added to stock!');
 }
 
-function renderProcessTags() {
+function getProcessTypes(){
+  // Migrate from old processList if processTypes is empty
+  if(!(data.processTypes||[]).length && (data.processList||[]).length){
+    data.processTypes=(data.processList||[]).map(function(n){
+      return {name:n, party:(data.processParties||{})[n]||'', subProcesses:[]};
+    });
+  }
+  return data.processTypes||[];
+}
+
+function syncProcessList(){
+  // Keep legacy processList in sync for backward compat
+  data.processList=getProcessTypes().map(function(p){return p.name;});
+}
+
+function renderProcessTags(){
   var el=document.getElementById('process-tags-list'); if(!el) return;
-  if(!(data.processList||[]).length){
-    el.innerHTML='<span style="font-size:0.62rem;color:var(--muted);">No types yet.</span>';
+  var types=getProcessTypes();
+  if(!types.length){
+    el.innerHTML='<div style="font-size:0.62rem;color:var(--muted);padding:8px 0;">No process types yet. Add one below.</div>';
     updateProcessSelect(); return;
   }
   var html='';
-  (data.processList||[]).forEach(function(p){
-    var party=(data.processParties||{})[p]||'';
-    var safeP=p.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
-    var safePty=party.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
-    html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">';
-    html+='<span class="process-tag">'+p+'<button class="process-tag-del" onclick="deleteProcessType('+JSON.stringify(p)+')">&#xD7;</button></span>';
-    html+='<input type="text" class="proc-party-inp stk-shelf" data-proc="'+safeP+'" value="'+safePty+'" placeholder="Party / vendor — auto-fills To M/s">';
+  types.forEach(function(pt, ti){
+    var safeName=pt.name.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    var safeParty=(pt.party||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    html+='<div class="proc-type-block" data-ti="'+ti+'" style="border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden;">';
+    // Header row
+    html+='<div style="background:#f5f3ff;padding:10px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
+    html+='<span class="process-tag" style="margin:0;">'+pt.name+'</span>';
+    html+='<input type="text" class="proc-party-inp stk-shelf" data-ti="'+ti+'" value="'+safeParty+'" placeholder="Party / vendor name (To M/s / From M/s)" style="flex:1;min-width:140px;">';
+    html+='<button class="process-tag-del" style="margin-left:auto;" onclick="deleteProcessType('+JSON.stringify(pt.name)+')">&#xD7; Delete</button>';
+    html+='</div>';
+    // Sub-processes
+    html+='<div style="padding:10px 14px;background:var(--paper);">';
+    html+='<div style="font-size:0.58rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Sub-Processes</div>';
+    if((pt.subProcesses||[]).length){
+      html+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">';
+      (pt.subProcesses||[]).forEach(function(sp,si){
+        var safeSp=sp.replace(/&/g,'&amp;');
+        html+='<span class="process-tag" style="background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd;font-size:0.62rem;">'+safeSp
+          +'<button class="process-tag-del" onclick="deleteSubProcess('+ti+','+si+')">&#xD7;</button></span>';
+      });
+      html+='</div>';
+    } else {
+      html+='<div style="font-size:0.6rem;color:var(--muted);margin-bottom:8px;font-style:italic;">No sub-processes yet.</div>';
+    }
+    html+='<div style="display:flex;gap:6px;">';
+    html+='<input type="text" id="new-sub-'+ti+'" placeholder="Add sub-process (e.g. Shade A)..." class="stk-shelf" style="flex:1;">';
+    html+='<button onclick="addSubProcess('+ti+')" style="padding:6px 12px;background:#7c3aed;color:#fff;border:none;border-radius:7px;font-family:\'IBM Plex Mono\',monospace;font-size:0.6rem;font-weight:700;cursor:pointer;">+ ADD</button>';
+    html+='</div>';
+    html+='</div>';
     html+='</div>';
   });
   el.innerHTML=html;
   el.querySelectorAll('.proc-party-inp').forEach(function(inp){
-    inp.addEventListener('change', function(){
-      setProcessParty(inp.getAttribute('data-proc'), inp.value);
+    inp.addEventListener('change',function(){
+      var ti=parseInt(inp.getAttribute('data-ti'));
+      setProcessParty(ti, inp.value);
     });
   });
   updateProcessSelect();
 }
 
-function setProcessParty(processName, party){
-  if(!data.processParties) data.processParties={};
-  data.processParties[processName]=party.trim();
-  save();
-  toast('\u2714 Party for '+processName+' saved!');
+function addProcessType(){
+  var inp=document.getElementById('new-process-input'); var name=inp.value.trim();
+  if(!name) return;
+  var types=getProcessTypes();
+  if(types.find(function(p){return p.name===name;})){ toast('Already exists!'); return; }
+  types.push({name:name, party:'', subProcesses:[]});
+  data.processTypes=types; syncProcessList();
+  inp.value=''; save(); renderProcessTags(); toast('\u2714 '+name+' added!');
 }
+
+function deleteProcessType(name){
+  if(!confirm('Delete "'+name+'" and all its sub-processes?')) return;
+  data.processTypes=(data.processTypes||[]).filter(function(p){return p.name!==name;});
+  syncProcessList(); save(); renderProcessTags();
+}
+
+function addSubProcess(ti){
+  var types=getProcessTypes();
+  if(!types[ti]) return;
+  var inp=document.getElementById('new-sub-'+ti); if(!inp) return;
+  var sp=inp.value.trim(); if(!sp) return;
+  if((types[ti].subProcesses||[]).includes(sp)){toast('Sub-process already exists!');return;}
+  if(!types[ti].subProcesses) types[ti].subProcesses=[];
+  types[ti].subProcesses.push(sp);
+  data.processTypes=types; inp.value=''; save(); renderProcessTags(); toast('\u2714 '+sp+' added!');
+}
+
+function deleteSubProcess(ti, si){
+  var types=getProcessTypes();
+  if(!types[ti]||!types[ti].subProcesses) return;
+  types[ti].subProcesses.splice(si,1);
+  data.processTypes=types; save(); renderProcessTags();
+}
+
+function setProcessParty(ti, party){
+  var types=getProcessTypes();
+  if(!types[ti]) return;
+  types[ti].party=party.trim();
+  // Also update legacy processParties
+  if(!data.processParties) data.processParties={};
+  data.processParties[types[ti].name]=party.trim();
+  data.processTypes=types; save(); toast('\u2714 Party saved!');
+}
+
+
 
 function setProcessParty(processName, party){
   if(!data.processParties) data.processParties={};
@@ -3015,12 +3199,18 @@ function toggleProcessManager() {
 // ══════════════════════════════════════════════════
 function buildChallanHtml(ch) {
   if(!ch) return '';
+  var isInput=ch.type==='input';
   var total=(ch.items||[]).reduce(function(s,i){ return s+i.pcs; },0);
-  var typeLabel=ch.type==='regular'?'DELIVERY CHALLAN':ch.type==='process'?'PROCESS CHALLAN — '+(ch.processType||''):'INPUT CHALLAN';
+  // Title: if process type set, show it; otherwise generic
+  var procLabel=ch.processType?ch.processType:'';
+  var subLabel=ch.subProcess?ch.subProcess:'';
+  var typeLabel=isInput?'INPUT CHALLAN':(procLabel?'DELIVERY CHALLAN — '+procLabel:'DELIVERY CHALLAN');
   var rows=(ch.items||[]).map(function(item,i){
     return '<tr><td style="text-align:center;border:1px solid #e879a0;padding:6px 4px;">'+(i+1)+'</td><td style="border:1px solid #e879a0;padding:6px 8px;">'+item.name+'</td><td style="text-align:center;border:1px solid #e879a0;padding:6px 4px;">'+item.pcs+'</td></tr>';
   }).join('');
   var empty=''; for(var i=0;i<Math.max(0,8-(ch.items||[]).length);i++){ empty+='<tr><td style="border:1px solid #e879a0;padding:9px;"></td><td style="border:1px solid #e879a0;"></td><td style="border:1px solid #e879a0;"></td></tr>'; }
+  var partyLabel=isInput?'From M/s':'To M/s';
+  var partyVal=ch.party||'—';
   return '<div style="background:#fff;font-family:Arial,sans-serif;padding:18px;max-width:420px;margin:0 auto;">'
     +'<div style="text-align:center;border-bottom:2px solid #e879a0;padding-bottom:10px;margin-bottom:12px;">'
     +'<div style="font-size:1.4rem;font-weight:900;letter-spacing:3px;color:#c0392b;">GARG INDUSTRIES</div>'
@@ -3028,8 +3218,9 @@ function buildChallanHtml(ch) {
     +'<div style="font-size:0.72rem;font-weight:700;letter-spacing:2px;color:#e879a0;margin-top:4px;">'+typeLabel+'</div></div>'
     +'<table style="width:100%;border-collapse:collapse;margin-bottom:10px;font-size:0.68rem;">'
     +'<tr><td><b>Ch. No.:</b> '+ch.challanNo+'</td><td style="text-align:right;"><b>Date:</b> '+ch.date+'</td></tr>'
-    +'<tr><td colspan="2"><b>To M/s:</b> '+(ch.party||'—')+'</td></tr>'
-    +(ch.type==='process'?'<tr><td colspan="2"><b>Process:</b> '+(ch.processType||'—')+'</td></tr>':'')+'</table>'
+    +'<tr><td colspan="2"><b>'+partyLabel+':</b> '+partyVal+'</td></tr>'
+    +(subLabel?'<tr><td colspan="2"><b>Process:</b> '+subLabel+'</td></tr>':procLabel?'<tr><td colspan="2"><b>Process Type:</b> '+procLabel+'</td></tr>':'')
+    +'</table>'
     +'<table style="width:100%;border-collapse:collapse;border:1px solid #e879a0;">'
     +'<thead><tr style="background:#fce4ec;"><th style="border:1px solid #e879a0;padding:6px 4px;font-size:0.62rem;width:10%;">Sr.</th><th style="border:1px solid #e879a0;padding:6px 8px;font-size:0.62rem;text-align:left;">Description</th><th style="border:1px solid #e879a0;padding:6px 4px;font-size:0.62rem;width:18%;">Qty</th></tr></thead>'
     +'<tbody>'+rows+empty
@@ -3038,6 +3229,8 @@ function buildChallanHtml(ch) {
     +'<div style="margin-top:18px;display:flex;justify-content:space-between;font-size:0.6rem;color:#888;"><div>Received by: _______________</div><div>Prepared by: _______________</div></div>'
     +'<div style="margin-top:10px;font-size:0.5rem;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:6px;">Notify within 24 hrs of any discrepancy.</div></div>';
 }
+
+
 
 function showChallanPrint(ch) {
   if(!ch) return; currentPrintChallan=ch;
