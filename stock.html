@@ -94,6 +94,8 @@
 /* LOOKUP TAB */
 .tab.lookup{background:#091e1e;color:#8dd;}
 .tab.lookup.active{background:var(--lookup);color:#fff;}
+.tab.transfer{background:#1a2020;color:#8dd;}
+.tab.transfer.active{background:var(--lookup);color:#fff;}
 .lookup-search{width:100%;font-size:0.8rem;padding:9px 12px;border:1px solid var(--lookup-border);border-radius:8px;background:var(--bg);font-family:'IBM Plex Mono',monospace;outline:none;margin-bottom:10px;}
 .lookup-search:focus{border-color:var(--lookup);}
 .sel-bar{background:var(--lookup-light);border:1px solid var(--lookup-border);border-radius:9px;padding:9px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
@@ -215,7 +217,6 @@ body{background:var(--bg);color:var(--ink);font-family:'IBM Plex Mono',monospace
 .tab.out{background:#2a1a18;color:#e88;}.tab.out.active{background:var(--out-color);color:#fff;}
 .tab.in{background:#161f1a;color:#8d8;}.tab.in.active{background:var(--in-color);color:#fff;}
 .tab.book{background:#1a1f2e;color:#88b;}.tab.book.active{background:var(--accent);color:#fff;}
-.tab.transfer{background:#1a2020;color:#8dd;}.tab.transfer.active{background:var(--lookup);color:#fff;}
 .tab.stock{background:#21102a;color:#d4a;}.tab.stock.active{background:var(--stock);color:#fff;}
 .tab.report{background:#221a08;color:#da8;}.tab.report.active{background:var(--report);color:#fff;}
 
@@ -504,14 +505,14 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
   <div class="tabs-wrap">
     <div class="tabs">
       <button class="tab out active" onclick="switchTab('out')">📤 OUTPUT</button>
-      <button class="tab transfer" onclick="switchTab('transfer')">🔄 TRANSFER</button>
       <button class="tab in" onclick="switchTab('in')">📥 INPUT</button>
+      <button class="tab transfer" onclick="switchTab('transfer')">🔄 TRANSFER</button>
       <button class="tab book" onclick="switchTab('book')">📖 BOOK</button>
     </div>
     <div class="tabs2">
       <button class="tab stock" onclick="switchTab('stock')">📦 STOCK</button>
       <button class="tab challan" onclick="switchTab('challan')">🖨 CHALLAN</button>
-      <button class="tab process" onclick="switchTab('process')">🔄 PROCESS</button>
+      
       <button class="tab report" onclick="switchTab('report')">📊 SALES REPORT</button>
       <button class="tab lookup" onclick="switchTab('lookup')">🔍 ITEM LOOKUP</button>
     </div>
@@ -530,52 +531,16 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
       <div id="out-scan-status" class="scan-status out-s" style="display:none"><div class="spinner"></div><span id="out-scan-msg"></span></div>
       <div id="out-review-panel"></div>
       <div style="text-align:center;font-size:0.5rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin:8px 0 10px">— or enter manually —</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div class="field"><label>Challan No.</label><input id="out-challan" type="text" placeholder="e.g. OUT-001"></div>
-        <div class="field"><label>Book Challan <span style="font-size:0.5rem;color:var(--muted)">(optional)</span></label><input id="out-book-challan" type="text" placeholder="e.g. 1042"></div>
-      </div>
+      <div class="field"><label>Output Challan No.</label><input id="out-challan" type="text" placeholder="e.g. OUT-001"></div>
       <div class="field"><label>Date</label><input id="out-date" type="date"></div>
-      <div class="field" style="position:relative;">
-        <label>Party Name</label>
-        <input id="out-party" type="text" placeholder="Enter party name..." autocomplete="off" oninput="filterPartyDD()" onfocus="filterPartyDD()" onblur="setTimeout(()=>document.getElementById('out-party-dd').style.display='none',200)">
-        <div id="out-party-dd" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--out-border);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.12);z-index:999;max-height:160px;overflow-y:auto;font-size:0.68rem;"></div>
-      </div>
       <div class="items-header"><span class="items-label">Items Sent Out</span><button class="add-item-btn" onclick="addOutItem()">+ ADD ITEM</button></div>
       <div class="item-col-heads"><span>Item Name</span><span>Pcs</span><span>Type</span><span></span></div>
       <div id="out-items-list"></div>
-      <div style="display:flex;gap:8px;margin-top:12px;">
-        <button class="submit-btn out-btn" style="flex:1;" onclick="saveOutput()">💾 SAVE</button>
-        <button class="submit-btn out-btn" style="flex:1;" onclick="saveAndPrintOut()">🖨 SAVE &amp; PRINT</button>
-      </div>
+      <button class="submit-btn out-btn" style="margin-top:12px;" onclick="saveOutput()">SAVE OUTPUT CHALLAN</button>
     </div>
-    <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">Output Challans <button onclick="downloadOutputExcel()" style="padding:4px 10px;font-size:0.54rem;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:700;">⬇ EXCEL</button></div>
+    <div class="section-label">Output Challans</div>
     <div class="filter-row"><input id="out-search" type="text" placeholder="Search..." oninput="renderOutputList()"></div>
     <div id="out-list"></div>
-  </div>
-
-  <!-- TRANSFER -->
-  <div class="page" id="page-transfer">
-    <div class="form-card" style="border-top:3px solid var(--lookup);">
-      <div class="section-label">New Stock Transfer</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div class="field"><label>Transfer Challan No.</label><input id="tr-challan" type="text" readonly placeholder="TR-001" style="background:#f5f5f5;"></div>
-        <div class="field"><label>Date</label><input id="tr-date" type="date"></div>
-      </div>
-      <div class="field"><label>Direction</label>
-        <div style="display:flex;gap:8px;margin-top:4px;">
-          <button id="tr-btn-g2a" class="out-src-btn tr-btn-active" onclick="setTransferDir('g2a')" style="flex:1;padding:10px;border:1.5px solid var(--lookup);border-radius:8px;background:var(--lookup);color:#fff;font-family:inherit;font-size:0.62rem;font-weight:700;cursor:pointer;">🏭 Warehouse → 🏪 Shop</button>
-          <button id="tr-btn-a2g" class="out-src-btn" onclick="setTransferDir('a2g')" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--ink);font-family:inherit;font-size:0.62rem;font-weight:700;cursor:pointer;">🏪 Shop → 🏭 Warehouse</button>
-        </div>
-      </div>
-      <div class="field"><label>Note <span style="font-size:0.5rem;color:var(--muted)">(optional)</span></label><input id="tr-note" type="text" placeholder="e.g. Season stock replenishment"></div>
-      <div class="items-header"><span class="items-label">Items to Transfer</span><button class="add-item-btn" onclick="addTransferItem()" style="background:#eaf6f6;color:var(--lookup);border-color:var(--lookup);">+ ADD ITEM</button></div>
-      <div class="item-col-heads"><span>Item Name</span><span>Pcs</span><span>Avail.</span><span></span></div>
-      <div id="tr-items-list"></div>
-      <button class="submit-btn" style="margin-top:12px;background:var(--lookup);color:#fff;" onclick="saveTransfer()">💾 SAVE TRANSFER</button>
-    </div>
-    <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">Transfer History <button onclick="downloadTransferExcel()" style="padding:4px 10px;font-size:0.54rem;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:700;">⬇ EXCEL</button></div>
-    <div class="filter-row"><input id="tr-search" type="text" placeholder="Search..." oninput="renderTransferHistory()"></div>
-    <div id="tr-history"></div>
   </div>
 
   <!-- INPUT -->
@@ -635,7 +600,7 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
         <div style="font-size:0.58rem;color:var(--muted);margin-top:7px;line-height:1.6;"><strong>One Challan:</strong> All items under one no. &nbsp;|&nbsp; <strong>Split:</strong> Separate entry per output challan.</div>
       </div>
     </div>
-    <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">Input Challans <button onclick="downloadInputExcel()" style="padding:4px 10px;font-size:0.54rem;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:700;">⬇ EXCEL</button></div>
+    <div class="section-label">Input Challans</div>
     <div class="filter-row"><input id="in-search" type="text" placeholder="Search..." oninput="renderInputList()"></div>
     <div id="in-list"></div>
   </div>
@@ -659,12 +624,11 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
         <span class="items-label">Stock Items</span>
         <button class="add-item-btn" style="background:var(--stock-light);color:var(--stock);border-color:var(--stock);" onclick="addStockRow()">+ ADD ITEM</button>
       </div>
-      <div style="font-size:0.58rem;color:var(--muted);margin-bottom:6px;line-height:1.6">Enter opening stock at each location. Movements are tracked automatically from challans.</div>
-      <div class="stock-col-heads"><span>Item Name</span><span>Warehouse qty</span><span>Shop qty</span><span style="font-size:0.5rem;">Pre-Stock Date</span><span></span></div>
+      <div style="font-size:0.58rem;color:var(--muted);margin-bottom:10px;line-height:1.6">Enter opening stock per shelf/location. Warehouse and Shop totals are calculated automatically from shelf quantities.</div>
       <div id="stock-input-list"></div>
       <button class="submit-btn stock-btn" style="margin-top:12px;" onclick="saveStockItems()">SAVE STOCK</button>
     </div>
-    <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">Live Stock Register <button onclick="downloadStockExcel()" style="padding:4px 10px;font-size:0.54rem;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:700;">⬇ EXCEL</button></div>
+    <div class="section-label">Live Stock Register</div>
     <div class="filter-row"><input id="stock-search" type="text" placeholder="Search item..." oninput="renderStockRegister()"></div>
     <div class="summary-bar">
       <div class="sum-box stk-box"><div class="val" id="stk-total-items">0</div><div class="lbl">Items</div></div>
@@ -743,14 +707,14 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
       </div>
       <div class="upload-zone" onclick="document.getElementById('pdf-upload').click()">
         <div class="icon">📄</div>
-        <div class="hint"><strong>Tap to upload Sales PDF or Photo</strong><br>AI will read and extract item quantities</div>
-        <input type="file" id="pdf-upload" accept=".pdf,image/*" style="display:none;" onchange="handlePdfUpload(event)">
+        <div class="hint"><strong>Tap to upload Sales PDF</strong><br>AI will read and extract item quantities</div>
+        <input type="file" id="pdf-upload" accept=".pdf" style="display:none;" onchange="handlePdfUpload(event)">
       </div>
       <div id="ai-processing" class="ai-processing" style="display:none;">
         <div class="spinner"></div><span id="ai-status">Reading PDF with AI...</span>
       </div>
     </div>
-    <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">Sales Reports <button onclick="downloadSalesExcel()" style="padding:4px 10px;font-size:0.54rem;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:700;">⬇ EXCEL</button></div>
+    <div class="section-label">Sales Reports</div>
     <div id="report-list"></div>
     <div class="section-label" style="margin-top:4px;">Final Stock After Sales</div>
     <div class="field"><label>Filter by Month</label>
@@ -759,6 +723,35 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
     <div id="final-stock-table"></div>
   </div>
   <!-- ITEM LOOKUP -->
+  <div class="page" id="page-transfer">
+    <div class="form-card" style="border-top:3px solid var(--lookup)">
+      <div class="section-label" style="color:var(--lookup)">🔄 STOCK TRANSFER</div>
+      <div class="field-row">
+        <div class="field"><label>Transfer No.</label><input type="text" id="tr-challan" readonly style="background:#f0f0f0"></div>
+        <div class="field"><label>Date</label><input type="date" id="tr-date"></div>
+      </div>
+      <div class="field">
+        <label>Direction</label>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button id="tr-btn-g2a" onclick="setTransferDir('g2a')" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:0.65rem;font-weight:700;cursor:pointer;">🏭 Warehouse → 🏪 Shop</button>
+          <button id="tr-btn-a2g" onclick="setTransferDir('a2g')" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:0.65rem;font-weight:700;cursor:pointer;">🏪 Shop → 🏭 Warehouse</button>
+        </div>
+      </div>
+      <div class="field"><label>Note (optional)</label><input type="text" id="tr-note" placeholder="e.g. seasonal restock"></div>
+      <div class="section-label" style="margin-top:12px">Items</div>
+      <div id="tr-items-list"></div>
+      <button class="add-item-btn" onclick="addTransferItem()">+ Add Item</button>
+      <button class="submit-btn" style="background:var(--lookup);margin-top:10px" onclick="saveTransfer()">💾 SAVE TRANSFER</button>
+    </div>
+    <div class="form-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="section-label" style="margin:0">Transfer History</div>
+        <button class="excel-btn" onclick="downloadTransferExcel()">⬇ EXCEL</button>
+      </div>
+      <input type="text" id="tr-search" class="search-box" placeholder="Search transfers..." oninput="renderTransferHistory()" style="margin-bottom:10px">
+      <div id="tr-history"></div>
+    </div>
+  </div>
   <div class="page" id="page-lookup">
     <div class="form-card" style="border-top:3px solid var(--lookup)">
       <div class="section-label">Item Catalog — Stack Numbers &amp; Photos</div>
@@ -772,6 +765,7 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
       <div>
         <button class="clear-sel-btn" onclick="clearSel()">CLEAR</button>
         <button class="print-btn" onclick="printSel()">🖨 PRINT A4</button>
+        <button class="print-btn" style="background:#1a6b3a;" onclick="downloadSelPhotos()">⬇ DOWNLOAD</button>
       </div>
     </div>
     <input type="text" class="lookup-search" id="lookup-search" placeholder="Search by name or stack no..." oninput="renderLookupGrid()">
@@ -795,7 +789,7 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
 // ══════════════════════════════════════════════════════
 
 let currentUser = null;
-let data = { outputs:[], inputs:[], stock:[], salesReports:[], processList:['Dyeing','Printing','Stitching','Embroidery','Washing'], processChallans:[], outCounter:1, inCounter:1 };
+let data = { outputs:[], inputs:[], stock:[], salesReports:[], processList:['Dyeing','Printing','Stitching','Embroidery','Washing'], processChallans:[], stockTransfers:[], outCounter:1, inCounter:1, trCounter:1 };
 let unsubscribe = null; // real-time listener
 let saveTimer = null;
 let isConfigured = false;
@@ -843,6 +837,8 @@ async function initFirebaseSync() {
       data.processChallans = d.processChallans||data.processChallans;
       data.outCounter = d.outCounter||data.outCounter;
       data.inCounter = d.inCounter||data.inCounter;
+      data.trCounter = d.trCounter||data.trCounter;
+      data.stockTransfers = d.stockTransfers||data.stockTransfers;
       if(typeof seedItemCatalog==='function') seedItemCatalog();
       renderOutputList(); renderInputList(); nextOutChallan(); nextInChallan();
       if (document.querySelector('.tab.stock.active')) { renderStockInputRows(); renderStockRegister(); }
@@ -943,6 +939,8 @@ function save() {
         processChallans: data.processChallans,
         outCounter: data.outCounter,
         inCounter: data.inCounter,
+        trCounter: data.trCounter,
+        stockTransfers: data.stockTransfers||[],
         updatedAt: new Date().toISOString()
       }, {merge:true});
       setSyncStatus('synced');
@@ -1057,15 +1055,14 @@ function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+tab).classList.add('active');
   document.querySelector('.tab.'+tab).classList.add('active');
-  if(tab==='out') renderOutputList();
-  if(tab==='out'){nextOutChallan();}
-  if(tab==='transfer'){initTransferTab();renderTransferHistory();}
-  if(tab==='in'){nextInChallan();renderInputList();}
+  if(tab==='out'){renderOutputList(); nextOutChallan();}
+  if(tab==='in'){renderInputList(); nextInChallan();}
   if(tab==='book') renderBook();
   if(tab==='stock') { renderStockInputRows(); renderStockRegister(); }
   if(tab==='challan') { initChallanTab(); renderDcList(); }
   if(tab==='process') { renderProcessTracker(); }
   if(tab==='report') { renderReportList(); renderFinalStock(); populateReportFilterMonths(); }
+  if(tab==='transfer'){initTransferTab();renderTransferHistory();}
   if(tab==='lookup') { renderCatalogEditor(); renderLookupGrid(); }
 }
 
@@ -1145,14 +1142,12 @@ function makeOutItemRow(typePrefill='grey') {
   const nameInp=document.createElement('input'); nameInp.type='text'; nameInp.placeholder='Item name'; nameInp.className='item-name-inp'; nameInp.autocomplete='off';
   nameWrap.appendChild(nameInp);
   const pcsInp=document.createElement('input'); pcsInp.type='number'; pcsInp.placeholder='Pcs'; pcsInp.min='0'; pcsInp.className='item-pcs-inp';
-  // Type dropdown — includes static types + process types from processList
+  // Type dropdown
   const typeSel=document.createElement('select'); typeSel.className='item-type-sel type-grey';
-  const baseOpts='<option value="grey">⬜ Grey Stage</option><option value="sample">🟢 Sample/Shop</option><option value="packing">🔵 Packing/Shop</option>';
-  const procOpts=(data.processList||[]).map(p=>'<option value="proc_'+p+'">🔄 '+p+'</option>').join('');
-  typeSel.innerHTML=baseOpts+(procOpts?'<optgroup label="— Process Types —">'+procOpts+'</optgroup>':'');
+  typeSel.innerHTML='<option value="grey">⬜ Grey Stage</option><option value="sample">🟢 Sample/Shop</option><option value="packing">🔵 Packing/Shop</option>';
   typeSel.value=typePrefill;
-  typeSel.onchange=()=>{ typeSel.className='item-type-sel '+(typeSel.value.startsWith('proc_')?'type-process':('type-'+typeSel.value)); };
-  typeSel.className='item-type-sel '+(typePrefill.startsWith('proc_')?'type-process':('type-'+typePrefill));
+  typeSel.onchange=()=>{ typeSel.className='item-type-sel type-'+typeSel.value; };
+  typeSel.className='item-type-sel type-'+typePrefill;
   const removeBtn=document.createElement('button'); removeBtn.className='remove-item'; removeBtn.textContent='✕'; removeBtn.onclick=()=>div.remove();
   div.appendChild(nameWrap); div.appendChild(pcsInp); div.appendChild(typeSel); div.appendChild(removeBtn);
   document.getElementById('out-items-list').appendChild(div);
@@ -1170,63 +1165,16 @@ function collectItems(containerId){
 
 function saveOutput(){
   const challan=document.getElementById('out-challan').value.trim();
-  const bookChallan=(document.getElementById('out-book-challan')||{}).value||'';
   const date=document.getElementById('out-date').value;
-  const party=(document.getElementById('out-party')||{}).value||'';
   const items=collectItems('out-items-list');
   if(!challan||!date){toast('⚠ Fill challan no. and date!');return;}
   if(!items.length){toast('⚠ Add at least one item!');return;}
   if(data.outputs.find(o=>o.challan===challan)){toast('⚠ Challan no. already exists!');return;}
-  // Save party to history
-  if(party){
-    let ph=JSON.parse(localStorage.getItem('out_party_history')||'[]');
-    if(!ph.includes(party)){ph.unshift(party);ph=ph.slice(0,50);localStorage.setItem('out_party_history',JSON.stringify(ph));}
-  }
-  // Send process-type items to processChallans
-  const procItems=items.filter(i=>i.type&&i.type.startsWith('proc_'));
-  if(procItems.length){
-    const byProcess={};
-    procItems.forEach(i=>{const p=i.type.replace('proc_','');if(!byProcess[p])byProcess[p]=[];byProcess[p].push({name:i.name,pcs:i.pcs});});
-    Object.entries(byProcess).forEach(([pType,pitems])=>{
-      if(!data.processChallans)data.processChallans=[];
-      data.processChallans.push({id:(Date.now()+Math.random()).toString(),challanNo:challan,date,party,type:'process',processType:pType,items:pitems,status:'pending',createdAt:new Date().toISOString()});
-    });
-  }
-  const outObj={id:Date.now().toString(),challan,bookChallan,date,party,items};
-  data.outputs.push(outObj);
+  data.outputs.push({id:Date.now().toString(),challan,date,items});
   save(); toast('✔ Output Challan saved!');
-  data.outCounter=(data.outCounter||1)+1;
   document.getElementById('out-challan').value='';
-  if(document.getElementById('out-book-challan'))document.getElementById('out-book-challan').value='';
-  if(document.getElementById('out-party'))document.getElementById('out-party').value='';
   document.getElementById('out-items-list').innerHTML='';
-  addOutItem(); setTodayDates(); nextOutChallan(); renderOutputList();
-  return outObj;
-}
-function saveAndPrintOut(){
-  const obj=saveOutput();
-  if(obj)showChallanPrint({...obj,type:'regular',challanNo:obj.challan});
-}
-// Party autocomplete
-function filterPartyDD(){
-  const inp=document.getElementById('out-party');
-  const dd=document.getElementById('out-party-dd');
-  if(!inp||!dd)return;
-  const q=inp.value.trim().toLowerCase();
-  const hist=JSON.parse(localStorage.getItem('out_party_history')||'[]');
-  const matches=q?hist.filter(p=>p.toLowerCase().includes(q)):hist.slice(0,10);
-  if(!matches.length){dd.style.display='none';return;}
-  dd.innerHTML='';
-  matches.forEach(function(p){
-    const d=document.createElement('div');
-    d.textContent='👤 '+p;
-    d.style.cssText='padding:8px 12px;cursor:pointer;border-bottom:1px solid #f0e8dc;font-size:0.68rem;';
-    d.addEventListener('mousedown',function(e){e.preventDefault();inp.value=p;dd.style.display='none';});
-    d.addEventListener('mouseenter',function(){d.style.background='#fdf0ee';});
-    d.addEventListener('mouseleave',function(){d.style.background='';});
-    dd.appendChild(d);
-  });
-  dd.style.display='block';
+  addOutItem(); setTodayDates(); renderOutputList();
 }
 
 // ── Input challan type (dyeing / packing) ──
@@ -1362,51 +1310,9 @@ function renderInputList(){
   list.innerHTML=filtered.slice().reverse().map(inp=>{
     const total=inp.items.reduce((s,i)=>s+i.pcs,0);
     const outs=inp.linkedOuts||(inp.linkedOut?[inp.linkedOut]:[]);
-    const eid=JSON.stringify(inp.id);
     const inTypeLbl=inp.inType==='packing'?'<span class="type-badge packing" style="margin-right:4px">🟢 For Packing</span>':'<span class="type-badge" style="background:var(--in-light);color:var(--in-color);border:1px solid var(--in-border);margin-right:4px">🔵 After Dyeing</span>';
-    return '<div class="challan-card">'
-      +'<div class="challan-header in"><div><div class="ch-num in">'+inp.challan+'</div><div class="ch-date">'+inp.date+'</div></div>'
-      +'<div style="display:flex;align-items:center;gap:6px;">'+inTypeLbl+'<span class="ch-badge in">IN</span>'
-      +'<button class="process-action-btn btn-print" onclick="printInChallan('+eid+')" style="padding:4px 8px;font-size:0.55rem;">🖨</button>'
-      +'<button class="process-action-btn" onclick="editInChallan('+eid+')" style="background:#fef9c3;color:#854d0e;padding:4px 8px;font-size:0.55rem;">✏</button>'
-      +'<button class="del-ch-btn" onclick="deleteIn('+eid+')">🗑</button></div></div>'
-      +'<div class="challan-body">'+inp.items.map(i=>'<div class="item-line"><span>'+i.name+'</span><span class="item-pcs">'+i.pcs+' pcs</span></div>').join('')
-      +'<div class="ch-footer"><span class="ch-total">Total: <strong>'+total+' pcs</strong></span></div>'
-      +'<div style="margin-top:8px;">'+( outs.map(lo=>'<span class="linked-tag">🔗 '+lo+'</span>').join('')||'<span style="font-size:0.62rem;color:#bbb">Unlinked</span>')+'</div>'
-      +(inp.transport?'<div class="transport-tag">'+(tI[inp.transport]||'🚚')+' '+inp.transport+'</div>':'')
-      +'</div></div>';
+    return `<div class="challan-card"><div class="challan-header in"><div><div class="ch-num in">${inp.challan}</div><div class="ch-date">${inp.date}</div></div><div style="display:flex;align-items:center;gap:8px;">${inTypeLbl}<span class="ch-badge in">IN</span><button class="del-ch-btn" onclick="deleteIn('${inp.id}')">🗑</button></div></div><div class="challan-body">${inp.items.map(i=>`<div class="item-line"><span>${i.name}</span><span class="item-pcs">${i.pcs} pcs</span></div>`).join('')}<div class="ch-footer"><span class="ch-total">Total: <strong>${total} pcs</strong></span></div><div style="margin-top:8px;">${outs.map(lo=>`<span class="linked-tag">🔗 ${lo}</span>`).join('')||'<span style="font-size:0.62rem;color:#bbb">Unlinked</span>'}</div>${inp.transport?`<div class="transport-tag">${tI[inp.transport]||'🚚'} ${inp.transport}</div>`:''}</div></div>`;
   }).join('');
-}
-function printInChallan(id){
-  const inp=data.inputs.find(x=>x.id===id);if(!inp)return;
-  showChallanPrint({...inp,type:'input',challanNo:inp.challan,party:inp.party||''});
-}
-function editInChallan(id){
-  const inp=data.inputs.find(x=>x.id===id);if(!inp)return;
-  if(!confirm('Load this input challan for editing? It will be removed and you can re-save.'))return;
-  document.getElementById('in-challan').value=inp.challan;
-  document.getElementById('in-date').value=inp.date;
-  if(inp.transport)document.getElementById('in-transport').value=inp.transport;
-  setInType(inp.inType||'dyeing');
-  // Load items
-  addedItems={};
-  (inp.items||[]).forEach(it=>{
-    if(!addedItems[it.name])addedItems[it.name]=[];
-    const linkedOut=(inp.linkedOuts||[inp.linkedOut]||[])[0]||'';
-    addedItems[it.name].push({challanNo:linkedOut,challanDate:inp.date,outPcs:it.pcs,pending:it.pcs,inputPcs:it.pcs});
-  });
-  renderAddedItems();
-  data.inputs=data.inputs.filter(x=>x.id!==id);save();renderInputList();
-  switchTab('in'); window.scrollTo(0,0); toast('✏ Input challan loaded for editing.');
-}
-function downloadInputExcel(){
-  const rows=[['App Challan','Date','Transport','Type','Item Name','Pcs','Linked Outputs']];
-  data.inputs.slice().reverse().forEach(inp=>{
-    const outs=(inp.linkedOuts||(inp.linkedOut?[inp.linkedOut]:[])).join('; ');
-    (inp.items||[]).forEach(i=>{rows.push([inp.challan,inp.date,inp.transport||'',inp.inType||'dyeing',i.name,i.pcs,outs]);});
-  });
-  const csv=rows.map(r=>r.map(v=>'"'+(String(v||'').replace(/"/g,'""'))+'"').join(',')).join('\n');
-  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='input_challans.csv';a.click();
 }
 
 function renderBook(){
@@ -1441,55 +1347,108 @@ function makeShelfRow(shelfNo='', qty=0, container) {
   container.appendChild(row);
 }
 
-function makeStockRow(n,w,s,l,sh,d){
-  const div=document.createElement('div');div.className='stock-item-row';
-  const nameWrap=document.createElement('div');nameWrap.className='name-wrap';nameWrap.style.cssText='position:relative;flex:2;';
-  const nameInp=document.createElement('input');nameInp.type='text';nameInp.placeholder='Item name';nameInp.className='stk-name';nameInp.autocomplete='off';nameInp.value=n||'';
+function makeStockRow(name='', preStockWarehouse=0, preStockShop=0, lowWarn=0, shelves=[], preStockDate='') {
+  const div = document.createElement('div'); div.className = 'stock-item-row';
+
+  // Top row: item name + low warn + remove
+  const top = document.createElement('div'); top.className = 'stk-item-top';
+  const nameWrap = document.createElement('div'); nameWrap.className='name-wrap'; nameWrap.style.position='relative';
+  const nameInp = document.createElement('input'); nameInp.type='text'; nameInp.placeholder='Item name'; nameInp.className='stk-name'; nameInp.autocomplete='off'; nameInp.value=name;
   nameWrap.appendChild(nameInp);
-  const whInp=document.createElement('input');whInp.type='number';whInp.placeholder='WH Qty';whInp.min='0';whInp.className='stk-wh';whInp.value=w||'';
-  const shInp=document.createElement('input');shInp.type='number';shInp.placeholder='Shop Qty';shInp.min='0';shInp.className='stk-sh';shInp.value=s||'';
-  const dateInp=document.createElement('input');dateInp.type='date';dateInp.className='stk-date';dateInp.value=d||'';
-  const removeBtn=document.createElement('button');removeBtn.className='remove-item';removeBtn.textContent=String.fromCharCode(10005);removeBtn.onclick=()=>div.remove();
-  div.style.cssText='display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap;';
-  [whInp,shInp,dateInp].forEach(el=>{el.style.cssText='flex:1;padding:9px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:"IBM Plex Mono",monospace;font-size:0.65rem;outline:none;text-align:center;min-width:60px;';});
-  div.appendChild(nameWrap);div.appendChild(whInp);div.appendChild(shInp);div.appendChild(dateInp);div.appendChild(removeBtn);
+  const warnInp = document.createElement('input'); warnInp.type='number'; warnInp.placeholder='Low warn'; warnInp.min='0'; warnInp.className='stk-warn'; warnInp.value=lowWarn||''; warnInp.title='Low stock warning threshold';
+  const dateInp = document.createElement('input'); dateInp.type='date'; dateInp.className='stk-date'; dateInp.value=preStockDate||''; dateInp.title='Pre-stock date — only challans AFTER this date will be counted'; dateInp.style.cssText='padding:5px 6px;border:1px solid var(--border);border-radius:7px;background:var(--bg);font-family:"IBM Plex Mono",monospace;font-size:0.6rem;outline:none;min-width:110px;color:var(--ink);';
+  const removeBtn = document.createElement('button'); removeBtn.className='remove-item'; removeBtn.textContent='✕'; removeBtn.onclick=()=>div.remove();
+  top.appendChild(nameWrap); top.appendChild(warnInp); top.appendChild(dateInp); top.appendChild(removeBtn);
+
+  // Shelf section label
+  const shelfLabel = document.createElement('div');
+  shelfLabel.style.cssText='font-size:0.5rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;margin-top:2px;';
+  shelfLabel.textContent='📦 Shelf locations (shelf name → qty)';
+
+  // Warehouse shelves
+  const whLabel = document.createElement('div');
+  whLabel.style.cssText='font-size:0.52rem;font-weight:700;color:var(--lookup);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;';
+  whLabel.textContent='🏭 Warehouse Shelves';
+  const whContainer = document.createElement('div'); whContainer.className='shelf-rows'; whContainer.dataset.loc='wh';
+  const whShelves = shelves.filter(s=>s.loc==='wh'||!s.loc);
+  if(whShelves.length) whShelves.forEach(s=>makeShelfRow(s.shelf||s.shelfNo||'', s.qty||0, whContainer));
+  else makeShelfRow('', preStockWarehouse||0, whContainer);
+  const addWhBtn = document.createElement('button'); addWhBtn.className='add-shelf-btn'; addWhBtn.textContent='+ Add Warehouse Shelf';
+  addWhBtn.onclick=()=>makeShelfRow('','',whContainer);
+
+  // Shop shelves
+  const shLabel = document.createElement('div');
+  shLabel.style.cssText='font-size:0.52rem;font-weight:700;color:var(--report);letter-spacing:1px;text-transform:uppercase;margin:8px 0 3px;';
+  shLabel.textContent='🏪 Shop Shelves';
+  const shContainer = document.createElement('div'); shContainer.className='shelf-rows'; shContainer.dataset.loc='sh';
+  const shShelves = shelves.filter(s=>s.loc==='sh');
+  if(shShelves.length) shShelves.forEach(s=>makeShelfRow(s.shelf||'', s.qty||0, shContainer));
+  else makeShelfRow('', preStockWarehouse>0?0:(shelves.length?0:0), shContainer);
+  const addShBtn = document.createElement('button'); addShBtn.className='add-shelf-btn'; addShBtn.textContent='+ Add Shop Shelf';
+  addShBtn.onclick=()=>makeShelfRow('','',shContainer);
+
+  div.appendChild(top);
+  div.appendChild(shelfLabel);
+  div.appendChild(whLabel); div.appendChild(whContainer); div.appendChild(addWhBtn);
+  div.appendChild(shLabel); div.appendChild(shContainer); div.appendChild(addShBtn);
   document.getElementById('stock-input-list').appendChild(div);
   attachItemAutocomplete(nameInp);
 }
-function addStockRow(){makeStockRow();}
+
+function addStockRow(){ makeStockRow(); }
 function editStockItem(name){
+  const body=document.getElementById('stock-form-body'),arrow=document.getElementById('stock-form-arrow');
+  if(body&&body.style.display==='none'){body.style.display='block';if(arrow)arrow.style.transform='rotate(180deg)';}
   const existing=Array.from(document.querySelectorAll('#stock-input-list .stk-name')).find(i=>i.value.trim().toLowerCase()===name.toLowerCase());
-  if(existing){const row=existing.closest('.stock-item-row');row.scrollIntoView({behavior:'smooth',block:'center'});row.style.outline='2px solid var(--stock)';setTimeout(()=>row.style.outline='',2000);switchTab('stock');return;}
+  if(existing){const row=existing.closest('.stock-item-row');row.scrollIntoView({behavior:'smooth',block:'center'});row.style.outline='2px solid var(--stock)';setTimeout(()=>row.style.outline='',2000);return;}
   const item=data.stock.find(s=>s.name.toLowerCase()===name.toLowerCase());
-  switchTab('stock');
-  makeStockRow(item?item.name:name,item?item.preStockWarehouse||item.preStock||0:0,item?item.preStockShop||0:0,item?item.lowWarn||0:0,item?item.shelves||[]:[],item?item.preStockDate||'':'');
-  setTimeout(()=>{const rows=document.querySelectorAll('#stock-input-list .stock-item-row');const last=rows[rows.length-1];last.scrollIntoView({behavior:'smooth',block:'center'});last.style.outline='2px solid var(--stock)';setTimeout(()=>last.style.outline='',2000);},200);
+  if(!item){makeStockRow(name);return;}
+  const shelves=JSON.parse(JSON.stringify(item.shelves||[]));
+  if(!shelves.length){if(item.preStockWarehouse||item.preStock)shelves.push({loc:'wh',shelf:'',qty:item.preStockWarehouse||item.preStock||0});if(item.preStockShop)shelves.push({loc:'sh',shelf:'',qty:item.preStockShop||0});}
+  makeStockRow(item.name,item.preStockWarehouse||0,item.preStockShop||0,item.lowWarn||0,shelves,item.preStockDate||'');
+  setTimeout(()=>{const rows=document.querySelectorAll('#stock-input-list .stock-item-row');const last=rows[rows.length-1];last.scrollIntoView({behavior:'smooth',block:'center'});last.style.outline='2px solid var(--stock)';setTimeout(()=>last.style.outline='',2000);},100);
 }
 
 function renderStockInputRows(){
   document.getElementById('stock-input-list').innerHTML='';
-  const active=data.stock.filter(s=>(s.preStockWarehouse||s.preStock||0)>0||(s.preStockShop||0)>0);
-  if(active.length)active.forEach(s=>makeStockRow(s.name,s.preStockWarehouse||s.preStock||0,s.preStockShop||0,s.lowWarn||0,s.shelves||[],s.preStockDate||''));
+  const active = data.stock.filter(s=>(s.preStockWarehouse||s.preStock||0)>0||(s.preStockShop||0)>0||(s.shelves||[]).some(sh=>sh.qty>0));
+  if(active.length) active.forEach(s=>{
+    const shelves = s.shelves||[];
+    if(!shelves.length){
+      if(s.preStockWarehouse||s.preStock) shelves.push({loc:'wh',shelf:'',qty:s.preStockWarehouse||s.preStock||0});
+      if(s.preStockShop) shelves.push({loc:'sh',shelf:'',qty:s.preStockShop||0});
+    }
+    makeStockRow(s.name, s.preStockWarehouse||s.preStock||0, s.preStockShop||0, s.lowWarn||0, shelves, s.preStockDate||'');
+  });
   else addStockRow();
 }
 
 function saveStockItems(){
-  const rows=document.querySelectorAll('#stock-input-list .stock-item-row');
-  const formItems={};
+  const rows = document.querySelectorAll('#stock-input-list .stock-item-row');
+  const formItems = {};
   rows.forEach(row=>{
-    const nameEl=row.querySelector('.stk-name');if(!nameEl)return;
-    const name=nameEl.value.trim();if(!name)return;
-    const preStockWarehouse=parseInt(row.querySelector('.stk-wh')?.value)||0;
-    const preStockShop=parseInt(row.querySelector('.stk-sh')?.value)||0;
-    const preStockDate=row.querySelector('.stk-date')?.value||'';
-    const existing=data.stock.find(s=>s.name.toLowerCase()===name.toLowerCase());
-    const shelves=existing?existing.shelves||[]:[{loc:'wh',shelf:'',qty:preStockWarehouse},{loc:'sh',shelf:'',qty:preStockShop}];
-    const lowWarn=existing?existing.lowWarn||0:0;
-    formItems[name.toLowerCase()]={name,shelves,preStockWarehouse,preStockShop,lowWarn,preStockDate};
+    const name = row.querySelector('.stk-name').value.trim();
+    if(!name) return;
+    const shelves = [];
+    row.querySelectorAll('[data-loc="wh"] .shelf-row').forEach(sr=>{
+      const shelf = sr.querySelector('.stk-shelf').value.trim();
+      const qty = parseInt(sr.querySelector('.stk-shelf-qty').value)||0;
+      if(shelf||qty) shelves.push({loc:'wh', shelf, qty});
+    });
+    row.querySelectorAll('[data-loc="sh"] .shelf-row').forEach(sr=>{
+      const shelf = sr.querySelector('.stk-shelf').value.trim();
+      const qty = parseInt(sr.querySelector('.stk-shelf-qty').value)||0;
+      if(shelf||qty) shelves.push({loc:'sh', shelf, qty});
+    });
+    const preStockWarehouse = shelves.filter(s=>s.loc==='wh').reduce((t,s)=>t+s.qty,0);
+    const preStockShop = shelves.filter(s=>s.loc==='sh').reduce((t,s)=>t+s.qty,0);
+    const lowWarn = parseInt(row.querySelector('.stk-warn').value)||0;
+    const preStockDate = row.querySelector('.stk-date')?.value||'';
+    formItems[name.toLowerCase()] = {name, shelves, preStockWarehouse, preStockShop, lowWarn, preStockDate};
   });
-  const formKeys=new Set(Object.keys(formItems));
-  data.stock=[...data.stock.filter(s=>!formKeys.has(s.name.toLowerCase())),...Object.values(formItems)];
-  save();toast('✔ Stock saved!');renderStockRegister();
+  const formKeys = new Set(Object.keys(formItems));
+  data.stock = [...data.stock.filter(s=>!formKeys.has(s.name.toLowerCase())), ...Object.values(formItems)];
+  save(); toast('✔ Stock saved! Syncing to cloud...'); renderStockRegister();
 }
 
 // ── Warehouse inventory: +input(both types) +preStockWarehouse −output(sample/packing)
@@ -1584,31 +1543,14 @@ function renderStockRegister(){
   document.getElementById('stk-low-count').textContent=lowCountWH;
   document.getElementById('stk-total-pcs').textContent=items.reduce((s,i)=>s+Math.max(0,i.warehouseTotal)+Math.max(0,i.shopTotal),0);
   if(!items.length){container.innerHTML='<div class="empty"><div class="empty-icon">📦</div>No stock items yet.</div>';return;}
-  container.innerHTML=`<div class="stock-register"><div class="stock-register-header"><span class="stock-register-title">LIVE STOCK REGISTER</span><span style="font-size:0.6rem;opacity:0.8;">${items.length} items</span></div><table class="stock-table"><thead><tr><th>ITEM</th><th colspan="2" style="text-align:center;background:#e8f5f5;color:var(--lookup)">🏭 WAREHOUSE</th><th colspan="2" style="text-align:center;background:#fef9ec;color:var(--report)">🏪 SHOP</th><th>SHELVES</th><th>WARN</th></tr><tr><th>—</th><th>Pre+In</th><th>Total</th><th>Pre+Out</th><th>Total</th><th>—</th><th>—</th></tr></thead><tbody>${items.map(item=>{const whDanger=item.warehouseTotal<=0,whLow=item.lowWarn>0&&item.warehouseTotal<=item.lowWarn&&!whDanger;const shDanger=item.shopTotal<=0;return`<tr><td style="font-weight:600;vertical-align:top;padding-top:8px">${item.name}${item.cutoffDate?`<br><span style="font-size:0.5rem;color:var(--muted);">📅 from ${item.cutoffDate}</span>`:''}</td><td style="color:var(--muted);font-size:0.65rem;vertical-align:top;padding-top:8px">${item.preWH}+${item.whIn}−${item.shOut}</td><td class="stock-total" style="vertical-align:top;padding-top:8px;${whDanger?'color:var(--out-color)':whLow?'color:var(--warn)':''}">${item.warehouseTotal}</td><td style="color:var(--muted);font-size:0.65rem;vertical-align:top;padding-top:8px">${item.preSH}+${item.shOut}−${item.shDed}−${item.salesQty}</td><td class="stock-total" style="vertical-align:top;padding-top:8px;${shDanger?'color:var(--out-color)':''}">${item.shopTotal}</td><td style="vertical-align:top;padding-top:6px;font-size:0.62rem;max-width:110px">${renderShelfBadges(item)}</td><td style="vertical-align:top;padding-top:8px">${whDanger?'<span class="low-badge">🚨 WH</span>':whLow?'<span class="low-badge">⚠ LOW</span>':item.lowWarn>0?'<span class="ok-badge">✔</span>':'<span style="font-size:0.52rem;color:#ccc">—</span>'}</td><td style="padding-top:6px"><button onclick="editStockItem(${JSON.stringify(item.name)})" style="background:var(--stock-light);color:var(--stock);border:1px solid var(--stock);border-radius:6px;padding:3px 8px;font-family:'IBM Plex Mono',monospace;font-size:0.52rem;font-weight:700;cursor:pointer;">✏</button></td></tr>`;}).join('')}</tbody></table></div>`;
+  container.innerHTML=`<div class="stock-register"><div class="stock-register-header"><span class="stock-register-title">LIVE STOCK REGISTER</span><span style="font-size:0.6rem;opacity:0.8;">${items.length} items</span></div><table class="stock-table"><thead><tr><th>ITEM</th><th colspan="2" style="text-align:center;background:#e8f5f5;color:var(--lookup)">🏭 WAREHOUSE</th><th colspan="2" style="text-align:center;background:#fef9ec;color:var(--report)">🏪 SHOP</th><th>SHELVES</th><th>WARN</th></tr><tr><th>—</th><th>Pre+In</th><th>Total</th><th>Pre+Out</th><th>Total</th><th>—</th><th>—</th></tr></thead><tbody>${items.map(item=>{const whDanger=item.warehouseTotal<=0,whLow=item.lowWarn>0&&item.warehouseTotal<=item.lowWarn&&!whDanger;const shDanger=item.shopTotal<=0;return`<tr><td style="font-weight:600;vertical-align:top;padding-top:8px">${item.name}${item.cutoffDate?`<br><span style="font-size:0.5rem;color:var(--muted);">📅 from ${item.cutoffDate}</span>`:''}</td><td style="color:var(--muted);font-size:0.65rem;vertical-align:top;padding-top:8px">${item.preWH}+${item.whIn}−${item.shOut}</td><td class="stock-total" style="vertical-align:top;padding-top:8px;${whDanger?'color:var(--out-color)':whLow?'color:var(--warn)':''}">${item.warehouseTotal}</td><td style="color:var(--muted);font-size:0.65rem;vertical-align:top;padding-top:8px">${item.preSH}+${item.shOut}−${item.shDed}−${item.salesQty}</td><td class="stock-total" style="vertical-align:top;padding-top:8px;${shDanger?'color:var(--out-color)':''}">${item.shopTotal}</td><td style="vertical-align:top;padding-top:6px;font-size:0.62rem;max-width:110px">${renderShelfBadges(item)}</td><td style="vertical-align:top;padding-top:8px">${whDanger?'<span class="low-badge">🚨 WH</span>':whLow?'<span class="low-badge">⚠ LOW</span>':item.lowWarn>0?'<span class="ok-badge">✔</span>':'<span style="font-size:0.52rem;color:#ccc">—</span>'}</td><td style="padding-top:6px"><button class="stk-reg-edit" data-n="${item.name.replace(/"/g,'&quot;')}" style="background:var(--stock-light);color:var(--stock);border:1px solid var(--stock);border-radius:6px;padding:3px 8px;font-family:'IBM Plex Mono',monospace;font-size:0.52rem;font-weight:700;cursor:pointer;">✏</button></td></tr>`;}).join('')}</tbody></table></div>`;
 }
+// Event delegation for stock register edit buttons
+document.addEventListener('click', function(e){
+  const btn=e.target.closest('.stk-reg-edit');
+  if(btn){ editStockItem(btn.getAttribute('data-n')); }
+});
 
-function downloadStockExcel(){
-  const rows=[['Item','WH Pre','WH Input','WH Out(shop)','WH Total','Shop Pre','Shop Out','Shop In-Ded','Sales','Shop Total','Low Warn']];
-  const names=new Set();
-  data.stock.forEach(s=>names.add(s.name));
-  data.inputs.forEach(inp=>inp.items.forEach(i=>names.add(i.name)));
-  data.outputs.forEach(o=>o.items.forEach(i=>{if(i.type==='sample'||i.type==='packing')names.add(i.name);}));
-  [...names].sort().forEach(name=>{
-    const se=data.stock.find(s=>s.name.toLowerCase()===name.toLowerCase());
-    const preWH=se?(se.preStockWarehouse||se.preStock||0):0;
-    const preSH=se?(se.preStockShop||0):0;
-    const lowWarn=se?(se.lowWarn||0):0;
-    const whIn=getWhInQty(name);
-    const shOut=getShOutQty(name);
-    const shDed=getShInDeduction(name);
-    const salesQty=getSalesQtyForItem(name);
-    const whTotal=preWH+whIn-shOut;
-    const shTotal=preSH+shOut-shDed-salesQty;
-    rows.push([name,preWH,whIn,shOut,whTotal,preSH,shOut,shDed,salesQty,shTotal,lowWarn]);
-  });
-  const csv=rows.map(r=>r.map(v=>'"'+(String(v||'').replace(/"/g,'""'))+'"').join(',')).join('\n');
-  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='stock_register.csv';a.click();
-}
 
 // ══ SALES REPORT ══
 async function handlePdfUpload(event){
@@ -1620,8 +1562,7 @@ async function handlePdfUpload(event){
     const base64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
     document.getElementById('ai-status').textContent='AI extracting quantities...';
     if(!getGeminiKey()){ document.getElementById('ai-processing').style.display='none'; showGeminiKeyModal(); return; }
-    const mimeType=file.type||'application/pdf';
-    const response=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+getGeminiKey(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{inline_data:{mime_type:mimeType,data:base64}},{text:`Sales report for ${monthYear}. Extract ALL items/products sold and quantities (pieces/units/pcs). Return ONLY a valid JSON array, no markdown, no code fences. Format: [{"name":"Item Name","qty":100},...]. Include every product line found.`}]}],generationConfig:{temperature:0.1,maxOutputTokens:2000}})});
+    const response=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+getGeminiKey(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{inline_data:{mime_type:'application/pdf',data:base64}},{text:`Sales report PDF for ${monthYear}. Extract ALL items/products sold and quantities (pieces/units/pcs). Return ONLY a valid JSON array, no markdown, no code fences. Format: [{"name":"Item Name","qty":100},...]. Include every product line found.`}]}],generationConfig:{temperature:0.1,maxOutputTokens:2000}})});
     if(!response.ok){ const e=await response.json(); throw new Error('Gemini error: '+(e.error?.message||response.status)); }
     const result=await response.json();
     const rawText=result.candidates?.[0]?.content?.parts?.[0]?.text||'';
@@ -1686,25 +1627,6 @@ function renderFinalStock(){
 }
 
 function deleteReport(id){if(!confirm('Delete this sales report?'))return;data.salesReports=data.salesReports.filter(r=>r.id!==id);save();renderReportList();renderFinalStock();populateReportFilterMonths();toast('Deleted.');}
-
-function downloadSalesExcel(){
-  const rows=[['Month/Year','Item','Qty Sold']];
-  data.salesReports.slice().reverse().forEach(r=>{
-    (r.items||[]).forEach(i=>{rows.push([r.monthYear,i.name,i.qty]);});
-  });
-  if(rows.length===1){toast('No sales data to download.');return;}
-  const csv=rows.map(r=>r.map(v=>'"'+(String(v||'').replace(/"/g,'""'))+'"').join(',')).join('\n');
-  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='sales_report.csv';a.click();
-}
-function downloadProcessExcel(){
-  const rows=[['Process Type','Challan No','Date','Party','Status','Item','Pcs']];
-  (data.processChallans||[]).slice().reverse().forEach(c=>{
-    (c.items||[]).forEach(i=>{rows.push([c.processType||c.type||'',c.challanNo,c.date,c.party||'',c.status||'',i.name,i.pcs]);});
-  });
-  if(rows.length===1){toast('No process data to download.');return;}
-  const csv=rows.map(r=>r.map(v=>'"'+(String(v||'').replace(/"/g,'""'))+'"').join(',')).join('\n');
-  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='process_report.csv';a.click();
-}
 function deleteOut(id){if(!confirm('Delete this output challan?'))return;data.outputs=data.outputs.filter(o=>o.id!==id);save();renderOutputList();toast('Deleted.');}
 function deleteIn(id){if(!confirm('Delete this input challan?'))return;data.inputs=data.inputs.filter(i=>i.id!==id);save();renderInputList();toast('Deleted.');}
 
@@ -1967,13 +1889,12 @@ async function handlePhotoUpload(event, itemName, sid){
     const mime=file.type||'image/jpeg';
     const dataUrl='data:'+mime+';base64,'+base64;
     if(!itemCatalog[itemName])itemCatalog[itemName]={};
-    // Try Firebase Storage first; fall back to base64 data URL stored in Firestore
+    // Try Firebase Storage first; fall back to base64 stored in Firestore
     if(storage){
       try{
         const url=await uploadItemPhoto(itemName,base64,mime);
         itemCatalog[itemName].photoURL=url;
       }catch(e){
-        // Firebase Storage failed — store as data URL (works up to ~1MB)
         itemCatalog[itemName].photoURL=dataUrl;
       }
     } else {
@@ -2052,177 +1973,21 @@ function printSel(){
   setTimeout(()=>{printArea.style.display='none';},1000);
 }
 
-
-
-// ═══════════════════════════════════
-// TRANSFER TAB
-// ═══════════════════════════════════
-let currentTransferDir = 'g2a'; // g2a = warehouse->shop, a2g = shop->warehouse
-
-function setTransferDir(dir){
-  currentTransferDir=dir;
-  const g2a=document.getElementById('tr-btn-g2a');
-  const a2g=document.getElementById('tr-btn-a2g');
-  if(!g2a||!a2g)return;
-  if(dir==='g2a'){
-    g2a.style.background='var(--lookup)';g2a.style.color='#fff';g2a.style.borderColor='var(--lookup)';
-    a2g.style.background='var(--bg)';a2g.style.color='var(--ink)';a2g.style.borderColor='var(--border)';
-  } else {
-    a2g.style.background='var(--lookup)';a2g.style.color='#fff';a2g.style.borderColor='var(--lookup)';
-    g2a.style.background='var(--bg)';g2a.style.color='var(--ink)';g2a.style.borderColor='var(--border)';
-  }
-  // Update avail badges in existing rows
-  document.querySelectorAll('.tr-item-row').forEach(row=>{
-    const nameInp=row.querySelector('.tr-item-name');
-    if(nameInp&&nameInp.value.trim())updateTransferAvail(row,nameInp.value.trim());
+function downloadSelPhotos(){
+  if(!lookupSelected.size){toast('Select at least one item first!');return;}
+  const items=[...lookupSelected].filter(name=>itemCatalog[name]&&itemCatalog[name].photoURL);
+  if(!items.length){toast('No photos for selected items. Add photos first.');return;}
+  toast('Downloading '+items.length+' photo(s)...');
+  items.forEach((name,i)=>{
+    setTimeout(()=>{
+      const a=document.createElement('a');
+      a.href=itemCatalog[name].photoURL;
+      a.download=name.replace(/[^a-zA-Z0-9_-]/g,'_')+'.jpg';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }, i*400);
   });
 }
 
-function _getTransferAvail(name){
-  const se=data.stock.find(s=>s.name.toLowerCase()===name.toLowerCase());
-  if(!se)return 0;
-  const preWH=se.preStockWarehouse||se.preStock||0, preSH=se.preStockShop||0;
-  const whIn=getWhInQty(name), shOut=getShOutQty(name), shDed=getShInDeduction(name), salesQty=getSalesQtyForItem(name);
-  const transfers=(data.stockTransfers||[]);
-  let transferAdj=0;
-  transfers.forEach(tr=>{(tr.items||[]).forEach(i=>{if(i.name.toLowerCase()!==name.toLowerCase())return;if(tr.dir==='g2a')transferAdj+=i.pcs;else transferAdj-=i.pcs;});});
-  if(currentTransferDir==='g2a'){return Math.max(0,preWH+whIn-shOut-transferAdj);}
-  else{return Math.max(0,preSH+shOut-shDed-salesQty+transferAdj);}
-}
-
-function updateTransferAvail(row, name){
-  const badge=row.querySelector('.tr-avail');
-  if(!badge)return;
-  const avail=_getTransferAvail(name);
-  badge.textContent=avail+' avail';
-  badge.style.color=avail<=0?'var(--out-color)':'var(--in-color)';
-}
-
-function addTransferItem(name='', pcs=''){
-  const list=document.getElementById('tr-items-list'); if(!list)return;
-  const row=document.createElement('div'); row.className='item-row tr-item-row';
-  const nameWrap=document.createElement('div'); nameWrap.className='name-wrap'; nameWrap.style.position='relative';
-  const nameInp=document.createElement('input'); nameInp.type='text'; nameInp.placeholder='Item name'; nameInp.className='item-name-inp tr-item-name'; nameInp.autocomplete='off'; nameInp.value=name;
-  nameWrap.appendChild(nameInp);
-  const pcsInp=document.createElement('input'); pcsInp.type='number'; pcsInp.placeholder='Pcs'; pcsInp.min='0'; pcsInp.className='item-pcs-inp'; pcsInp.value=pcs;
-  const availBadge=document.createElement('span'); availBadge.className='tr-avail'; availBadge.style.cssText='font-size:0.58rem;color:var(--muted);min-width:52px;text-align:center;'; availBadge.textContent='—';
-  const removeBtn=document.createElement('button'); removeBtn.className='remove-item'; removeBtn.textContent='✕'; removeBtn.onclick=()=>row.remove();
-  row.appendChild(nameWrap); row.appendChild(pcsInp); row.appendChild(availBadge); row.appendChild(removeBtn);
-  list.appendChild(row);
-  nameInp.addEventListener('input',()=>updateTransferAvail(row,nameInp.value.trim()));
-  nameInp.addEventListener('blur',()=>updateTransferAvail(row,nameInp.value.trim()));
-  if(name)updateTransferAvail(row,name);
-  attachItemAutocomplete(nameInp);
-}
-
-function saveTransfer(){
-  const challan=document.getElementById('tr-challan').value.trim();
-  const date=document.getElementById('tr-date').value;
-  const note=document.getElementById('tr-note').value.trim();
-  const dir=currentTransferDir;
-  const items=[...document.querySelectorAll('#tr-items-list .tr-item-row')].map(row=>({
-    name:row.querySelector('.tr-item-name').value.trim(),
-    pcs:parseInt(row.querySelector('.item-pcs-inp').value)||0
-  })).filter(i=>i.name&&i.pcs>0);
-  if(!challan||!date){toast('⚠ Challan no. and date required!');return;}
-  if(!items.length){toast('⚠ Add at least one item with pcs!');return;}
-  const trObj={id:Date.now().toString(),challan,date,dir,note,items,createdAt:new Date().toISOString()};
-  if(!data.stockTransfers)data.stockTransfers=[];
-  data.stockTransfers.push(trObj);
-  data.trCounter=(data.trCounter||1)+1;
-  // Update stock
-  items.forEach(i=>{
-    let se=data.stock.find(s=>s.name.toLowerCase()===i.name.toLowerCase());
-    if(!se){se={name:i.name,shelves:[],preStockWarehouse:0,preStockShop:0,lowWarn:0,preStockDate:''};data.stock.push(se);}
-    if(dir==='g2a'){se.preStockWarehouse=Math.max(0,(se.preStockWarehouse||se.preStock||0)-i.pcs);se.preStockShop=(se.preStockShop||0)+i.pcs;}
-    else{se.preStockShop=Math.max(0,(se.preStockShop||0)-i.pcs);se.preStockWarehouse=(se.preStockWarehouse||se.preStock||0)+i.pcs;}
-  });
-  save(); renderTransferHistory(); renderStockRegister();
-  document.getElementById('tr-items-list').innerHTML=''; addTransferItem();
-  document.getElementById('tr-note').value='';
-  initTransferTab();
-  toast('✔ Transfer saved!');
-  showChallanPrint({...trObj,type:'transfer',challanNo:challan,party:dir==='g2a'?'Warehouse → Shop':'Shop → Warehouse'});
-}
-
-function initTransferTab(){
-  const today=new Date().toISOString().split('T')[0];
-  const trEl=document.getElementById('tr-date'); if(trEl&&!trEl.value)trEl.value=today;
-  const chEl=document.getElementById('tr-challan');
-  if(chEl)chEl.value='TR-'+String(data.trCounter||1).padStart(3,'0');
-  if(!document.querySelector('#tr-items-list .tr-item-row'))addTransferItem();
-  setTransferDir(currentTransferDir);
-}
-
-function renderTransferHistory(){
-  const q=(document.getElementById('tr-search').value||'').toLowerCase();
-  const container=document.getElementById('tr-history'); if(!container)return;
-  const all=(data.stockTransfers||[]).filter(tr=>tr.challan.toLowerCase().includes(q)||(tr.note||'').toLowerCase().includes(q)||(tr.items||[]).some(i=>i.name.toLowerCase().includes(q)));
-  if(!all.length){container.innerHTML='<div class="empty"><div class="empty-icon">🔄</div>No transfers yet.</div>';return;}
-  container.innerHTML=all.slice().reverse().map(tr=>{
-    const total=(tr.items||[]).reduce((s,i)=>s+i.pcs,0);
-    const eid=JSON.stringify(tr.id);
-    const dirLbl=tr.dir==='g2a'?'🏭 → 🏪':'🏪 → 🏭';
-    return '<div class="challan-card">'
-      +'<div class="challan-header" style="background:var(--lookup);color:#fff;border-radius:10px 10px 0 0;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;">'
-      +'<div><div style="font-size:0.8rem;font-weight:700;">'+tr.challan+'</div><div style="font-size:0.58rem;opacity:0.85;">'+tr.date+'</div></div>'
-      +'<div style="display:flex;gap:6px;align-items:center;"><span style="font-size:0.65rem;background:rgba(255,255,255,.2);padding:3px 8px;border-radius:5px;">'+dirLbl+'</span>'
-      +'<button class="process-action-btn btn-print" onclick="printTransferChallan('+eid+')" style="padding:4px 8px;font-size:0.55rem;">🖨</button>'
-      +'<button class="process-action-btn" onclick="editTransferChallan('+eid+')" style="background:#fef9c3;color:#854d0e;padding:4px 8px;font-size:0.55rem;">✏</button>'
-      +'<button class="del-ch-btn" onclick="deleteTransfer('+eid+')" style="background:rgba(255,0,0,.15);">🗑</button></div></div>'
-      +'<div class="challan-body">'+(tr.note?'<div style="font-size:0.6rem;color:var(--muted);margin-bottom:6px;">📝 '+tr.note+'</div>':'')
-      +(tr.items||[]).map(i=>'<div class="item-line"><span>'+i.name+'</span><span class="item-pcs">'+i.pcs+' pcs</span></div>').join('')
-      +'<div class="ch-footer"><span class="ch-total">Total: <strong>'+total+' pcs</strong></span></div>'
-      +'</div></div>';
-  }).join('');
-}
-function printTransferChallan(id){
-  const tr=(data.stockTransfers||[]).find(x=>x.id===id);if(!tr)return;
-  showChallanPrint({...tr,type:'transfer',challanNo:tr.challan,party:tr.dir==='g2a'?'Warehouse → Shop':'Shop → Warehouse'});
-}
-function editTransferChallan(id){
-  const tr=(data.stockTransfers||[]).find(x=>x.id===id);if(!tr)return;
-  if(!confirm('Edit this transfer? It will be removed so you can re-save.'))return;
-  setTransferDir(tr.dir||'g2a');
-  document.getElementById('tr-challan').value=tr.challan;
-  document.getElementById('tr-date').value=tr.date;
-  document.getElementById('tr-note').value=tr.note||'';
-  document.getElementById('tr-items-list').innerHTML='';
-  (tr.items||[]).forEach(i=>addTransferItem(i.name,i.pcs));
-  // Reverse stock changes
-  (tr.items||[]).forEach(i=>{
-    let se=data.stock.find(s=>s.name.toLowerCase()===i.name.toLowerCase());
-    if(!se)return;
-    if(tr.dir==='g2a'){se.preStockWarehouse=(se.preStockWarehouse||0)+i.pcs;se.preStockShop=Math.max(0,(se.preStockShop||0)-i.pcs);}
-    else{se.preStockShop=(se.preStockShop||0)+i.pcs;se.preStockWarehouse=Math.max(0,(se.preStockWarehouse||0)-i.pcs);}
-  });
-  data.stockTransfers=data.stockTransfers.filter(x=>x.id!==id);
-  save(); renderTransferHistory(); renderStockRegister();
-  window.scrollTo(0,0); toast('✏ Transfer loaded for editing.');
-}
-function deleteTransfer(id){
-  if(!confirm('Delete this transfer?'))return;
-  const tr=(data.stockTransfers||[]).find(x=>x.id===id);
-  if(tr){
-    (tr.items||[]).forEach(i=>{
-      let se=data.stock.find(s=>s.name.toLowerCase()===i.name.toLowerCase());
-      if(!se)return;
-      if(tr.dir==='g2a'){se.preStockWarehouse=(se.preStockWarehouse||0)+i.pcs;se.preStockShop=Math.max(0,(se.preStockShop||0)-i.pcs);}
-      else{se.preStockShop=(se.preStockShop||0)+i.pcs;se.preStockWarehouse=Math.max(0,(se.preStockWarehouse||0)-i.pcs);}
-    });
-  }
-  data.stockTransfers=(data.stockTransfers||[]).filter(x=>x.id!==id);
-  save(); renderTransferHistory(); renderStockRegister(); toast('Deleted.');
-}
-function downloadTransferExcel(){
-  const rows=[['Challan','Date','Direction','Note','Item','Pcs']];
-  (data.stockTransfers||[]).slice().reverse().forEach(tr=>{
-    const dir=tr.dir==='g2a'?'Warehouse -> Shop':'Shop -> Warehouse';
-    (tr.items||[]).forEach(i=>{rows.push([tr.challan,tr.date,dir,tr.note||'',i.name,i.pcs]);});
-  });
-  const csv=rows.map(r=>r.map(v=>'"'+(String(v||'').replace(/"/g,'""'))+'"').join(',')).join('\n');
-  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='transfer_history.csv';a.click();
-}
 
 // ── output type helpers ──
 function typeLabel(t){return t==='sample'?'🟢 Sample/Shop':t==='packing'?'🔵 Packing/Shop':'⬜ Grey Stage';}
@@ -2231,65 +1996,135 @@ function typeCls(t){return t==='sample'?'sample':t==='packing'?'packing':'grey';
 // ═══════════════════════════════════
 // UPDATE renderOutputList to show stack tags
 // ═══════════════════════════════════
+const _origRenderOutputList = renderOutputList;
 renderOutputList = function(){
   const q=(document.getElementById('out-search').value||'').toLowerCase();
   const list=document.getElementById('out-list');
-  const filtered=data.outputs.filter(o=>o.challan.toLowerCase().includes(q)||o.items.some(i=>i.name.toLowerCase().includes(q))||(o.party||'').toLowerCase().includes(q));
+  const filtered=data.outputs.filter(o=>o.challan.toLowerCase().includes(q)||o.items.some(i=>i.name.toLowerCase().includes(q)));
   if(!filtered.length){list.innerHTML='<div class="empty"><div class="empty-icon">📤</div>No output challans yet.</div>';return;}
   list.innerHTML=filtered.slice().reverse().map(o=>{
     const total=o.items.reduce((s,i)=>s+i.pcs,0);
     const li=data.inputs.filter(inp=>(inp.linkedOuts||(inp.linkedOut?[inp.linkedOut]:[])).includes(o.challan));
-    const typeSummary={};o.items.forEach(i=>{const k=i.type||'grey';typeSummary[k]=(typeSummary[k]||0)+i.pcs;});
-    const eid=JSON.stringify(o.id);
-    const partyHtml=o.party?'<div style="font-size:0.6rem;color:var(--muted);margin-top:2px;">👤 '+o.party+'</div>':'';
-    const bookHtml=o.bookChallan?'<div style="font-size:0.58rem;color:var(--muted);">📓 Book: '+o.bookChallan+'</div>':'';
-    const typeTagsHtml=Object.entries(typeSummary).map(([k,v])=>{
-      if(k.startsWith('proc_'))return'<span class="type-badge" style="background:#f0ebff;color:#6b21a8;border:1px solid #d8b4fe">🔄 '+k.replace('proc_','')+ ' '+v+'pcs</span>';
-      if(k==='sample')return'<span class="type-badge sample">🟢 Sample '+v+'pcs</span>';
-      if(k==='packing')return'<span class="type-badge packing">🔵 Packing '+v+'pcs</span>';
-      return'<span class="type-badge grey">⬜ Grey '+v+'pcs</span>';
-    }).join(' ');
-    return '<div class="challan-card">'
-      +'<div class="challan-header out"><div><div class="ch-num out">'+o.challan+'</div><div class="ch-date">'+o.date+'</div>'+partyHtml+bookHtml+'</div>'
-      +'<div style="display:flex;align-items:center;gap:6px;"><span class="ch-badge out">OUT</span>'
-      +'<button class="process-action-btn btn-print" onclick="printOutChallan('+eid+')" style="padding:4px 8px;font-size:0.55rem;">🖨</button>'
-      +'<button class="process-action-btn" onclick="editOutChallan('+eid+')" style="background:#fef9c3;color:#854d0e;padding:4px 8px;font-size:0.55rem;">✏</button>'
-      +'<button class="del-ch-btn" onclick="deleteOut('+eid+')">🗑</button></div></div>'
-      +'<div class="challan-body">'+o.items.map(i=>{
-        const cat=itemCatalog[i.name]||{};const stk=cat.stackNo?'<div class="stack-tag">📍 Stack '+cat.stackNo+'</div>':'';
-        const itype=i.type||'grey';
-        const tb=itype.startsWith('proc_')?'<span class="type-badge" style="background:#f0ebff;color:#6b21a8;border:1px solid #d8b4fe;margin-left:4px">🔄 '+itype.replace('proc_','')+'</span>':'<span class="type-badge '+typeCls(itype)+'" style="margin-left:4px">'+typeLabel(itype)+'</span>';
-        return'<div class="item-line"><div><span>'+i.name+'</span>'+stk+tb+'</div><span class="item-pcs">'+i.pcs+' pcs</span></div>';
-      }).join('')
-      +'<div style="margin-top:5px">'+typeTagsHtml+'</div>'
-      +'<div class="ch-footer"><span class="ch-total">Total: <strong>'+total+' pcs</strong></span>'+(li.length?'<span class="linked-tag">🔗 '+li.length+' input(s)</span>':'<span style="font-size:0.62rem;color:#bbb">No inputs yet</span>')+'</div>'
-      +'</div></div>';
+    const typeSummary={grey:0,sample:0,packing:0};o.items.forEach(i=>{typeSummary[i.type||'grey']=(typeSummary[i.type||'grey']||0)+i.pcs;});
+    const typeTagsHtml=(typeSummary.sample>0?'<span class="type-badge sample">🟢 Sample '+typeSummary.sample+'pcs</span> ':'')+( typeSummary.packing>0?'<span class="type-badge packing">🔵 Packing '+typeSummary.packing+'pcs</span> ':'')+( typeSummary.grey>0?'<span class="type-badge grey">⬜ Grey '+typeSummary.grey+'pcs</span>':'');
+    return '<div class="challan-card"><div class="challan-header out"><div><div class="ch-num out">'+o.challan+'</div><div class="ch-date">'+o.date+'</div></div><div style="display:flex;align-items:center;gap:8px;"><span class="ch-badge out">OUT</span><button class="del-ch-btn" onclick="deleteOut(\''+o.id+'\')">🗑</button></div></div><div class="challan-body">'+o.items.map(i=>{const cat=itemCatalog[i.name]||{};const stk=cat.stackNo?'<div class="stack-tag">📍 Stack '+cat.stackNo+'</div>':'';const tb='<span class="type-badge '+typeCls(i.type||'grey')+'" style="margin-left:4px">'+typeLabel(i.type||'grey')+'</span>';return'<div class="item-line"><div><span>'+i.name+'</span>'+stk+tb+'</div><span class="item-pcs">'+i.pcs+' pcs</span></div>';}).join('')+'<div style="margin-top:5px">'+typeTagsHtml+'</div><div class="ch-footer"><span class="ch-total">Total: <strong>'+total+' pcs</strong></span>'+(li.length?'<span class="linked-tag">🔗 '+li.length+' input(s)</span>':'<span style="font-size:0.62rem;color:#bbb">No inputs yet</span>')+'</div></div></div>';
   }).join('');
 };
-function printOutChallan(id){
-  const o=data.outputs.find(x=>x.id===id);if(!o)return;
-  showChallanPrint({...o,type:'regular',challanNo:o.challan});
+
+
+// ══ TRANSFER TAB ══
+let currentTransferDir='g2a';
+
+function setTransferDir(dir){
+  currentTransferDir=dir;
+  const g=document.getElementById('tr-btn-g2a'), a=document.getElementById('tr-btn-a2g');
+  if(!g||!a)return;
+  [g,a].forEach(b=>{b.style.background='var(--bg)';b.style.color='var(--ink)';b.style.borderColor='var(--border)';});
+  const active=dir==='g2a'?g:a;
+  active.style.background='var(--lookup)'; active.style.color='#fff'; active.style.borderColor='var(--lookup)';
 }
-function editOutChallan(id){
-  const o=data.outputs.find(x=>x.id===id);if(!o)return;
-  if(document.getElementById('out-challan').value&&!confirm('Discard current form and edit this challan?'))return;
-  document.getElementById('out-challan').value=o.challan;
-  if(document.getElementById('out-book-challan'))document.getElementById('out-book-challan').value=o.bookChallan||'';
-  if(document.getElementById('out-party'))document.getElementById('out-party').value=o.party||'';
-  document.getElementById('out-date').value=o.date;
-  document.getElementById('out-items-list').innerHTML='';
-  (o.items||[]).forEach(i=>{makeOutItemRow(i.type||'grey');const rows=document.querySelectorAll('#out-items-list .item-row');const last=rows[rows.length-1];last.querySelector('.item-name-inp').value=i.name;last.querySelector('.item-pcs-inp').value=i.pcs;});
-  // Remove original so it can be re-saved
-  data.outputs=data.outputs.filter(x=>x.id!==id); save(); renderOutputList();
-  window.scrollTo(0,0); toast('✏ Challan loaded for editing — re-save when done.');
+
+function addTransferItem(name='',pcs=''){
+  const list=document.getElementById('tr-items-list'); if(!list)return;
+  const row=document.createElement('div'); row.className='item-row';
+  const nw=document.createElement('div'); nw.className='name-wrap'; nw.style.position='relative';
+  const ni=document.createElement('input'); ni.type='text'; ni.placeholder='Item name'; ni.className='item-name-inp'; ni.autocomplete='off'; ni.value=name;
+  nw.appendChild(ni);
+  const pi=document.createElement('input'); pi.type='number'; pi.placeholder='Pcs'; pi.min='0'; pi.className='item-pcs-inp'; pi.value=pcs;
+  const rb=document.createElement('button'); rb.className='remove-item'; rb.textContent='✕'; rb.onclick=()=>row.remove();
+  row.appendChild(nw); row.appendChild(pi); row.appendChild(rb);
+  list.appendChild(row);
+  if(typeof attachItemAutocomplete==='function') attachItemAutocomplete(ni);
 }
-function downloadOutputExcel(){
-  const rows=[['App Challan','Book Challan','Date','Party','Item Name','Pcs','Type']];
-  data.outputs.slice().reverse().forEach(o=>{
-    (o.items||[]).forEach(i=>{rows.push([o.challan,o.bookChallan||'',o.date,o.party||'',i.name,i.pcs,i.type||'grey']);});
+
+function saveTransfer(){
+  const challan=document.getElementById('tr-challan').value.trim();
+  const date=document.getElementById('tr-date').value;
+  const note=document.getElementById('tr-note').value.trim();
+  const dir=currentTransferDir;
+  const items=[...document.querySelectorAll('#tr-items-list .item-row')].map(row=>({
+    name:row.querySelector('.item-name-inp').value.trim(),
+    pcs:parseInt(row.querySelector('.item-pcs-inp').value)||0
+  })).filter(i=>i.name&&i.pcs>0);
+  if(!challan||!date){toast('⚠ Fill challan and date!');return;}
+  if(!items.length){toast('⚠ Add at least one item!');return;}
+  const trObj={id:Date.now().toString(),challan,date,dir,note,items,createdAt:new Date().toISOString()};
+  if(!data.stockTransfers)data.stockTransfers=[];
+  data.stockTransfers.push(trObj);
+  data.trCounter=(data.trCounter||1)+1;
+  // Adjust pre-stock
+  items.forEach(i=>{
+    let se=data.stock.find(s=>s.name.toLowerCase()===i.name.toLowerCase());
+    if(!se){se={name:i.name,shelves:[],preStockWarehouse:0,preStockShop:0,lowWarn:0,preStockDate:''};data.stock.push(se);}
+    if(dir==='g2a'){se.preStockWarehouse=Math.max(0,(se.preStockWarehouse||0)-i.pcs);se.preStockShop=(se.preStockShop||0)+i.pcs;}
+    else{se.preStockShop=Math.max(0,(se.preStockShop||0)-i.pcs);se.preStockWarehouse=(se.preStockWarehouse||0)+i.pcs;}
+  });
+  save(); renderTransferHistory();
+  document.getElementById('tr-items-list').innerHTML=''; addTransferItem();
+  document.getElementById('tr-note').value='';
+  initTransferTab();
+  toast('✔ Transfer saved!');
+}
+
+function initTransferTab(){
+  const today=new Date().toISOString().split('T')[0];
+  const td=document.getElementById('tr-date'); if(td&&!td.value)td.value=today;
+  const ch=document.getElementById('tr-challan');
+  if(ch)ch.value='TR-'+String(data.trCounter||1).padStart(3,'0');
+  if(!document.querySelector('#tr-items-list .item-row'))addTransferItem();
+  setTransferDir(currentTransferDir);
+}
+
+function renderTransferHistory(){
+  const q=(document.getElementById('tr-search').value||'').toLowerCase();
+  const container=document.getElementById('tr-history'); if(!container)return;
+  const all=(data.stockTransfers||[]).filter(tr=>
+    tr.challan.toLowerCase().includes(q)||(tr.note||'').toLowerCase().includes(q)||
+    (tr.items||[]).some(i=>i.name.toLowerCase().includes(q))
+  );
+  if(!all.length){container.innerHTML='<div class="empty"><div class="empty-icon">🔄</div>No transfers yet.</div>';return;}
+  container.innerHTML=all.slice().reverse().map(tr=>{
+    const total=(tr.items||[]).reduce((s,i)=>s+i.pcs,0);
+    const dirLbl=tr.dir==='g2a'?'🏭→🏪':'🏪→🏭';
+    return `<div class="challan-card">
+      <div class="challan-header" style="background:var(--lookup);color:#fff;border-radius:10px 10px 0 0;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;">
+        <div><div style="font-size:0.8rem;font-weight:700">${tr.challan}</div><div style="font-size:0.58rem;opacity:0.85">${tr.date}</div></div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span style="font-size:0.62rem;background:rgba(255,255,255,.2);padding:3px 8px;border-radius:5px">${dirLbl}</span>
+          <button class="del-ch-btn" style="background:rgba(255,0,0,.2)" onclick="deleteTransfer('${tr.id}')">🗑</button>
+        </div>
+      </div>
+      <div class="challan-body">
+        ${tr.note?`<div style="font-size:0.6rem;color:var(--muted);margin-bottom:6px">📝 ${tr.note}</div>`:''}
+        ${(tr.items||[]).map(i=>`<div class="item-line"><span>${i.name}</span><span class="item-pcs">${i.pcs} pcs</span></div>`).join('')}
+        <div class="ch-footer"><span class="ch-total">Total: <strong>${total} pcs</strong></span></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function deleteTransfer(id){
+  if(!confirm('Delete this transfer?'))return;
+  const tr=(data.stockTransfers||[]).find(x=>x.id===id);
+  if(tr){
+    (tr.items||[]).forEach(i=>{
+      let se=data.stock.find(s=>s.name.toLowerCase()===i.name.toLowerCase()); if(!se)return;
+      if(tr.dir==='g2a'){se.preStockWarehouse=(se.preStockWarehouse||0)+i.pcs;se.preStockShop=Math.max(0,(se.preStockShop||0)-i.pcs);}
+      else{se.preStockShop=(se.preStockShop||0)+i.pcs;se.preStockWarehouse=Math.max(0,(se.preStockWarehouse||0)-i.pcs);}
+    });
+  }
+  data.stockTransfers=(data.stockTransfers||[]).filter(x=>x.id!==id);
+  save(); renderTransferHistory(); toast('Deleted.');
+}
+
+function downloadTransferExcel(){
+  const rows=[['Challan','Date','Direction','Note','Item','Pcs']];
+  (data.stockTransfers||[]).slice().reverse().forEach(tr=>{
+    const dir=tr.dir==='g2a'?'Warehouse->Shop':'Shop->Warehouse';
+    (tr.items||[]).forEach(i=>rows.push([tr.challan,tr.date,dir,tr.note||'',i.name,i.pcs]));
   });
   const csv=rows.map(r=>r.map(v=>'"'+(String(v||'').replace(/"/g,'""'))+'"').join(',')).join('\n');
-  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='output_challans.csv';a.click();
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='transfers.csv';a.click();
 }
 
 </script>
