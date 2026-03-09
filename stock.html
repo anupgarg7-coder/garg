@@ -228,7 +228,7 @@ body{background:var(--bg);color:var(--ink);font-family:'IBM Plex Mono',monospace
 .form-card.in-card{border-top:3px solid var(--in-color);}
 .form-card.stock-card{border-top:3px solid var(--stock);}
 .form-card.report-card{border-top:3px solid var(--report);}
-.field{margin-bottom:12px;}
+.field{margin-bottom:12px;} .field-row{display:flex;gap:10px;} .field-row .field{flex:1;}
 label{display:block;font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
 input,select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:0.85rem;padding:9px 12px;outline:none;transition:border-color 0.2s;-webkit-appearance:none;appearance:none;}
 input:focus,select:focus{border-color:var(--accent);}
@@ -537,6 +537,10 @@ select.item-type-sel.type-proc{background:#f0ebff;color:#6b21a8;border-color:#d8
       <div style="text-align:center;font-size:0.5rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin:8px 0 10px">— or enter manually —</div>
       <div class="field"><label>Output Challan No.</label><input id="out-challan" type="text" placeholder="e.g. OUT-001"></div>
       <div class="field"><label>Date</label><input id="out-date" type="date"></div>
+      <div class="field">
+        <label>To M/s (Party Name)</label>
+        <input id="out-party" type="text" placeholder="Auto-fills from process type or enter manually..." autocomplete="off" style="width:100%;box-sizing:border-box;">
+      </div>
       <div class="items-header"><span class="items-label">Items Sent Out</span><button class="add-item-btn" onclick="addOutItem()">+ ADD ITEM</button></div>
       <div class="item-col-heads"><span>Item Name</span><span>Pcs</span><span>Type</span><span></span></div>
       <div id="out-items-list"></div>
@@ -588,26 +592,23 @@ select.item-type-sel.type-proc{background:#f0ebff;color:#6b21a8;border-color:#d8
         <label>Specify Transport</label><input id="in-transport-custom" type="text" placeholder="Enter transport name...">
       </div>
       <div style="border-top:1px dashed var(--border);margin:4px 0 14px;"></div>
-      <div class="field">
-        <label>Search &amp; Add Items</label>
-        <div class="search-wrap">
-          <input id="item-search-box" type="text" placeholder="Type item name to search..." autocomplete="off" oninput="onItemSearch()" onfocus="onItemSearch()">
-          <div id="item-suggestions" class="suggestions-dropdown" style="display:none;"></div>
-        </div>
-        <div style="font-size:0.58rem;color:var(--muted);margin-top:5px;">Searches all pending output challan items</div>
+      <div class="items-header">
+        <span class="items-label">Items Received</span>
+        <button class="add-item-btn" style="background:var(--in-light);color:var(--in-color);border-color:var(--in-color);" onclick="addInItem()">+ ADD ITEM</button>
       </div>
+      <div class="item-col-heads"><span>Item Name</span><span>Pcs</span><span>Link to Output</span><span></span></div>
+      <div id="in-items-list"></div>
+      <div style="border-top:1px dashed var(--border);margin:14px 0 12px;"></div>
+      <div style="display:flex;gap:8px;">
+        <button class="submit-btn in-btn" style="font-size:0.7rem;" onclick="saveInput('combined')">💾 SAVE CHALLAN</button>
+      </div>
+      <!-- Legacy linked-output search (hidden, kept for compatibility) -->
       <div id="in-added-items-container" style="display:none;">
-        <div style="font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Items to Receive</div>
         <div id="in-added-items-list"></div>
       </div>
-      <div id="in-save-section" style="display:none;margin-top:8px;">
-        <div style="border-top:1px dashed var(--border);margin:10px 0 12px;"></div>
-        <label style="margin-bottom:8px;display:block;">Save As</label>
-        <div style="display:flex;gap:8px;">
-          <button class="submit-btn in-btn" style="font-size:0.7rem;" onclick="saveInput('combined')">💾 ONE CHALLAN</button>
-          <button class="submit-btn" style="background:var(--accent);color:#fff;font-size:0.7rem;" onclick="saveInput('split')">✂️ SPLIT PER OUTPUT</button>
-        </div>
-        <div style="font-size:0.58rem;color:var(--muted);margin-top:7px;line-height:1.6;"><strong>One Challan:</strong> All items under one no. &nbsp;|&nbsp; <strong>Split:</strong> Separate entry per output challan.</div>
+      <div id="in-save-section" style="display:none;">
+        <input id="item-search-box" type="text" style="display:none;">
+        <div id="item-suggestions" style="display:none;"></div>
       </div>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><div class="section-label" style="margin:0">Input Challans</div><button class="excel-btn" onclick="downloadInputExcel()">⬇ EXCEL</button></div>
@@ -819,7 +820,7 @@ select.item-type-sel.type-proc{background:#f0ebff;color:#6b21a8;border-color:#d8
 // ══════════════════════════════════════════════════════
 
 let currentUser = null;
-let data = { outputs:[], inputs:[], stock:[], salesReports:[], processList:['Dyeing','Printing','Stitching','Embroidery','Washing'], processChallans:[], stockTransfers:[], outCounter:1, inCounter:1, trCounter:1 };
+let data = { outputs:[], inputs:[], stock:[], salesReports:[], processList:['Dyeing','Printing','Stitching','Embroidery','Washing'], processParties:{}, processChallans:[], stockTransfers:[], outCounter:1, inCounter:1, trCounter:1 };
 let unsubscribe = null; // real-time listener
 let saveTimer = null;
 let isConfigured = false;
@@ -945,7 +946,7 @@ async function loadUserData(uid) {
     const ref = getUserDocRef(uid); if(!ref){ throw new Error('no-db'); } const snap = await ref.get();
     if (snap.exists) {
       const d = snap.data();
-      return { outputs:d.outputs||[], inputs:d.inputs||[], stock:d.stock||[], salesReports:d.salesReports||[], processList:d.processList||['Dyeing','Printing','Stitching','Embroidery','Washing'], processChallans:d.processChallans||[], stockTransfers:d.stockTransfers||[], outCounter:d.outCounter||1, inCounter:d.inCounter||1, trCounter:d.trCounter||1 };
+      return { outputs:d.outputs||[], inputs:d.inputs||[], stock:d.stock||[], salesReports:d.salesReports||[], processList:d.processList||['Dyeing','Printing','Stitching','Embroidery','Washing'], processParties:d.processParties||{}, processChallans:d.processChallans||[], stockTransfers:d.stockTransfers||[], outCounter:d.outCounter||1, inCounter:d.inCounter||1, trCounter:d.trCounter||1 };
     }
   } catch(e) { console.warn('Load error:', e); }
   // Fallback to localStorage
@@ -967,6 +968,7 @@ function save() {
         stock: data.stock,
         salesReports: data.salesReports,
         processList: data.processList,
+        processParties: data.processParties||{},
         processChallans: data.processChallans,
         outCounter: data.outCounter,
         inCounter: data.inCounter,
@@ -1001,6 +1003,7 @@ function startRealtimeSync(uid) {
       data.stock          = d.stock          || [];
       data.salesReports   = d.salesReports   || [];
       data.processList    = d.processList    || data.processList || ['Dyeing','Printing','Stitching','Embroidery','Washing'];
+      data.processParties = d.processParties || data.processParties || {};
       data.processChallans= d.processChallans|| data.processChallans || [];
       data.stockTransfers = d.stockTransfers || data.stockTransfers || [];
       data.outCounter     = d.outCounter     || data.outCounter || 1;
@@ -1096,7 +1099,7 @@ function switchTab(tab) {
   document.getElementById('page-'+tab).classList.add('active');
   document.querySelector('.tab.'+tab).classList.add('active');
   if(tab==='out'){renderOutputList(); nextOutChallan();}
-  if(tab==='in'){renderInputList(); nextInChallan(); refreshInProcessTypeOptions();}
+  if(tab==='in'){renderInputList(); nextInChallan(); refreshInProcessTypeOptions(); if(!document.querySelector('#in-items-list .item-row'))addInItem();}
   if(tab==='book') renderBook();
   if(tab==='stock') { renderStockInputRows(); renderStockRegister(); }
   if(tab==='challan') { initChallanTab(); renderDcList(); }
@@ -1202,6 +1205,14 @@ function makeOutItemRow(typePrefill='grey') {
   typeSel.onchange=()=>{
     const v=typeSel.value;
     typeSel.className='item-type-sel type-'+(v.startsWith('proc_')?'proc':v);
+    // Auto-fill To M/s from processParties if it's a process type
+    if(v.startsWith('proc_')){
+      const procName=v.replace('proc_','').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+      const partyInp=document.getElementById('out-party');
+      if(partyInp && !partyInp.value.trim()){
+        partyInp.value=(data.processParties||{})[procName]||'';
+      }
+    }
   };
   const removeBtn=document.createElement('button'); removeBtn.className='remove-item'; removeBtn.textContent='✕'; removeBtn.onclick=()=>div.remove();
   div.appendChild(nameWrap); div.appendChild(pcsInp); div.appendChild(typeSel); div.appendChild(removeBtn);
@@ -1225,9 +1236,19 @@ function saveOutput(){
   if(!challan||!date){toast('⚠ Fill challan no. and date!');return;}
   if(!items.length){toast('⚠ Add at least one item!');return;}
   if(data.outputs.find(o=>o.challan===challan)){toast('⚠ Challan no. already exists!');return;}
-  data.outputs.push({id:Date.now().toString(),challan,date,items});
+  const outParty=(document.getElementById('out-party')?.value||'').trim();
+  // Remember party for each process type used
+  items.forEach(i=>{
+    if(i.type&&i.type.startsWith('proc_')&&outParty){
+      const pn=i.type.replace('proc_','').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+      if(!data.processParties) data.processParties={};
+      data.processParties[pn]=outParty;
+    }
+  });
+  data.outputs.push({id:Date.now().toString(),challan,date,party:outParty,items});
   save(); toast('✔ Output Challan saved!');
   document.getElementById('out-challan').value='';
+  const opEl=document.getElementById('out-party');if(opEl)opEl.value='';
   document.getElementById('out-items-list').innerHTML='';
   addOutItem(); setTodayDates(); renderOutputList();
 }
@@ -1354,44 +1375,96 @@ function renderAddedItems(){
   }).join('');
 }
 
+function addInItem(){
+  const div=document.createElement('div'); div.className='item-row';
+  const nameWrap=document.createElement('div'); nameWrap.className='name-wrap'; nameWrap.style.position='relative';
+  const nameInp=document.createElement('input'); nameInp.type='text'; nameInp.placeholder='Item name'; nameInp.className='item-name-inp'; nameInp.autocomplete='off';
+  nameWrap.appendChild(nameInp);
+  const pcsInp=document.createElement('input'); pcsInp.type='number'; pcsInp.placeholder='Pcs'; pcsInp.min='0'; pcsInp.className='item-pcs-inp';
+  // Link to output challan (optional)
+  const linkWrap=document.createElement('div'); linkWrap.style.cssText='position:relative;flex:1;';
+  const linkInp=document.createElement('input'); linkInp.type='text'; linkInp.placeholder='OUT-xxx (optional)'; linkInp.className='item-name-inp'; linkInp.autocomplete='off'; linkInp.style.cssText='font-size:0.58rem;color:var(--muted);';
+  // Autocomplete for output challan numbers
+  const linkDD=document.createElement('div'); linkDD.className='suggestions-dropdown'; linkDD.style.display='none';
+  linkInp.oninput=function(){
+    const q=linkInp.value.toLowerCase();
+    const opts=data.outputs.map(o=>o.challan).filter(c=>c.toLowerCase().includes(q)).slice(0,10);
+    if(!opts.length){linkDD.style.display='none';return;}
+    linkDD.innerHTML=opts.map(c=>'<div class="suggestion-item" style="padding:6px 10px;font-size:0.62rem;" onclick="linkInp_select(this,\''+c.replace(/'/g,"\\'")+'\')" >'+c+'</div>').join('');
+    linkDD.style.display='block';
+  };
+  linkInp.onblur=function(){setTimeout(()=>{linkDD.style.display='none';},160);};
+  linkWrap.appendChild(linkInp); linkWrap.appendChild(linkDD);
+  // Store reference so onclick can use it
+  linkDD.querySelectorAll && linkDD.addEventListener('mousedown', function(e){
+    const item=e.target.closest('.suggestion-item'); if(!item)return;
+    linkInp.value=item.textContent.trim(); linkDD.style.display='none';
+  });
+  const removeBtn=document.createElement('button'); removeBtn.className='remove-item'; removeBtn.textContent='✕'; removeBtn.onclick=()=>div.remove();
+  div.appendChild(nameWrap); div.appendChild(pcsInp); div.appendChild(linkWrap); div.appendChild(removeBtn);
+  document.getElementById('in-items-list').appendChild(div);
+  attachItemAutocomplete(nameInp);
+}
+
 function saveInput(mode){
   const challan=document.getElementById('in-challan').value.trim();
   const date=document.getElementById('in-date').value;
   const ts=document.getElementById('in-transport').value;
-  const transport=ts==='Other'?(document.getElementById('in-transport-custom').value.trim()||'Other'):ts;
+  const transport=ts==='Other'?(document.getElementById('in-transport-custom')?.value.trim()||'Other'):ts;
   if(!challan||!date){toast('⚠ Fill challan no. and date!');return;}
-  if(!Object.keys(addedItems).length){toast('⚠ Add at least one item!');return;}
   if(data.inputs.find(i=>i.challan===challan)){toast('⚠ Challan no. already exists!');return;}
-  const perOut={};
-  Object.entries(addedItems).forEach(([name,rows])=>{rows.forEach(r=>{if(r.inputPcs<=0)return;if(!perOut[r.challanNo])perOut[r.challanNo]=[];perOut[r.challanNo].push({name,pcs:r.inputPcs});});});
-  const sections=Object.entries(perOut).map(([challanNo,items])=>({challanNo,items}));
-  if(!sections.length){toast('⚠ Enter quantity for at least one item!');return;}
-  const allItems=sections.flatMap(s=>s.items);
-  const linkedOuts=sections.map(s=>s.challanNo);
+
+  // Collect items from the new direct rows
+  const rows=document.querySelectorAll('#in-items-list .item-row');
+  const items=[];
+  rows.forEach(row=>{
+    const name=(row.querySelector('.item-name-inp')?.value||'').trim();
+    const pcs=parseInt(row.querySelectorAll('input')[1]?.value)||0;
+    const linkInps=row.querySelectorAll('input');
+    const linkedOut=(linkInps[2]?.value||'').trim();
+    if(name&&pcs>0) items.push({name,pcs,linkedOut:linkedOut||null});
+  });
+
+  if(!items.length){toast('⚠ Add at least one item with a quantity!');return;}
+
   const ptSel=document.getElementById('in-process-type');
   const processType=ptSel?ptSel.value:currentInType;
   const inType=processType==='packing'?'packing':'dyeing';
   const addToInventory=currentAddToInventory;
-  if(!mode||mode==='combined'){
-    data.inputs.push({id:Date.now().toString(),challan,date,transport,inType,processType,addToInventory,linkedOut:linkedOuts[0],linkedOuts,linkedOutItems:sections,items:allItems});
-    toast('✔ Saved! Syncing to cloud...');
-  } else {
-    sections.forEach((sec,idx)=>{data.inputs.push({id:(Date.now()+idx).toString(),challan:sections.length>1?challan+'-'+(idx+1):challan,date,transport,inType,processType,addToInventory,linkedOut:sec.challanNo,linkedOuts:[sec.challanNo],linkedOutItems:[sec],items:sec.items});});
-    toast(`✔ Saved as ${sections.length} challan(s). Syncing...`);
-  }
-  save(); addedItems={};
-  ['in-challan','in-transport-custom','item-search-box'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  document.getElementById('in-transport').value='';
-  document.getElementById('transport-custom-field').classList.remove('show');
-  const ptSelReset=document.getElementById('in-process-type');if(ptSelReset)ptSelReset.value='';
-  document.getElementById('in-add-inventory-row').style.display='none';
-  currentAddToInventory=true; setInType('dyeing');
-  document.getElementById('item-suggestions').style.display='none';
-  document.getElementById('in-added-items-container').style.display='none';
-  document.getElementById('in-save-section').style.display='none';
-  document.getElementById('in-added-items-list').innerHTML='';
+
+  // Group by linkedOut for sections
+  const perOut={};
+  items.forEach(i=>{
+    const key=i.linkedOut||'unlinked';
+    if(!perOut[key])perOut[key]=[];
+    perOut[key].push({name:i.name,pcs:i.pcs});
+  });
+  const sections=Object.entries(perOut).map(([challanNo,sitems])=>({challanNo:challanNo==='unlinked'?'':challanNo,items:sitems}));
+  const linkedOuts=sections.map(s=>s.challanNo).filter(Boolean);
+
+  data.inputs.push({
+    id:Date.now().toString(),
+    challan,date,transport,inType,processType,addToInventory,
+    linkedOut:linkedOuts[0]||'',
+    linkedOuts,
+    linkedOutItems:sections,
+    items
+  });
+  toast('✔ Input Challan saved! Syncing...');
+  save();
+
+  // Reset form
+  document.getElementById('in-challan').value='';
+  document.getElementById('in-items-list').innerHTML='';
+  const opEl=document.getElementById('in-transport');if(opEl)opEl.value='';
+  const tcEl=document.getElementById('in-transport-custom');if(tcEl)tcEl.value='';
+  document.getElementById('transport-custom-field')?.classList.remove('show');
+  const ptReset=document.getElementById('in-process-type');if(ptReset)ptReset.value='';
+  const invRow=document.getElementById('in-add-inventory-row');if(invRow)invRow.style.display='none';
+  currentAddToInventory=true;
   data.inCounter=(data.inCounter||1)+1;
   setTodayDates(); nextInChallan(); renderInputList();
+  addInItem(); // start with one blank row
 }
 
 // ══ RENDER LISTS ══
@@ -2549,13 +2622,18 @@ function addTransferItem(name='',pcs=''){
 }
 
 function saveTransfer(){
-  const challan=document.getElementById('tr-challan').value.trim();
-  const date=document.getElementById('tr-date').value;
-  const note=document.getElementById('tr-note').value.trim();
-  const dir=currentTransferDir;
+  // Auto-fill challan and date if missing
+  const chEl=document.getElementById('tr-challan');
+  const dtEl=document.getElementById('tr-date');
+  if(chEl&&!chEl.value.trim()) chEl.value='TR-'+String(data.trCounter||1).padStart(3,'0');
+  if(dtEl&&!dtEl.value) dtEl.value=new Date().toISOString().split('T')[0];
+  const challan=chEl?chEl.value.trim():'';
+  const date=dtEl?dtEl.value:'';
+  const note=(document.getElementById('tr-note')?.value||'').trim();
+  const dir=currentTransferDir||'g2a';
   const items=[...document.querySelectorAll('#tr-items-list .item-row')].map(row=>({
-    name:row.querySelector('.item-name-inp').value.trim(),
-    pcs:parseInt(row.querySelector('.item-pcs-inp').value)||0
+    name:(row.querySelector('.item-name-inp')?.value||'').trim(),
+    pcs:parseInt(row.querySelector('.item-pcs-inp')?.value)||0
   })).filter(i=>i.name&&i.pcs>0);
   if(!challan||!date){toast('⚠ Fill challan and date!');return;}
   if(!items.length){toast('⚠ Add at least one item!');return;}
@@ -2579,11 +2657,11 @@ function saveTransfer(){
 
 function initTransferTab(){
   const today=new Date().toISOString().split('T')[0];
-  const td=document.getElementById('tr-date'); if(td&&!td.value)td.value=today;
+  const td=document.getElementById('tr-date'); if(td)td.value=td.value||today;
   const ch=document.getElementById('tr-challan');
   if(ch)ch.value='TR-'+String(data.trCounter||1).padStart(3,'0');
   if(!document.querySelector('#tr-items-list .item-row'))addTransferItem();
-  setTransferDir(currentTransferDir);
+  setTransferDir(currentTransferDir||'g2a');
 }
 
 function renderTransferHistory(){
@@ -2912,10 +2990,41 @@ function markDekaReturn(id) {
 
 function renderProcessTags() {
   var el=document.getElementById('process-tags-list'); if(!el) return;
-  el.innerHTML=(data.processList||[]).map(function(p){
-    return '<span class="process-tag">'+p+'<button class="process-tag-del" onclick="deleteProcessType('+JSON.stringify(p)+')">×</button></span>';
-  }).join('')||'<span style="font-size:0.62rem;color:var(--muted);">No types yet.</span>';
+  if(!(data.processList||[]).length){
+    el.innerHTML='<span style="font-size:0.62rem;color:var(--muted);">No types yet.</span>';
+    updateProcessSelect(); return;
+  }
+  var html='';
+  (data.processList||[]).forEach(function(p){
+    var party=(data.processParties||{})[p]||'';
+    var safeP=p.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    var safePty=party.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">';
+    html+='<span class="process-tag">'+p+'<button class="process-tag-del" onclick="deleteProcessType('+JSON.stringify(p)+')">&#xD7;</button></span>';
+    html+='<input type="text" class="proc-party-inp stk-shelf" data-proc="'+safeP+'" value="'+safePty+'" placeholder="Party / vendor — auto-fills To M/s">';
+    html+='</div>';
+  });
+  el.innerHTML=html;
+  el.querySelectorAll('.proc-party-inp').forEach(function(inp){
+    inp.addEventListener('change', function(){
+      setProcessParty(inp.getAttribute('data-proc'), inp.value);
+    });
+  });
   updateProcessSelect();
+}
+
+function setProcessParty(processName, party){
+  if(!data.processParties) data.processParties={};
+  data.processParties[processName]=party.trim();
+  save();
+  toast('\u2714 Party for '+processName+' saved!');
+}
+
+function setProcessParty(processName, party){
+  if(!data.processParties) data.processParties={};
+  data.processParties[processName]=party.trim();
+  save();
+  toast('✔ Party for '+processName+' saved!');
 }
 
 function updateProcessSelect() {
