@@ -242,7 +242,8 @@ input:focus,select:focus{border-color:var(--accent);}
 select.item-type-sel{font-size:0.6rem;padding:8px 4px;border-radius:7px;background:var(--bg);border:1px solid var(--border);color:var(--ink);font-family:'IBM Plex Mono',monospace;width:100%;cursor:pointer;}
 select.item-type-sel.type-grey{background:#f0ede8;color:#6b5e4e;border-color:#c8bfb0;}
 select.item-type-sel.type-sample{background:var(--in-light);color:var(--in-color);border-color:var(--in-border);}
-select.item-type-sel.type-packing{background:var(--accent-light);color:var(--accent);border-color:#b0bcd8;}
+select.item-type-sel.type-proc{background:#f0ebff;color:#6b21a8;border-color:#d8b4fe;}
+.item-type-sel.type-packing{background:var(--accent-light);color:var(--accent);border-color:#b0bcd8;}
 /* Type badge in cards */
 .type-badge{display:inline-block;font-size:0.52rem;font-weight:600;letter-spacing:1px;padding:2px 6px;border-radius:10px;margin-top:2px;}
 .type-badge.grey{background:#f0ede8;color:#6b5e4e;border:1px solid #c8bfb0;}
@@ -772,25 +773,35 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
     </div>
   </div>
   <div class="page" id="page-lookup">
-    <div class="form-card" style="border-top:3px solid var(--lookup)">
-      <div class="section-label">Item Catalog — Stack Numbers &amp; Photos</div>
-      <div style="font-size:0.6rem;color:var(--muted);margin-bottom:11px;line-height:1.6">Assign a stack number and one photo to each item. Used for order picking and dispatch.</div>
-      <div id="catalog-editor"></div>
-      <button class="submit-btn" style="background:var(--lookup);color:#fff;margin-top:10px" onclick="saveCatalog()">💾 SAVE CATALOG</button>
-    </div>
-    <div class="section-label">Select Items &amp; Print Photos (A4)</div>
-    <div id="sel-bar" style="display:none" class="sel-bar">
-      <span class="sel-count" id="sel-count">0 selected</span>
-      <div>
-        <button class="clear-sel-btn" onclick="clearSel()">CLEAR</button>
-        <button class="print-btn" onclick="printSel()">🖨 PRINT A4</button>
-        <button class="print-btn" style="background:#1a6b3a;" onclick="downloadSelPhotos()">⬇ DOWNLOAD</button>
+    <!-- Search & Filter bar -->
+    <div class="form-card" style="border-top:3px solid var(--lookup);padding:14px 16px;">
+      <div class="section-label" style="margin-bottom:8px;">🔍 Item Location Lookup</div>
+      <div style="font-size:0.6rem;color:var(--muted);margin-bottom:10px;line-height:1.6;">
+        Search items by name or shelf/location. Select multiple items and print or download a location sheet with photos.
+      </div>
+      <input type="text" id="lookup-search" placeholder="Search item name or shelf (e.g. A-1, WH, Shop)..." style="width:100%;box-sizing:border-box;padding:10px 14px;border:1px solid var(--border);border-radius:9px;background:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:0.68rem;outline:none;color:var(--ink);" oninput="renderLookupGrid()">
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+        <button onclick="selectAllLookup()" style="padding:5px 12px;border:1px solid var(--border);border-radius:7px;background:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:0.6rem;cursor:pointer;">☑ SELECT ALL</button>
+        <button onclick="clearSel()" style="padding:5px 12px;border:1px solid var(--border);border-radius:7px;background:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:0.6rem;cursor:pointer;">✕ CLEAR</button>
       </div>
     </div>
-    <input type="text" class="lookup-search" id="lookup-search" placeholder="Search by name or stack no..." oninput="renderLookupGrid()">
+
+    <!-- Selection action bar -->
+    <div id="sel-bar" class="sel-bar" style="display:none;">
+      <span class="sel-count" id="sel-count">0 selected</span>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="print-btn" onclick="printSel()">🖨 PRINT A4</button>
+        <button class="print-btn" style="background:#1a6b3a;" onclick="downloadLookupExcel()">⬇ EXCEL</button>
+        <button class="print-btn" style="background:#0e7c7c;" onclick="downloadSelPhotos()">📷 PHOTOS</button>
+      </div>
+    </div>
+
+    <!-- Grid -->
     <div id="lookup-grid" class="lookup-grid"></div>
+
+    <!-- Photo upload section (collapsed, per-item trigger) -->
+    <div id="lookup-photo-inputs"></div>
   </div>
-</div>
 
 <!-- Lightbox -->
 <div class="lightbox" id="lightbox" onclick="closeLB()">
@@ -1161,12 +1172,27 @@ function makeOutItemRow(typePrefill='grey') {
   const nameInp=document.createElement('input'); nameInp.type='text'; nameInp.placeholder='Item name'; nameInp.className='item-name-inp'; nameInp.autocomplete='off';
   nameWrap.appendChild(nameInp);
   const pcsInp=document.createElement('input'); pcsInp.type='number'; pcsInp.placeholder='Pcs'; pcsInp.min='0'; pcsInp.className='item-pcs-inp';
-  // Type dropdown
+  // Type dropdown — base options + process types from Process tab
   const typeSel=document.createElement('select'); typeSel.className='item-type-sel type-grey';
-  typeSel.innerHTML='<option value="grey">⬜ Grey Stage</option><option value="sample">🟢 Sample/Shop</option><option value="packing">🔵 Packing/Shop</option>';
+  const baseOpts=[
+    '<option value="grey">⬜ Grey Stage</option>',
+    '<option value="sample">🟢 Sample/Shop</option>',
+    '<option value="packing">🔵 Packing/Shop</option>'
+  ];
+  const procOpts=(data.processList||[]).map(p=>{
+    const val='proc_'+p.toLowerCase().replace(/\s+/g,'_');
+    return '<option value="'+val+'">🔄 For '+p+'</option>';
+  });
+  typeSel.innerHTML=baseOpts.join('')+procOpts.join('');
+  // Try to match prefill — could be exact 'grey'/'sample'/'packing' or a 'proc_xxx' value
   typeSel.value=typePrefill;
-  typeSel.onchange=()=>{ typeSel.className='item-type-sel type-'+typeSel.value; };
-  typeSel.className='item-type-sel type-'+typePrefill;
+  if(typeSel.value!==typePrefill) typeSel.value='grey'; // fallback
+  const prefillCls=typePrefill.startsWith('proc_')?'proc':typePrefill;
+  typeSel.className='item-type-sel type-'+prefillCls;
+  typeSel.onchange=()=>{
+    const v=typeSel.value;
+    typeSel.className='item-type-sel type-'+(v.startsWith('proc_')?'proc':v);
+  };
   const removeBtn=document.createElement('button'); removeBtn.className='remove-item'; removeBtn.textContent='✕'; removeBtn.onclick=()=>div.remove();
   div.appendChild(nameWrap); div.appendChild(pcsInp); div.appendChild(typeSel); div.appendChild(removeBtn);
   document.getElementById('out-items-list').appendChild(div);
@@ -2057,49 +2083,72 @@ function renderLookupGrid(){
   const q=(document.getElementById('lookup-search').value||'').toLowerCase();
   const grid=document.getElementById('lookup-grid');
   const names=getAllItemNames().filter(name=>{
-    const cat=itemCatalog[name]||{};
-    return name.toLowerCase().includes(q)||(cat.stackNo||'').toLowerCase().includes(q);
+    if(!q)return true;
+    // Search by name
+    if(name.toLowerCase().includes(q))return true;
+    // Search by shelf location from stock data
+    const se=data.stock.find(s=>s.name.toLowerCase()===name.toLowerCase());
+    const shelves=(se&&se.shelves)||[];
+    return shelves.some(sh=>(sh.shelf||'').toLowerCase().includes(q)||(sh.loc||'').toLowerCase().includes(q));
   });
-  if(!names.length){grid.innerHTML='<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🔍</div>No items found.</div>';return;}
+  if(!names.length){grid.innerHTML='<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🔍</div>No items match your search.</div>';return;}
+  // Build photo inputs container
+  const piContainer=document.getElementById('lookup-photo-inputs');
+  if(piContainer)piContainer.innerHTML='';
   grid.innerHTML=names.map(name=>{
     const cat=itemCatalog[name]||{};
-    const qty=getItemQty(name);
     const sel=lookupSelected.has(name);
     const sn=name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     const sid='lk-'+name.replace(/[^a-zA-Z0-9]/g,'_');
-    // Photo area — click to upload if no photo, click to view if has photo
-    const photo=cat.photoURL
-      ?'<div class="lk-photo-wrap" style="position:relative;cursor:pointer;" onclick="event.stopPropagation();openLB(\''+cat.photoURL+'\')">'
-        +'<img class="lk-photo" src="'+cat.photoURL+'" loading="lazy">'
-        +'<div style="position:absolute;bottom:3px;right:3px;background:rgba(0,0,0,0.55);border-radius:5px;padding:2px 5px;font-size:0.5rem;color:#fff;cursor:pointer;" onclick="event.stopPropagation();triggerLookupUpload(\''+sn+'\',\''+sid+'\')">✏ Change</div>'
-        +'</div>'
-      :'<div class="lk-nophoto" style="cursor:pointer;" onclick="event.stopPropagation();triggerLookupUpload(\''+sn+'\',\''+sid+'\')">'
-        +'<div style="font-size:1.2rem;">📷</div>'
-        +'<div style="font-size:0.5rem;color:var(--muted);margin-top:3px;">Tap to add photo</div>'
-        +'</div>';
-    const stack=cat.stackNo
-      ?'<div class="lk-stack" style="cursor:pointer;" onclick="event.stopPropagation();editLookupStack(\''+sn+'\',\''+sid+'\')">📍 '+cat.stackNo+' <span style="font-size:0.48rem;opacity:0.6;">✏</span></div>'
-      :'<div class="lk-stack" style="color:var(--muted);cursor:pointer;" onclick="event.stopPropagation();editLookupStack(\''+sn+'\',\''+sid+'\')">+ Add stack no.</div>';
-    // Stock breakdown by shelf
+    // Get shelf data from stock
     const se=data.stock.find(s=>s.name.toLowerCase()===name.toLowerCase());
     const shelves=(se&&se.shelves)||[];
-    const whTotal=shelves.filter(s=>s.loc==='wh').reduce((s,r)=>s+r.qty,0)||(se?se.preStockWarehouse||se.preStock||0:0);
-    const shTotal=shelves.filter(s=>s.loc==='sh').reduce((s,r)=>s+r.qty,0)||(se?se.preStockShop||0:0);
-    const qtyHtml='<div class="lk-qty" style="font-size:0.55rem;line-height:1.6;">'
-      +'<span style="color:var(--lookup);">🏭 '+whTotal+'</span> '
-      +'<span style="color:var(--report);">🏪 '+shTotal+'</span>'
-      +' <span style="opacity:0.5;">· '+qty+' total</span></div>';
-    // Hidden file input for this card
-    const fileInp='<input type="file" id="lkup-inp-'+sid+'" accept="image/*" style="display:none" onchange="handlePhotoUpload(event,\''+sn+'\',\''+sid+'\');renderLookupGrid();">';
+    const whShelves=shelves.filter(s=>s.loc==='wh');
+    const shShelves=shelves.filter(s=>s.loc==='sh');
+    // Build shelf display
+    let shelvesHtml='';
+    if(whShelves.length){
+      shelvesHtml+='<div style="font-size:0.5rem;font-weight:700;color:var(--lookup);letter-spacing:1px;margin-top:5px;">🏭 WH</div>';
+      shelvesHtml+=whShelves.map(sh=>'<div style="font-size:0.58rem;background:var(--in-light);color:var(--in-color);border:1px solid var(--in-border);border-radius:5px;padding:2px 7px;display:inline-block;margin:1px 2px 1px 0;">'+( sh.shelf||'—')+' · '+sh.qty+' pcs</div>').join('');
+    }
+    if(shShelves.length){
+      shelvesHtml+='<div style="font-size:0.5rem;font-weight:700;color:var(--report);letter-spacing:1px;margin-top:5px;">🏪 SHOP</div>';
+      shelvesHtml+=shShelves.map(sh=>'<div style="font-size:0.58rem;background:var(--report-light);color:var(--report);border:1px solid var(--report-border);border-radius:5px;padding:2px 7px;display:inline-block;margin:1px 2px 1px 0;">'+(sh.shelf||'—')+' · '+sh.qty+' pcs</div>').join('');
+    }
+    if(!shelvesHtml){
+      // Fallback: show preStock totals if no shelves
+      const preWH=se?se.preStockWarehouse||se.preStock||0:0;
+      const preSH=se?se.preStockShop||0:0;
+      if(preWH||preSH){
+        shelvesHtml='<div style="font-size:0.58rem;color:var(--muted);margin-top:5px;">🏭 '+preWH+' pcs &nbsp;🏪 '+preSH+' pcs</div>';
+      } else {
+        shelvesHtml='<div style="font-size:0.56rem;color:#ccc;margin-top:5px;">No shelf data — add in Stock tab</div>';
+      }
+    }
+    // Photo
+    const photo=cat.photoURL
+      ?'<div class="lk-photo-wrap" style="position:relative;" onclick="event.stopPropagation();openLB(\''+cat.photoURL+'\')">'
+        +'<img class="lk-photo" src="'+cat.photoURL+'" loading="lazy" style="cursor:zoom-in;">'
+        +'<div style="position:absolute;bottom:0;right:0;background:rgba(0,0,0,0.55);border-radius:0 0 8px 0;padding:2px 6px;font-size:0.48rem;color:#fff;cursor:pointer;" onclick="event.stopPropagation();triggerLookupUpload(\''+sn+'\',\''+sid+'\')">✏</div>'
+        +'</div>'
+      :'<div class="lk-nophoto" style="cursor:pointer;" onclick="event.stopPropagation();triggerLookupUpload(\''+sn+'\',\''+sid+'\')">'
+        +'<div style="font-size:1.4rem;">📷</div>'
+        +'<div style="font-size:0.48rem;color:var(--muted);margin-top:2px;">Add photo</div>'
+        +'</div>';
+    // Add hidden file input to photo-inputs container
+    if(piContainer){
+      const inp=document.createElement('input');
+      inp.type='file';inp.id='lkup-inp-'+sid;inp.accept='image/*';inp.style.display='none';
+      inp.onchange=(e)=>{handlePhotoUpload(e,name,sid);};
+      piContainer.appendChild(inp);
+    }
     return '<div class="lk-card'+(sel?' sel':'')+'" onclick="toggleSel(\''+sn+'\')">'
       +'<div class="lk-check">✓</div>'
       +photo
       +'<div class="lk-info">'
         +'<div class="lk-name" title="'+name+'">'+name+'</div>'
-        +stack
-        +qtyHtml
+        +shelvesHtml
       +'</div>'
-      +fileInp
       +'</div>';
   }).join('');
   updateSelBar();
@@ -2124,6 +2173,39 @@ function toggleSel(name){
   if(lookupSelected.has(name))lookupSelected.delete(name);else lookupSelected.add(name);
   renderLookupGrid();
 }
+function selectAllLookup(){
+  const q=(document.getElementById('lookup-search').value||'').toLowerCase();
+  getAllItemNames().filter(name=>{
+    if(!q)return true;
+    if(name.toLowerCase().includes(q))return true;
+    const se=data.stock.find(s=>s.name.toLowerCase()===name.toLowerCase());
+    return (se&&se.shelves||[]).some(sh=>(sh.shelf||'').toLowerCase().includes(q));
+  }).forEach(n=>lookupSelected.add(n));
+  renderLookupGrid();
+}
+
+function downloadLookupExcel(){
+  if(!lookupSelected.size){toast('Select at least one item first!');return;}
+  const rows=[['Item Name','Location','Shelf','Qty','Photo URL']];
+  [...lookupSelected].forEach(name=>{
+    const se=data.stock.find(s=>s.name.toLowerCase()===name.toLowerCase());
+    const shelves=(se&&se.shelves)||[];
+    const cat=itemCatalog[name]||{};
+    if(shelves.length){
+      shelves.forEach(sh=>rows.push([name,sh.loc==='wh'?'Warehouse':'Shop',sh.shelf||'—',sh.qty,cat.photoURL||'']));
+    } else {
+      const preWH=se?se.preStockWarehouse||se.preStock||0:0;
+      const preSH=se?se.preStockShop||0:0;
+      if(preWH)rows.push([name,'Warehouse','',preWH,cat.photoURL||'']);
+      if(preSH)rows.push([name,'Shop','',preSH,cat.photoURL||'']);
+      if(!preWH&&!preSH)rows.push([name,'—','','',cat.photoURL||'']);
+    }
+  });
+  const csv=rows.map(r=>r.map(v=>'"'+(String(v||'').replace(/"/g,'""'))+'"').join(',')).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download='item_locations.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
 function clearSel(){lookupSelected.clear();renderLookupGrid();}
 function updateSelBar(){
   const bar=document.getElementById('sel-bar'),cnt=document.getElementById('sel-count');
@@ -2135,16 +2217,44 @@ function updateSelBar(){
 // ═══════════════════════════════════
 function printSel(){
   if(!lookupSelected.size){toast('Select at least one item first!');return;}
-  const items=[...lookupSelected].map(name=>({name,cat:itemCatalog[name]||{},qty:getItemQty(name)}));
+  const items=[...lookupSelected].sort();
   const printArea=document.getElementById('print-area');
-  printArea.innerHTML='<div class="pg">'+items.map(({name,cat,qty})=>{
-    const photo=cat.photoURL?'<img src="'+cat.photoURL+'" loading="eager">':'<div class="noph">📦</div>';
-    const stack=cat.stackNo?'<div class="ps">📍 Stack '+cat.stackNo+'</div>':'';
-    return '<div class="pi">'+photo+'<div class="pd"><div class="pn">'+name+'</div>'+stack+'<div class="pq">Stock: '+qty+' pcs</div></div></div>';
-  }).join('')+'</div>';
+  printArea.innerHTML='<style>'
+    +'@media print{body>*:not(#print-area){display:none!important;}#print-area{display:block!important;}}'
+    +'.pg{display:flex;flex-wrap:wrap;gap:10px;padding:10px;}'
+    +'.pi{display:flex;gap:10px;align-items:flex-start;border:1px solid #ddd;border-radius:8px;padding:10px;width:calc(50% - 20px);box-sizing:border-box;break-inside:avoid;}'
+    +'.pi img{width:80px;height:80px;object-fit:cover;border-radius:6px;flex-shrink:0;}'
+    +'.pi .noph{width:80px;height:80px;background:#f5f5f5;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;flex-shrink:0;}'
+    +'.pn{font-weight:700;font-size:0.72rem;margin-bottom:4px;}'
+    +'.psh{font-size:0.6rem;line-height:1.8;}'
+    +'.psh .whl{color:#0e7c7c;font-weight:700;}'
+    +'.psh .shl{color:#b5820a;font-weight:700;}'
+    +'.psh .sh-row{display:inline-block;background:#f5f5f5;border-radius:4px;padding:1px 6px;margin:1px 3px 1px 0;}'
+    +'</style>'
+    +'<div class="pg">'
+    +items.map(name=>{
+      const cat=itemCatalog[name]||{};
+      const se=data.stock.find(s=>s.name.toLowerCase()===name.toLowerCase());
+      const shelves=(se&&se.shelves)||[];
+      const whShelves=shelves.filter(s=>s.loc==='wh');
+      const shShelves=shelves.filter(s=>s.loc==='sh');
+      const photo=cat.photoURL?'<img src="'+cat.photoURL+'" loading="eager">':'<div class="noph">📦</div>';
+      let shHtml='<div class="psh">';
+      if(whShelves.length)shHtml+='<span class="whl">🏭 WH: </span>'+whShelves.map(sh=>'<span class="sh-row">'+(sh.shelf||'—')+' ('+sh.qty+')</span>').join('')+'<br>';
+      if(shShelves.length)shHtml+='<span class="shl">🏪 Shop: </span>'+shShelves.map(sh=>'<span class="sh-row">'+(sh.shelf||'—')+' ('+sh.qty+')</span>').join('');
+      const preWH=se?se.preStockWarehouse||se.preStock||0:0;
+      const preSH=se?se.preStockShop||0:0;
+      if(!whShelves.length&&!shShelves.length){
+        if(preWH||preSH)shHtml+='🏭 '+preWH+' pcs &nbsp; 🏪 '+preSH+' pcs';
+        else shHtml+='<span style="color:#aaa;">No shelf data</span>';
+      }
+      shHtml+='</div>';
+      return '<div class="pi">'+photo+'<div class="pd"><div class="pn">'+name+'</div>'+shHtml+'</div></div>';
+    }).join('')
+    +'</div>';
   printArea.style.display='block';
   window.print();
-  setTimeout(()=>{printArea.style.display='none';},1000);
+  setTimeout(()=>{printArea.style.display='none';},1500);
 }
 
 function downloadSelPhotos(){
@@ -2307,8 +2417,8 @@ function uploadStockExcel(event){
   event.target.value='';
 }
 
-function typeLabel(t){return t==='sample'?'🟢 Sample/Shop':t==='packing'?'🔵 Packing/Shop':'⬜ Grey Stage';}
-function typeCls(t){return t==='sample'?'sample':t==='packing'?'packing':'grey';}
+function typeLabel(t){if(t==='sample')return '🟢 Sample/Shop';if(t==='packing')return '🔵 Packing/Shop';if(t&&t.startsWith('proc_'))return '🔄 For '+t.replace('proc_','').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());return '⬜ Grey Stage';}
+function typeCls(t){return t==='sample'?'sample':t==='packing'?'packing':(t&&t.startsWith('proc_'))?'proc':'grey';}
 
 // ═══════════════════════════════════
 // UPDATE renderOutputList to show stack tags
