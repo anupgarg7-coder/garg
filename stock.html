@@ -428,6 +428,9 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
 .dc-autocomplete-item{padding:9px 12px;font-size:0.68rem;cursor:pointer;border-bottom:1px solid var(--border);font-family:'IBM Plex Mono',monospace;color:var(--ink);}
 .dc-autocomplete-item:hover,.dc-autocomplete-item.ac-active{background:var(--stock-light);color:var(--stock);}
 .dc-autocomplete-item:last-child{border-bottom:none;}
+
+.challan-header { position: relative; }
+.challan-body.collapsed { display: none; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -511,7 +514,7 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
     </div>
     <div class="tabs2">
       <button class="tab stock" onclick="switchTab('stock')">📦 STOCK</button>
-      <button class="tab challan" onclick="switchTab('challan')">🖨 CHALLAN</button>
+      <button class="tab process" onclick="switchTab('process')">🔄 PROCESS</button>
       
       <button class="tab report" onclick="switchTab('report')">📊 SALES REPORT</button>
       <button class="tab lookup" onclick="switchTab('lookup')">🔍 ITEM LOOKUP</button>
@@ -538,7 +541,7 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
       <div id="out-items-list"></div>
       <button class="submit-btn out-btn" style="margin-top:12px;" onclick="saveOutput()">SAVE OUTPUT CHALLAN</button>
     </div>
-    <div class="section-label">Output Challans</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><div class="section-label" style="margin:0">Output Challans</div><button class="excel-btn" onclick="downloadOutputExcel()">⬇ EXCEL</button></div>
     <div class="filter-row"><input id="out-search" type="text" placeholder="Search..." oninput="renderOutputList()"></div>
     <div id="out-list"></div>
   </div>
@@ -559,10 +562,16 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
       <div class="field"><label>Input Challan No.</label><input id="in-challan" type="text" placeholder="e.g. IN-001"></div>
       <div class="field"><label>Date</label><input id="in-date" type="date"></div>
       <div class="field">
-        <label>Challan Type</label>
-        <div class="in-type-row">
-          <button class="in-type-btn dyeing active" id="in-type-dyeing" onclick="setInType('dyeing')">🔵 After Dyeing<br><span style="font-size:0.52rem;font-weight:400">Adds to Warehouse</span></button>
-          <button class="in-type-btn packing" id="in-type-packing" onclick="setInType('packing')">🟢 For Packing<br><span style="font-size:0.52rem;font-weight:400">Warehouse + Reduces Shop</span></button>
+        <label>Process Type</label>
+        <select id="in-process-type" onchange="onInProcessTypeChange(this.value)" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:0.68rem;outline:none;color:var(--ink);">
+          <option value="">-- Select Process Type --</option>
+        </select>
+      </div>
+      <div class="field" id="in-add-inventory-row" style="display:none;">
+        <label>Add to Warehouse Inventory?</label>
+        <div style="display:flex;gap:8px;margin-top:6px;">
+          <button id="in-inv-yes" onclick="setAddToInventory(true)" style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:0.63rem;font-weight:700;cursor:pointer;background:var(--in-color);color:#fff;">✅ YES</button>
+          <button id="in-inv-no" onclick="setAddToInventory(false)" style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:0.63rem;font-weight:700;cursor:pointer;background:var(--bg);color:var(--muted);">🚫 NO (Transit only)</button>
         </div>
       </div>
       <div class="field">
@@ -600,7 +609,7 @@ select.item-type-sel.type-packing{background:var(--accent-light);color:var(--acc
         <div style="font-size:0.58rem;color:var(--muted);margin-top:7px;line-height:1.6;"><strong>One Challan:</strong> All items under one no. &nbsp;|&nbsp; <strong>Split:</strong> Separate entry per output challan.</div>
       </div>
     </div>
-    <div class="section-label">Input Challans</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><div class="section-label" style="margin:0">Input Challans</div><button class="excel-btn" onclick="downloadInputExcel()">⬇ EXCEL</button></div>
     <div class="filter-row"><input id="in-search" type="text" placeholder="Search..." oninput="renderInputList()"></div>
     <div id="in-list"></div>
   </div>
@@ -1066,7 +1075,7 @@ function switchTab(tab) {
   document.getElementById('page-'+tab).classList.add('active');
   document.querySelector('.tab.'+tab).classList.add('active');
   if(tab==='out'){renderOutputList(); nextOutChallan();}
-  if(tab==='in'){renderInputList(); nextInChallan();}
+  if(tab==='in'){renderInputList(); nextInChallan(); refreshInProcessTypeOptions();}
   if(tab==='book') renderBook();
   if(tab==='stock') { renderStockInputRows(); renderStockRegister(); }
   if(tab==='challan') { initChallanTab(); renderDcList(); }
@@ -1189,10 +1198,56 @@ function saveOutput(){
 
 // ── Input challan type (dyeing / packing) ──
 let currentInType = 'dyeing';
-function setInType(t){
-  currentInType = t;
-  document.getElementById('in-type-dyeing').classList.toggle('active', t==='dyeing');
-  document.getElementById('in-type-packing').classList.toggle('active', t==='packing');
+function setInType(tp){
+  currentInType=tp;
+  // legacy button toggles (kept for backward compat)
+  const d=document.getElementById('in-type-dyeing');
+  const p=document.getElementById('in-type-packing');
+  if(d)d.classList.toggle('active',tp==='dyeing');
+  if(p)p.classList.toggle('active',tp==='packing');
+}
+
+let currentAddToInventory = true;
+
+function onInProcessTypeChange(val){
+  const field=document.getElementById('in-add-inventory-row');
+  if(!val){if(field)field.style.display='none';return;}
+  if(field)field.style.display='block';
+  // Remember last setting
+  const saved=localStorage.getItem('in_add_inventory');
+  setAddToInventory(saved===null?true:saved==='true');
+  // Map to legacy inType
+  setInType(val==='packing'?'packing':'dyeing');
+  // Populate in-process-type select with processList options
+  refreshInProcessTypeOptions();
+}
+
+function refreshInProcessTypeOptions(){
+  const sel=document.getElementById('in-process-type'); if(!sel)return;
+  const cur=sel.value;
+  // Keep base options + add processList entries
+  const base=['<option value="">-- Select Process Type --</option>','<option value="dyeing">🔵 Dyeing</option>','<option value="packing">🟢 Packing</option>'];
+  const proc=(data.processList||[]).filter(p=>p!=='Dyeing'&&p!=='Packing').map(p=>'<option value="'+p+'">🔄 '+p+'</option>');
+  sel.innerHTML=base.join('')+proc.join('');
+  if(cur)sel.value=cur;
+}
+
+function setAddToInventory(yes){
+  currentAddToInventory=yes;
+  localStorage.setItem('in_add_inventory',yes?'true':'false');
+  const yBtn=document.getElementById('in-inv-yes');
+  const nBtn=document.getElementById('in-inv-no');
+  if(yBtn){yBtn.style.background=yes?'var(--in-color)':'var(--bg)';yBtn.style.color=yes?'#fff':'var(--muted)';}
+  if(nBtn){nBtn.style.background=yes?'var(--bg)':'#fee2e2';nBtn.style.color=yes?'var(--muted)':'#c0392b';}
+}
+
+// Collapsible card toggle
+function toggleCard(header){
+  const body=header.nextElementSibling;
+  if(!body)return;
+  const isOpen=body.style.display!=='none';
+  body.style.display=isOpen?'none':'block';
+  // rotate indicator if present
 }
 
 function toggleCustomTransport(sel){
@@ -1277,19 +1332,24 @@ function saveInput(mode){
   if(!sections.length){toast('⚠ Enter quantity for at least one item!');return;}
   const allItems=sections.flatMap(s=>s.items);
   const linkedOuts=sections.map(s=>s.challanNo);
-  const inType = currentInType;
+  const ptSel=document.getElementById('in-process-type');
+  const processType=ptSel?ptSel.value:currentInType;
+  const inType=processType==='packing'?'packing':'dyeing';
+  const addToInventory=currentAddToInventory;
   if(!mode||mode==='combined'){
-    data.inputs.push({id:Date.now().toString(),challan,date,transport,inType,linkedOut:linkedOuts[0],linkedOuts,linkedOutItems:sections,items:allItems});
+    data.inputs.push({id:Date.now().toString(),challan,date,transport,inType,processType,addToInventory,linkedOut:linkedOuts[0],linkedOuts,linkedOutItems:sections,items:allItems});
     toast('✔ Saved! Syncing to cloud...');
   } else {
-    sections.forEach((sec,idx)=>{data.inputs.push({id:(Date.now()+idx).toString(),challan:sections.length>1?challan+'-'+(idx+1):challan,date,transport,inType,linkedOut:sec.challanNo,linkedOuts:[sec.challanNo],linkedOutItems:[sec],items:sec.items});});
+    sections.forEach((sec,idx)=>{data.inputs.push({id:(Date.now()+idx).toString(),challan:sections.length>1?challan+'-'+(idx+1):challan,date,transport,inType,processType,addToInventory,linkedOut:sec.challanNo,linkedOuts:[sec.challanNo],linkedOutItems:[sec],items:sec.items});});
     toast(`✔ Saved as ${sections.length} challan(s). Syncing...`);
   }
   save(); addedItems={};
   ['in-challan','in-transport-custom','item-search-box'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('in-transport').value='';
   document.getElementById('transport-custom-field').classList.remove('show');
-  setInType('dyeing');
+  const ptSelReset=document.getElementById('in-process-type');if(ptSelReset)ptSelReset.value='';
+  document.getElementById('in-add-inventory-row').style.display='none';
+  currentAddToInventory=true; setInType('dyeing');
   document.getElementById('item-suggestions').style.display='none';
   document.getElementById('in-added-items-container').style.display='none';
   document.getElementById('in-save-section').style.display='none';
@@ -1314,15 +1374,78 @@ function renderOutputList(){
 function renderInputList(){
   const q=(document.getElementById('in-search').value||'').toLowerCase();
   const list=document.getElementById('in-list');
-  const filtered=data.inputs.filter(i=>{const outs=i.linkedOuts||(i.linkedOut?[i.linkedOut]:[]);return i.challan.toLowerCase().includes(q)||outs.some(lo=>lo.toLowerCase().includes(q))||i.items.some(it=>it.name.toLowerCase().includes(q));});
-  if(!filtered.length){list.innerHTML='<div class="empty"><div class="empty-icon">📥</div>No input challans yet.</div>';return;}
-  const tI={'Direct':'🚶','Transport':'🚛','Kiran Deka':'👤','Cargo Tempo':'🚐'};
+  const filtered=data.inputs.filter(i=>{
+    const outs=i.linkedOuts||(i.linkedOut?[i.linkedOut]:[]);
+    return i.challan.toLowerCase().includes(q)||
+      outs.some(lo=>lo.toLowerCase().includes(q))||
+      i.items.some(it=>it.name.toLowerCase().includes(q));
+  });
+  if(!filtered.length){list.innerHTML='<div class="empty"><div class="empty-icon">&#x1F4E5;</div>No input challans yet.</div>';return;}
+  const tI={'Direct':'&#x1F6B6;','Transport':'&#x1F69B;','Kiran Deka':'&#x1F464;','Cargo Tempo':'&#x1F690;'};
   list.innerHTML=filtered.slice().reverse().map(inp=>{
     const total=inp.items.reduce((s,i)=>s+i.pcs,0);
     const outs=inp.linkedOuts||(inp.linkedOut?[inp.linkedOut]:[]);
-    const inTypeLbl=inp.inType==='packing'?'<span class="type-badge packing" style="margin-right:4px">🟢 For Packing</span>':'<span class="type-badge" style="background:var(--in-light);color:var(--in-color);border:1px solid var(--in-border);margin-right:4px">🔵 After Dyeing</span>';
-    return `<div class="challan-card"><div class="challan-header in"><div><div class="ch-num in">${inp.challan}</div><div class="ch-date">${inp.date}</div></div><div style="display:flex;align-items:center;gap:8px;">${inTypeLbl}<span class="ch-badge in">IN</span><button class="del-ch-btn" onclick="deleteIn('${inp.id}')">🗑</button></div></div><div class="challan-body">${inp.items.map(i=>`<div class="item-line"><span>${i.name}</span><span class="item-pcs">${i.pcs} pcs</span></div>`).join('')}<div class="ch-footer"><span class="ch-total">Total: <strong>${total} pcs</strong></span></div><div style="margin-top:8px;">${outs.map(lo=>`<span class="linked-tag">🔗 ${lo}</span>`).join('')||'<span style="font-size:0.62rem;color:#bbb">Unlinked</span>'}</div>${inp.transport?`<div class="transport-tag">${tI[inp.transport]||'🚚'} ${inp.transport}</div>`:''}</div></div>`;
+    const ptLabel=inp.processType||inp.inType||'dyeing';
+    const invBadge=inp.addToInventory===false
+      ?'<span class="type-badge" style="background:#fee2e2;color:#c0392b;border:1px solid #fca5a5;margin-left:4px;">&#x1F6AB; Transit</span>'
+      :'<span class="type-badge" style="background:var(--in-light);color:var(--in-color);border:1px solid var(--in-border);margin-left:4px;">&#x1F4E6; '+ptLabel+'</span>';
+    const tpTag=inp.transport?'<span style="font-size:0.58rem;color:rgba(255,255,255,0.75);margin-left:4px;">'+(tI[inp.transport]||'&#x1F69A;')+' '+inp.transport+'</span>':'';
+    return '<div class="challan-card">'
+      +'<div class="challan-header in" style="cursor:pointer;user-select:none;" onclick="toggleCard(this)">'
+      +'<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">'
+      +'<div class="ch-num in">'+inp.challan+'</div>'
+      +'<div class="ch-date" style="margin-left:6px;">'+inp.date+'</div>'
+      +tpTag
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:4px;">'
+      +invBadge
+      +'<span class="ch-badge in" style="margin-left:2px;">IN&nbsp;'+total+' pcs</span>'
+      +'<button class="process-action-btn btn-print" onclick="event.stopPropagation();printInChallan(\''+inp.id+'\')" style="padding:3px 7px;font-size:0.55rem;">&#x1F5A8;</button>'
+      +'<button class="process-action-btn" onclick="event.stopPropagation();editInChallan(\''+inp.id+'\')" style="background:#fef9c3;color:#854d0e;padding:3px 7px;font-size:0.55rem;">&#x270F;</button>'
+      +'<button class="del-ch-btn" onclick="event.stopPropagation();deleteIn(\''+inp.id+'\')">&#x1F5D1;</button>'
+      +'<span style="font-size:0.7rem;color:rgba(255,255,255,0.6);">&#x25BC;</span>'
+      +'</div></div>'
+      +'<div class="challan-body" style="display:none;">'
+      +inp.items.map(i=>'<div class="item-line"><span>'+i.name+'</span><span class="item-pcs">'+i.pcs+' pcs</span></div>').join('')
+      +'<div class="ch-footer"><span class="ch-total">Total: <strong>'+total+' pcs</strong></span></div>'
+      +'<div style="margin-top:6px;">'+(outs.map(lo=>'<span class="linked-tag">&#x1F517; '+lo+'</span>').join('')||'<span style="font-size:0.62rem;color:#bbb">Unlinked</span>')+'</div>'
+      +(inp.transport?'<div class="transport-tag">'+(tI[inp.transport]||'&#x1F69A;')+' '+inp.transport+'</div>':'')
+      +'</div></div>';
   }).join('');
+}
+
+function printInChallan(id){
+  const inp=data.inputs.find(x=>x.id===id);if(!inp)return;
+  showChallanPrint({...inp,type:'input',challanNo:inp.challan,party:inp.party||''});
+}
+function editInChallan(id){
+  const inp=data.inputs.find(x=>x.id===id);if(!inp)return;
+  if(!confirm('Load this input challan for editing? It will be removed and you can re-save.'))return;
+  document.getElementById('in-challan').value=inp.challan;
+  document.getElementById('in-date').value=inp.date;
+  if(inp.transport)document.getElementById('in-transport').value=inp.transport;
+  // Set process type
+  const ptSel=document.getElementById('in-process-type');
+  if(ptSel){ptSel.value=inp.processType||inp.inType||'dyeing';onInProcessTypeChange(ptSel.value);}
+  setAddToInventory(inp.addToInventory!==false);
+  addedItems={};
+  (inp.items||[]).forEach(it=>{
+    if(!addedItems[it.name])addedItems[it.name]=[];
+    const linkedOut=(inp.linkedOuts||[inp.linkedOut]||[])[0]||'';
+    addedItems[it.name].push({challanNo:linkedOut,challanDate:inp.date,outPcs:it.pcs,pending:it.pcs,inputPcs:it.pcs});
+  });
+  renderAddedItems();
+  data.inputs=data.inputs.filter(x=>x.id!==id);save();renderInputList();
+  switchTab('in');window.scrollTo(0,0);toast('✏ Input challan loaded for editing.');
+}
+function downloadInputExcel(){
+  const rows=[['App Challan','Date','Transport','Process Type','Add to Inventory','Item Name','Pcs','Linked Outputs']];
+  data.inputs.slice().reverse().forEach(inp=>{
+    const outs=(inp.linkedOuts||(inp.linkedOut?[inp.linkedOut]:[])).join('; ');
+    (inp.items||[]).forEach(i=>rows.push([inp.challan,inp.date,inp.transport||'',inp.processType||inp.inType||'',inp.addToInventory===false?'No':'Yes',i.name,i.pcs,outs]));
+  });
+  const csv=rows.map(r=>r.map(v=>'"'+(String(v||'').replace(/"/g,'""'))+'"').join(',')).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);a.download='input_challans.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 
 function renderBook(){
@@ -1420,17 +1543,9 @@ function editStockItem(name){
 }
 
 function renderStockInputRows(){
-  document.getElementById('stock-input-list').innerHTML='';
-  const active = data.stock.filter(s=>(s.preStockWarehouse||s.preStock||0)>0||(s.preStockShop||0)>0||(s.shelves||[]).some(sh=>sh.qty>0));
-  if(active.length) active.forEach(s=>{
-    const shelves = s.shelves||[];
-    if(!shelves.length){
-      if(s.preStockWarehouse||s.preStock) shelves.push({loc:'wh',shelf:'',qty:s.preStockWarehouse||s.preStock||0});
-      if(s.preStockShop) shelves.push({loc:'sh',shelf:'',qty:s.preStockShop||0});
-    }
-    makeStockRow(s.name, s.preStockWarehouse||s.preStock||0, s.preStockShop||0, s.lowWarn||0, shelves, s.preStockDate||'');
-  });
-  else addStockRow();
+  // Show a blank entry form only. Saved items are visible in the register below.
+  const list = document.getElementById('stock-input-list');
+  if (!list.querySelector('.stock-item-row')) addStockRow();
 }
 
 function saveStockItems(){
@@ -1458,7 +1573,9 @@ function saveStockItems(){
   });
   const formKeys = new Set(Object.keys(formItems));
   data.stock = [...data.stock.filter(s=>!formKeys.has(s.name.toLowerCase())), ...Object.values(formItems)];
-  save(); toast('✔ Stock saved! Syncing to cloud...'); renderStockRegister();
+  save(); toast('✔ Stock saved! Syncing to cloud...');
+  document.getElementById('stock-input-list').innerHTML=''; addStockRow();
+  renderStockRegister();
 }
 
 // ── Warehouse inventory: +input(both types) +preStockWarehouse −output(sample/packing)
@@ -1949,11 +2066,58 @@ function renderLookupGrid(){
     const qty=getItemQty(name);
     const sel=lookupSelected.has(name);
     const sn=name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    const photo=cat.photoURL?'<img class="lk-photo" src="'+cat.photoURL+'" loading="lazy">':'<div class="lk-nophoto">📦</div>';
-    const stack=cat.stackNo?'<div class="lk-stack">📍 Stack '+cat.stackNo+'</div>':'<div class="lk-stack" style="color:#ccc">No stack</div>';
-    return '<div class="lk-card'+(sel?' sel':'')+'" onclick="toggleSel(\''+sn+'\')"><div class="lk-check">✓</div>'+photo+'<div class="lk-info"><div class="lk-name">'+name+'</div>'+stack+'<div class="lk-qty">'+qty+' pcs in stock</div></div></div>';
+    const sid='lk-'+name.replace(/[^a-zA-Z0-9]/g,'_');
+    // Photo area — click to upload if no photo, click to view if has photo
+    const photo=cat.photoURL
+      ?'<div class="lk-photo-wrap" style="position:relative;cursor:pointer;" onclick="event.stopPropagation();openLB(\''+cat.photoURL+'\')">'
+        +'<img class="lk-photo" src="'+cat.photoURL+'" loading="lazy">'
+        +'<div style="position:absolute;bottom:3px;right:3px;background:rgba(0,0,0,0.55);border-radius:5px;padding:2px 5px;font-size:0.5rem;color:#fff;cursor:pointer;" onclick="event.stopPropagation();triggerLookupUpload(\''+sn+'\',\''+sid+'\')">✏ Change</div>'
+        +'</div>'
+      :'<div class="lk-nophoto" style="cursor:pointer;" onclick="event.stopPropagation();triggerLookupUpload(\''+sn+'\',\''+sid+'\')">'
+        +'<div style="font-size:1.2rem;">📷</div>'
+        +'<div style="font-size:0.5rem;color:var(--muted);margin-top:3px;">Tap to add photo</div>'
+        +'</div>';
+    const stack=cat.stackNo
+      ?'<div class="lk-stack" style="cursor:pointer;" onclick="event.stopPropagation();editLookupStack(\''+sn+'\',\''+sid+'\')">📍 '+cat.stackNo+' <span style="font-size:0.48rem;opacity:0.6;">✏</span></div>'
+      :'<div class="lk-stack" style="color:var(--muted);cursor:pointer;" onclick="event.stopPropagation();editLookupStack(\''+sn+'\',\''+sid+'\')">+ Add stack no.</div>';
+    // Stock breakdown by shelf
+    const se=data.stock.find(s=>s.name.toLowerCase()===name.toLowerCase());
+    const shelves=(se&&se.shelves)||[];
+    const whTotal=shelves.filter(s=>s.loc==='wh').reduce((s,r)=>s+r.qty,0)||(se?se.preStockWarehouse||se.preStock||0:0);
+    const shTotal=shelves.filter(s=>s.loc==='sh').reduce((s,r)=>s+r.qty,0)||(se?se.preStockShop||0:0);
+    const qtyHtml='<div class="lk-qty" style="font-size:0.55rem;line-height:1.6;">'
+      +'<span style="color:var(--lookup);">🏭 '+whTotal+'</span> '
+      +'<span style="color:var(--report);">🏪 '+shTotal+'</span>'
+      +' <span style="opacity:0.5;">· '+qty+' total</span></div>';
+    // Hidden file input for this card
+    const fileInp='<input type="file" id="lkup-inp-'+sid+'" accept="image/*" style="display:none" onchange="handlePhotoUpload(event,\''+sn+'\',\''+sid+'\');renderLookupGrid();">';
+    return '<div class="lk-card'+(sel?' sel':'')+'" onclick="toggleSel(\''+sn+'\')">'
+      +'<div class="lk-check">✓</div>'
+      +photo
+      +'<div class="lk-info">'
+        +'<div class="lk-name" title="'+name+'">'+name+'</div>'
+        +stack
+        +qtyHtml
+      +'</div>'
+      +fileInp
+      +'</div>';
   }).join('');
   updateSelBar();
+}
+
+function triggerLookupUpload(name, sid){
+  const inp=document.getElementById('lkup-inp-'+sid);
+  if(inp) inp.click();
+  else { triggerPhotoUpload(name); }
+}
+
+function editLookupStack(name, sid){
+  const cat=itemCatalog[name]||{};
+  const cur=cat.stackNo||'';
+  const val=prompt('Stack number for '+name+':', cur);
+  if(val===null)return;
+  itemCatalog[name]={...itemCatalog[name]||{},stackNo:val.trim()};
+  saveCatalogFB().then(()=>renderLookupGrid());
 }
 
 function toggleSel(name){
@@ -2153,15 +2317,89 @@ const _origRenderOutputList = renderOutputList;
 renderOutputList = function(){
   const q=(document.getElementById('out-search').value||'').toLowerCase();
   const list=document.getElementById('out-list');
-  const filtered=data.outputs.filter(o=>o.challan.toLowerCase().includes(q)||o.items.some(i=>i.name.toLowerCase().includes(q)));
+  const filtered=data.outputs.filter(o=>
+    o.challan.toLowerCase().includes(q)||
+    o.items.some(i=>i.name.toLowerCase().includes(q))||
+    (o.party||'').toLowerCase().includes(q)
+  );
   if(!filtered.length){list.innerHTML='<div class="empty"><div class="empty-icon">📤</div>No output challans yet.</div>';return;}
   list.innerHTML=filtered.slice().reverse().map(o=>{
     const total=o.items.reduce((s,i)=>s+i.pcs,0);
     const li=data.inputs.filter(inp=>(inp.linkedOuts||(inp.linkedOut?[inp.linkedOut]:[])).includes(o.challan));
-    const typeSummary={grey:0,sample:0,packing:0};o.items.forEach(i=>{typeSummary[i.type||'grey']=(typeSummary[i.type||'grey']||0)+i.pcs;});
-    const typeTagsHtml=(typeSummary.sample>0?'<span class="type-badge sample">🟢 Sample '+typeSummary.sample+'pcs</span> ':'')+( typeSummary.packing>0?'<span class="type-badge packing">🔵 Packing '+typeSummary.packing+'pcs</span> ':'')+( typeSummary.grey>0?'<span class="type-badge grey">⬜ Grey '+typeSummary.grey+'pcs</span>':'');
-    return '<div class="challan-card"><div class="challan-header out"><div><div class="ch-num out">'+o.challan+'</div><div class="ch-date">'+o.date+'</div></div><div style="display:flex;align-items:center;gap:8px;"><span class="ch-badge out">OUT</span><button class="del-ch-btn" onclick="deleteOut(\''+o.id+'\')">🗑</button></div></div><div class="challan-body">'+o.items.map(i=>{const cat=itemCatalog[i.name]||{};const stk=cat.stackNo?'<div class="stack-tag">📍 Stack '+cat.stackNo+'</div>':'';const tb='<span class="type-badge '+typeCls(i.type||'grey')+'" style="margin-left:4px">'+typeLabel(i.type||'grey')+'</span>';return'<div class="item-line"><div><span>'+i.name+'</span>'+stk+tb+'</div><span class="item-pcs">'+i.pcs+' pcs</span></div>';}).join('')+'<div style="margin-top:5px">'+typeTagsHtml+'</div><div class="ch-footer"><span class="ch-total">Total: <strong>'+total+' pcs</strong></span>'+(li.length?'<span class="linked-tag">🔗 '+li.length+' input(s)</span>':'<span style="font-size:0.62rem;color:#bbb">No inputs yet</span>')+'</div></div></div>';
+    const linkedBadge=li.length?'<span class="linked-tag" style="margin-left:4px;">&#x1F517; '+li.length+'</span>':'';
+    const partyHtml=o.party?'<span style="font-size:0.58rem;color:rgba(255,255,255,0.8);margin-left:6px;">&#x1F464; '+o.party+'</span>':'';
+    return '<div class="challan-card">'
+      +'<div class="challan-header out" style="cursor:pointer;user-select:none;" onclick="toggleCard(this)">'
+      +'<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">'
+      +'<div class="ch-num out">'+o.challan+'</div>'
+      +'<div class="ch-date" style="margin-left:6px;">'+o.date+'</div>'
+      +partyHtml+linkedBadge
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:4px;">'
+      +'<span class="ch-badge out">OUT&nbsp;'+total+' pcs</span>'
+      +'<button class="process-action-btn btn-print" onclick="event.stopPropagation();printOutChallan(\''+o.id+'\')" style="padding:3px 7px;font-size:0.55rem;">&#x1F5A8;</button>'
+      +'<button class="process-action-btn" onclick="event.stopPropagation();editOutChallan(\''+o.id+'\')" style="background:#fef9c3;color:#854d0e;padding:3px 7px;font-size:0.55rem;">&#x270F;</button>'
+      +'<button class="del-ch-btn" onclick="event.stopPropagation();deleteOut(\''+o.id+'\')">&#x1F5D1;</button>'
+      +'<span style="font-size:0.7rem;color:rgba(255,255,255,0.6);">&#x25BC;</span>'
+      +'</div></div>'
+      +'<div class="challan-body" style="display:none;">'
+      +o.items.map(i=>{
+        const cat=itemCatalog[i.name]||{};
+        const stk=cat.stackNo?'<div class="stack-tag">&#x1F4CD; Stack '+cat.stackNo+'</div>':'';
+        const itype=i.type||'grey';
+        const tb=itype.startsWith('proc_')
+          ?'<span class="type-badge" style="background:#f0ebff;color:#6b21a8;border:1px solid #d8b4fe;margin-left:4px">&#x1F504; '+itype.replace('proc_','')+'</span>'
+          :'<span class="type-badge '+typeCls(itype)+'" style="margin-left:4px">'+typeLabel(itype)+'</span>';
+        return '<div class="item-line"><div><span>'+i.name+'</span>'+stk+tb+'</div><span class="item-pcs">'+i.pcs+' pcs</span></div>';
+      }).join('')
+      +'<div class="ch-footer"><span class="ch-total">Total: <strong>'+total+' pcs</strong></span>'
+      +(li.length?'<span class="linked-tag">&#x1F517; '+li.length+' input(s)</span>':'<span style="font-size:0.62rem;color:#bbb">No inputs yet</span>')
+      +'</div>'
+      +'</div></div>';
   }).join('');
+};
+
+function toggleCard(header){
+  const body=header.parentElement.querySelector('.challan-body');
+  if(!body)return;
+  const open=body.style.display!=='none';
+  body.style.display=open?'none':'block';
+  const arr=header.querySelector('span:last-child');
+  if(arr)arr.style.transform=open?'':'rotate(180deg)';
+}
+
+function printOutChallan(id){
+  const o=data.outputs.find(x=>x.id===id);if(!o)return;
+  showChallanPrint({...o,type:'regular',challanNo:o.challan});
+}
+
+function editOutChallan(id){
+  const o=data.outputs.find(x=>x.id===id);if(!o)return;
+  if(document.getElementById('out-challan').value&&!confirm('Discard current form and edit this challan?'))return;
+  document.getElementById('out-challan').value=o.challan;
+  const bc=document.getElementById('out-book-challan');if(bc)bc.value=o.bookChallan||'';
+  const pt=document.getElementById('out-party');if(pt)pt.value=o.party||'';
+  document.getElementById('out-date').value=o.date;
+  document.getElementById('out-items-list').innerHTML='';
+  (o.items||[]).forEach(i=>{
+    makeOutItemRow(i.type||'grey');
+    const rows=document.querySelectorAll('#out-items-list .item-row');
+    const last=rows[rows.length-1];
+    last.querySelector('.item-name-inp').value=i.name;
+    last.querySelector('.item-pcs-inp').value=i.pcs;
+  });
+  data.outputs=data.outputs.filter(x=>x.id!==id);save();renderOutputList();
+  switchTab('out');window.scrollTo(0,0);toast('✏ Challan loaded for editing.');
+}
+
+function downloadOutputExcel(){
+  const rows=[['App Challan','Book Challan','Date','Party','Item Name','Pcs','Type']];
+  data.outputs.slice().reverse().forEach(o=>{
+    (o.items||[]).forEach(i=>rows.push([o.challan,o.bookChallan||'',o.date,o.party||'',i.name,i.pcs,i.type||'grey']));
+  });
+  const csv=rows.map(r=>r.map(v=>'"'+(String(v||'').replace(/"/g,'""'))+'"').join(',')).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download='output_challans.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);
 };
 
 
