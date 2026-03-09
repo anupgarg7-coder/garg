@@ -596,7 +596,7 @@ select.item-type-sel.type-proc{background:#f0ebff;color:#6b21a8;border-color:#d8
         <span class="items-label">Items Received</span>
         <button class="add-item-btn" style="background:var(--in-light);color:var(--in-color);border-color:var(--in-color);" onclick="addInItem()">+ ADD ITEM</button>
       </div>
-      <div class="item-col-heads"><span>Item Name</span><span>Pcs</span><span>Link to Output</span><span></span></div>
+      <div class="item-col-heads" style="grid-template-columns:1fr 70px 28px;"><span>Item Name</span><span>Pcs</span><span></span></div>
       <div id="in-items-list"></div>
       <div style="border-top:1px dashed var(--border);margin:14px 0 12px;"></div>
       <div style="display:flex;gap:8px;">
@@ -962,6 +962,7 @@ function save() {
   saveTimer = setTimeout(async () => {
     try {
       const _saveTs = new Date().toISOString();
+      data._lastSaveAt = _saveTs; // Set BEFORE write so onSnapshot skips feedback loop
       await window._db.doc('users/'+currentUser+'/data/main').set({
         outputs: data.outputs,
         inputs: data.inputs,
@@ -976,7 +977,6 @@ function save() {
         stockTransfers: data.stockTransfers||[],
         updatedAt: _saveTs
       }, {merge:true});
-      data._lastSaveAt = _saveTs;
       setSyncStatus('synced');
       // Also save to localStorage as backup
       localStorage.setItem('csm_data_v2_'+currentUser, JSON.stringify(data));
@@ -1381,27 +1381,8 @@ function addInItem(){
   const nameInp=document.createElement('input'); nameInp.type='text'; nameInp.placeholder='Item name'; nameInp.className='item-name-inp'; nameInp.autocomplete='off';
   nameWrap.appendChild(nameInp);
   const pcsInp=document.createElement('input'); pcsInp.type='number'; pcsInp.placeholder='Pcs'; pcsInp.min='0'; pcsInp.className='item-pcs-inp';
-  // Link to output challan (optional)
-  const linkWrap=document.createElement('div'); linkWrap.style.cssText='position:relative;flex:1;';
-  const linkInp=document.createElement('input'); linkInp.type='text'; linkInp.placeholder='OUT-xxx (optional)'; linkInp.className='item-name-inp'; linkInp.autocomplete='off'; linkInp.style.cssText='font-size:0.58rem;color:var(--muted);';
-  // Autocomplete for output challan numbers
-  const linkDD=document.createElement('div'); linkDD.className='suggestions-dropdown'; linkDD.style.display='none';
-  linkInp.oninput=function(){
-    const q=linkInp.value.toLowerCase();
-    const opts=data.outputs.map(o=>o.challan).filter(c=>c.toLowerCase().includes(q)).slice(0,10);
-    if(!opts.length){linkDD.style.display='none';return;}
-    linkDD.innerHTML=opts.map(c=>'<div class="suggestion-item" style="padding:6px 10px;font-size:0.62rem;" onclick="linkInp_select(this,\''+c.replace(/'/g,"\\'")+'\')" >'+c+'</div>').join('');
-    linkDD.style.display='block';
-  };
-  linkInp.onblur=function(){setTimeout(()=>{linkDD.style.display='none';},160);};
-  linkWrap.appendChild(linkInp); linkWrap.appendChild(linkDD);
-  // Store reference so onclick can use it
-  linkDD.querySelectorAll && linkDD.addEventListener('mousedown', function(e){
-    const item=e.target.closest('.suggestion-item'); if(!item)return;
-    linkInp.value=item.textContent.trim(); linkDD.style.display='none';
-  });
   const removeBtn=document.createElement('button'); removeBtn.className='remove-item'; removeBtn.textContent='✕'; removeBtn.onclick=()=>div.remove();
-  div.appendChild(nameWrap); div.appendChild(pcsInp); div.appendChild(linkWrap); div.appendChild(removeBtn);
+  div.appendChild(nameWrap); div.appendChild(pcsInp); div.appendChild(removeBtn);
   document.getElementById('in-items-list').appendChild(div);
   attachItemAutocomplete(nameInp);
 }
@@ -1409,51 +1390,23 @@ function addInItem(){
 function saveInput(mode){
   const challan=document.getElementById('in-challan').value.trim();
   const date=document.getElementById('in-date').value;
-  const ts=document.getElementById('in-transport').value;
+  const ts=(document.getElementById('in-transport')?.value)||'';
   const transport=ts==='Other'?(document.getElementById('in-transport-custom')?.value.trim()||'Other'):ts;
   if(!challan||!date){toast('⚠ Fill challan no. and date!');return;}
   if(data.inputs.find(i=>i.challan===challan)){toast('⚠ Challan no. already exists!');return;}
-
-  // Collect items from the new direct rows
-  const rows=document.querySelectorAll('#in-items-list .item-row');
-  const items=[];
-  rows.forEach(row=>{
-    const name=(row.querySelector('.item-name-inp')?.value||'').trim();
-    const pcs=parseInt(row.querySelectorAll('input')[1]?.value)||0;
-    const linkInps=row.querySelectorAll('input');
-    const linkedOut=(linkInps[2]?.value||'').trim();
-    if(name&&pcs>0) items.push({name,pcs,linkedOut:linkedOut||null});
-  });
-
+  const items=collectItems('in-items-list');
   if(!items.length){toast('⚠ Add at least one item with a quantity!');return;}
-
   const ptSel=document.getElementById('in-process-type');
-  const processType=ptSel?ptSel.value:currentInType;
+  const processType=ptSel?ptSel.value:(currentInType||'');
   const inType=processType==='packing'?'packing':'dyeing';
   const addToInventory=currentAddToInventory;
-
-  // Group by linkedOut for sections
-  const perOut={};
-  items.forEach(i=>{
-    const key=i.linkedOut||'unlinked';
-    if(!perOut[key])perOut[key]=[];
-    perOut[key].push({name:i.name,pcs:i.pcs});
-  });
-  const sections=Object.entries(perOut).map(([challanNo,sitems])=>({challanNo:challanNo==='unlinked'?'':challanNo,items:sitems}));
-  const linkedOuts=sections.map(s=>s.challanNo).filter(Boolean);
-
   data.inputs.push({
     id:Date.now().toString(),
     challan,date,transport,inType,processType,addToInventory,
-    linkedOut:linkedOuts[0]||'',
-    linkedOuts,
-    linkedOutItems:sections,
-    items
+    linkedOut:'',linkedOuts:[],linkedOutItems:[],items
   });
   toast('✔ Input Challan saved! Syncing...');
   save();
-
-  // Reset form
   document.getElementById('in-challan').value='';
   document.getElementById('in-items-list').innerHTML='';
   const opEl=document.getElementById('in-transport');if(opEl)opEl.value='';
@@ -1464,7 +1417,7 @@ function saveInput(mode){
   currentAddToInventory=true;
   data.inCounter=(data.inCounter||1)+1;
   setTodayDates(); nextInChallan(); renderInputList();
-  addInItem(); // start with one blank row
+  addInItem();
 }
 
 // ══ RENDER LISTS ══
