@@ -945,7 +945,7 @@ select.item-type-sel.type-proc{background:#f0ebff;color:#6b21a8;border-color:#d8
 // ══════════════════════════════════════════════════════
 
 let currentUser = null;
-let data = { outputs:[], inputs:[], stock:[], salesReports:[], processList:['Dyeing','Printing','Stitching','Embroidery','Washing'], processParties:{}, processChallans:[], stockTransfers:[], outCounter:1, inCounter:1, trCounter:1 };
+let data = { outputs:[], inputs:[], stock:[], salesReports:[], processList:['Dyeing','Printing','Stitching','Embroidery','Washing'], processTypes:[], processParties:{}, processChallans:[], stockTransfers:[], outCounter:1, inCounter:1, trCounter:1 };
 let unsubscribe = null; // real-time listener
 let saveTimer = null;
 let isConfigured = false;
@@ -1071,7 +1071,7 @@ async function loadUserData(uid) {
     const ref = getUserDocRef(uid); if(!ref){ throw new Error('no-db'); } const snap = await ref.get();
     if (snap.exists) {
       const d = snap.data();
-      return { outputs:d.outputs||[], inputs:d.inputs||[], stock:d.stock||[], salesReports:d.salesReports||[], processList:d.processList||['Dyeing','Printing','Stitching','Embroidery','Washing'], processParties:d.processParties||{}, processChallans:d.processChallans||[], stockTransfers:d.stockTransfers||[], zohoSkuMap:d.zohoSkuMap||{}, zohoWarehouseMap:d.zohoWarehouseMap||{}, zohoSyncLog:d.zohoSyncLog||[], zohoLastSync:d.zohoLastSync||'', outCounter:d.outCounter||1, inCounter:d.inCounter||1, trCounter:d.trCounter||1 };
+      return { outputs:d.outputs||[], inputs:d.inputs||[], stock:d.stock||[], salesReports:d.salesReports||[], processList:d.processList||['Dyeing','Printing','Stitching','Embroidery','Washing'], processTypes:d.processTypes||[], processParties:d.processParties||{}, processChallans:d.processChallans||[], stockTransfers:d.stockTransfers||[], zohoSkuMap:d.zohoSkuMap||{}, zohoWarehouseMap:d.zohoWarehouseMap||{}, zohoSyncLog:d.zohoSyncLog||[], zohoLastSync:d.zohoLastSync||'', outCounter:d.outCounter||1, inCounter:d.inCounter||1, trCounter:d.trCounter||1 };
     }
   } catch(e) { console.warn('Load error:', e); }
   // Fallback to localStorage
@@ -1133,6 +1133,7 @@ function startRealtimeSync(uid) {
       data.stock          = d.stock          || [];
       data.salesReports   = d.salesReports   || [];
       data.processList    = d.processList    || data.processList || ['Dyeing','Printing','Stitching','Embroidery','Washing'];
+      data.processTypes   = d.processTypes   || data.processTypes   || [];
       data.processParties = d.processParties || data.processParties || {};
       data.processChallans= d.processChallans|| data.processChallans || [];
       data.stockTransfers = d.stockTransfers || data.stockTransfers || [];
