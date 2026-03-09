@@ -762,12 +762,12 @@ select.item-type-sel.type-proc{background:#f0ebff;color:#6b21a8;border-color:#d8
         </div>
       </div>
     </div>
-    <div class="section-label" style="margin-top:6px;">⏳ Pending Returns</div>
-    <div id="pending-process-list"></div>
-    <div class="section-label" style="margin-top:6px;">🔄 At Deka Stage</div>
-    <div id="deka-process-list"></div>
-    <div class="section-label" style="margin-top:6px;">✅ Completed</div>
-    <div id="completed-process-list"></div>
+    <div id="process-type-report-container" style="margin-top:6px;"></div>
+
+    <!-- Legacy hidden containers kept for renderProcessSection compat -->
+    <div id="pending-process-list" style="display:none"></div>
+    <div id="deka-process-list" style="display:none"></div>
+    <div id="completed-process-list" style="display:none"></div>
   </div>
 
   <!-- REPORT -->
@@ -3175,10 +3175,235 @@ function initChallanTab() {
 // PROCESS TRACKER
 // ══════════════════════════════════════════════════
 function renderProcessTracker() {
-  renderProcessSection('pending-process-list',(data.processChallans||[]).filter(function(c){ return c.type==='process'&&c.status==='pending'; }),'pending');
-  renderProcessSection('deka-process-list',(data.processChallans||[]).filter(function(c){ return c.type==='process'&&c.status==='deka'; }),'deka');
-  renderProcessSection('completed-process-list',(data.processChallans||[]).filter(function(c){ return c.type==='process'&&(c.status==='returned'||c.status==='deka_returned'); }),'done');
+  renderProcessTypeReports();
   renderProcessTags();
+}
+
+function renderProcessTypeReports() {
+  var container = document.getElementById('process-type-report-container');
+  if(!container) return;
+
+  var allChallans = (data.processChallans||[]).filter(function(c){ return c.type==='process'; });
+  var types = getProcessTypes();
+
+  var typeNames = types.map(function(pt){ return pt.name; });
+  allChallans.forEach(function(c){
+    if(c.processType && typeNames.indexOf(c.processType)===-1) typeNames.push(c.processType);
+  });
+
+  if(!typeNames.length && !allChallans.length){
+    container.innerHTML = '<div style="font-size:0.65rem;color:var(--muted);padding:16px 0;text-align:center;">No process types defined yet. Add process types above.</div>';
+    return;
+  }
+
+  // Grand summary
+  var pending = allChallans.filter(function(c){ return c.status==='pending'; });
+  var deka    = allChallans.filter(function(c){ return c.status==='deka'; });
+  var done    = allChallans.filter(function(c){ return c.status==='returned'||c.status==='deka_returned'; });
+  var pPcs = pending.reduce(function(s,c){ return s+(c.items||[]).reduce(function(ss,i){ return ss+i.pcs; },0); },0);
+  var dPcs = deka.reduce(function(s,c){ return s+(c.items||[]).reduce(function(ss,i){ return ss+i.pcs; },0); },0);
+  var rPcs = done.reduce(function(s,c){ return s+(c.items||[]).reduce(function(ss,i){ return ss+i.pcs; },0); },0);
+
+  var html = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">'
+    +'<div style="background:#fff8ec;border:1px solid #fbbf24;border-radius:10px;padding:10px;text-align:center;">'
+      +'<div style="font-size:1.1rem;font-weight:800;color:#d97706;">'+pending.length+'</div>'
+      +'<div style="font-size:0.52rem;letter-spacing:1.5px;text-transform:uppercase;color:#d97706;margin-top:2px;">⏳ Pending</div>'
+      +'<div style="font-size:0.6rem;color:var(--muted);margin-top:2px;">'+pPcs+' pcs</div>'
+    +'</div>'
+    +'<div style="background:#eff6ff;border:1px solid #93c5fd;border-radius:10px;padding:10px;text-align:center;">'
+      +'<div style="font-size:1.1rem;font-weight:800;color:#2563eb;">'+deka.length+'</div>'
+      +'<div style="font-size:0.52rem;letter-spacing:1.5px;text-transform:uppercase;color:#2563eb;margin-top:2px;">🔄 At Deka</div>'
+      +'<div style="font-size:0.6rem;color:var(--muted);margin-top:2px;">'+dPcs+' pcs</div>'
+    +'</div>'
+    +'<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:10px;text-align:center;">'
+      +'<div style="font-size:1.1rem;font-weight:800;color:#16a34a;">'+done.length+'</div>'
+      +'<div style="font-size:0.52rem;letter-spacing:1.5px;text-transform:uppercase;color:#16a34a;margin-top:2px;">✅ Returned</div>'
+      +'<div style="font-size:0.6rem;color:var(--muted);margin-top:2px;">'+rPcs+' pcs</div>'
+    +'</div>'
+  +'</div>';
+
+  typeNames.forEach(function(typeName){
+    var pt = (types||[]).find(function(p){ return p.name===typeName; });
+    var party = (pt&&pt.party)||'—';
+    var definedSubs = (pt&&pt.subProcesses)||[];
+
+    var tChallans = allChallans.filter(function(c){ return c.processType===typeName; });
+    var tPending  = tChallans.filter(function(c){ return c.status==='pending'; });
+    var tDeka     = tChallans.filter(function(c){ return c.status==='deka'; });
+    var tDone     = tChallans.filter(function(c){ return c.status==='returned'||c.status==='deka_returned'; });
+
+    var tPendingPcs = tPending.reduce(function(s,c){ return s+(c.items||[]).reduce(function(ss,i){ return ss+i.pcs; },0); },0);
+    var tDekaPcs    = tDeka.reduce(function(s,c){ return s+(c.items||[]).reduce(function(ss,i){ return ss+i.pcs; },0); },0);
+    var tDonePcs    = tDone.reduce(function(s,c){ return s+(c.items||[]).reduce(function(ss,i){ return ss+i.pcs; },0); },0);
+    var totalPcs    = tPendingPcs + tDekaPcs + tDonePcs;
+
+    // Collect all sub-process names used in challans (+ defined ones)
+    var subNames = definedSubs.slice();
+    tChallans.forEach(function(c){
+      var sp = (c.subProcess||'').trim();
+      if(sp && subNames.indexOf(sp)===-1) subNames.push(sp);
+    });
+    // Always add a blank bucket for challans with no sub-process
+    var hasNoSub = tChallans.some(function(c){ return !(c.subProcess||'').trim(); });
+
+    var bodyId = 'pt-body-'+typeName.replace(/[^a-zA-Z0-9]/g,'_');
+    var statusDot   = tPending.length ? '#f59e0b' : tDeka.length ? '#3b82f6' : '#22c55e';
+    var statusLabel = tPending.length ? 'ACTIVE' : tDeka.length ? 'DEKA' : tChallans.length ? 'ALL DONE' : 'NO DATA';
+    var statusBg    = tPending.length ? '#fef3c7' : tDeka.length ? '#dbeafe' : '#dcfce7';
+    var statusClr   = tPending.length ? '#92400e' : tDeka.length ? '#1e40af' : '#166534';
+
+    html += '<div style="background:var(--paper);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;">';
+
+    // Card header
+    html += '<div onclick="togglePTCard(\''+bodyId+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;background:#faf9ff;border-bottom:1px solid #ede9fe;">'
+      +'<div style="display:flex;align-items:center;gap:10px;">'
+        +'<div style="width:10px;height:10px;border-radius:50%;background:'+statusDot+';flex-shrink:0;box-shadow:0 0 0 3px '+statusDot+'33;"></div>'
+        +'<div>'
+          +'<div style="font-size:0.72rem;font-weight:800;letter-spacing:1.5px;color:#4c1d95;">'+typeName+'</div>'
+          +'<div style="font-size:0.55rem;color:var(--muted);margin-top:1px;">Party: <strong>'+party+'</strong>'
+            +(subNames.length ? ' &nbsp;·&nbsp; <span style="color:#7c3aed;">'+subNames.length+' sub-process'+(subNames.length>1?'es':'')+'</span>' : '')
+          +'</div>'
+        +'</div>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:8px;">'
+        +'<span style="font-size:0.52rem;font-weight:700;padding:3px 8px;border-radius:20px;background:'+statusBg+';color:'+statusClr+';">'+statusLabel+'</span>'
+        +'<span style="font-size:0.6rem;color:var(--muted);">'+tChallans.length+' ch · '+totalPcs+' pcs</span>'
+        +'<span style="font-size:0.7rem;color:var(--muted);" id="arr-'+bodyId+'">▼</span>'
+      +'</div>'
+    +'</div>';
+
+    // Card body
+    html += '<div id="'+bodyId+'" style="padding:12px 14px;">';
+
+    // Top-level stats: process-type totals
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px;">'
+      +'<div style="background:#fff8ec;border:1px solid #fde68a;border-radius:8px;padding:8px;text-align:center;">'
+        +'<div style="font-size:0.9rem;font-weight:700;color:#d97706;">'+tPending.length+'</div>'
+        +'<div style="font-size:0.5rem;color:#d97706;text-transform:uppercase;letter-spacing:1px;">⏳ Pending</div>'
+        +'<div style="font-size:0.55rem;color:var(--muted);">'+tPendingPcs+' pcs</div>'
+      +'</div>'
+      +'<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px;text-align:center;">'
+        +'<div style="font-size:0.9rem;font-weight:700;color:#2563eb;">'+tDeka.length+'</div>'
+        +'<div style="font-size:0.5rem;color:#2563eb;text-transform:uppercase;letter-spacing:1px;">🔄 Deka</div>'
+        +'<div style="font-size:0.55rem;color:var(--muted);">'+tDekaPcs+' pcs</div>'
+      +'</div>'
+      +'<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px;text-align:center;">'
+        +'<div style="font-size:0.9rem;font-weight:700;color:#16a34a;">'+tDone.length+'</div>'
+        +'<div style="font-size:0.5rem;color:#16a34a;text-transform:uppercase;letter-spacing:1px;">✅ Returned</div>'
+        +'<div style="font-size:0.55rem;color:var(--muted);">'+tDonePcs+' pcs</div>'
+      +'</div>'
+    +'</div>';
+
+    if(tChallans.length===0){
+      html += '<div style="font-size:0.62rem;color:var(--muted);text-align:center;padding:10px 0;">No challans yet for this process type.</div>';
+      html += '</div></div>';
+      return;
+    }
+
+    // ── Sub-process breakdown ──────────────────────────────────
+    // If sub-processes exist, show a sub-process stats bar first
+    if(subNames.length){
+      html += '<div style="font-size:0.54rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#7c3aed;margin-bottom:8px;padding-bottom:4px;border-bottom:1px dashed #ede9fe;">📋 BY SUB-PROCESS</div>';
+
+      // Sub-process summary chips
+      html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">';
+      subNames.forEach(function(sp){
+        var spC = tChallans.filter(function(c){ return (c.subProcess||'').trim()===sp; });
+        var spPend = spC.filter(function(c){ return c.status==='pending'; }).length;
+        var spDeka = spC.filter(function(c){ return c.status==='deka'; }).length;
+        var spDone = spC.filter(function(c){ return c.status==='returned'||c.status==='deka_returned'; }).length;
+        var spPcs  = spC.reduce(function(s,c){ return s+(c.items||[]).reduce(function(ss,i){ return ss+i.pcs; },0); },0);
+        var chipClr = spPend ? '#d97706' : spDeka ? '#2563eb' : '#16a34a';
+        var chipBg  = spPend ? '#fff8ec' : spDeka ? '#eff6ff' : '#f0fdf4';
+        var chipBdr = spPend ? '#fde68a' : spDeka ? '#bfdbfe' : '#bbf7d0';
+        html += '<div style="border:1px solid '+chipBdr+';background:'+chipBg+';border-radius:8px;padding:6px 10px;min-width:80px;">'
+          +'<div style="font-size:0.62rem;font-weight:700;color:'+chipClr+';">'+sp+'</div>'
+          +'<div style="font-size:0.52rem;color:var(--muted);margin-top:2px;">'
+            +(spPend?'<span style="color:#d97706;">'+spPend+' pending</span> ':'')
+            +(spDeka?'<span style="color:#2563eb;">'+spDeka+' deka</span> ':'')
+            +(spDone?'<span style="color:#16a34a;">'+spDone+' done</span> ':'')
+          +'</div>'
+          +'<div style="font-size:0.52rem;color:var(--muted);">'+spPcs+' pcs total</div>'
+        +'</div>';
+      });
+      html += '</div>';
+    }
+
+    // ── Challans grouped: first by status, then sub-process heading within each status
+    function renderStatusGroup(list, stage) {
+      if(!list.length) return '';
+      var stageColor = stage==='pending'?'#f59e0b':stage==='deka'?'#3b82f6':'#16a34a';
+      var stageBg    = stage==='pending'?'#fff8ec':stage==='deka'?'#eff6ff':'#f0fdf4';
+      var stageLbl   = stage==='pending'?'⏳ PENDING RETURNS':stage==='deka'?'🔄 AT DEKA STAGE':'✅ COMPLETED / RETURNED';
+
+      var out = '<div style="margin-bottom:12px;">'
+        +'<div style="font-size:0.52rem;font-weight:700;letter-spacing:2px;color:'+stageColor+';margin-bottom:8px;padding:4px 8px;background:'+stageBg+';border-radius:6px;display:inline-block;">'+stageLbl+' ('+list.length+')</div>';
+
+      // Group challans by sub-process
+      var groups = {}; // { spName: [challans] }
+      list.forEach(function(c){
+        var sp = (c.subProcess||'').trim() || '(No Sub-Process)';
+        if(!groups[sp]) groups[sp]=[];
+        groups[sp].push(c);
+      });
+
+      Object.keys(groups).forEach(function(sp){
+        var groupList = groups[sp];
+        var isNoSub = sp==='(No Sub-Process)';
+
+        if(!isNoSub){
+          out += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;margin-top:8px;">'
+            +'<div style="height:1px;flex:1;background:#ede9fe;"></div>'
+            +'<span style="font-size:0.56rem;font-weight:700;letter-spacing:1.5px;color:#7c3aed;white-space:nowrap;padding:2px 8px;background:#f5f3ff;border-radius:10px;border:1px solid #ede9fe;">'+sp+'</span>'
+            +'<div style="height:1px;flex:1;background:#ede9fe;"></div>'
+          +'</div>';
+        }
+
+        groupList.forEach(function(c){
+          var total=(c.items||[]).reduce(function(s,i){ return s+i.pcs; },0);
+          var eid=JSON.stringify(c.id);
+          var actions='';
+          if(stage==='pending') actions='<button class="process-action-btn btn-return" onclick="markProcessReturn('+eid+',\'ready\')">✔ RETURNED</button><button class="process-action-btn btn-deka" onclick="markProcessReturn('+eid+',\'deka\')">🔄 DEKA</button>';
+          else if(stage==='deka') actions='<button class="process-action-btn btn-return" onclick="markDekaReturn('+eid+')">✔ DEKA DONE</button>';
+
+          out += '<div class="process-card" style="margin-bottom:8px;">'
+            +'<div class="process-card-header">'
+              +'<div>'
+                +'<div class="process-ch-num">'+c.challanNo+'</div>'
+                +'<div style="font-size:0.58rem;color:var(--muted);">'+c.date+' · '+(c.party||'—')
+                  +(!isNoSub ? ' &nbsp;<span style="background:#ede9fe;color:#5b21b6;padding:1px 6px;border-radius:4px;font-size:0.52rem;font-weight:700;">'+sp+'</span>' : '')
+                +'</div>'
+              +'</div>'
+              +'<button class="process-action-btn btn-print" onclick="showChallanPrint((data.processChallans||[]).find(function(x){return x.id==='+eid+';}))">🖨</button>'
+            +'</div>'
+            +'<div>'+(c.items||[]).map(function(i){ return '<div class="item-line"><span>'+i.name+'</span><span class="item-pcs">'+i.pcs+' pcs</span></div>'; }).join('')+'</div>'
+            +'<div class="ch-footer"><span class="ch-total">Total: <strong>'+total+' pcs</strong></span></div>'
+            +(actions?'<div class="process-actions">'+actions+'</div>':'')
+          +'</div>';
+        });
+      });
+
+      out += '</div>';
+      return out;
+    }
+
+    html += renderStatusGroup(tPending, 'pending');
+    html += renderStatusGroup(tDeka,    'deka');
+    html += renderStatusGroup(tDone,    'done');
+
+    html += '</div></div>'; // close body + card
+  });
+
+  container.innerHTML = html;
+}
+
+function togglePTCard(bodyId) {
+  var body = document.getElementById(bodyId);
+  var arr  = document.getElementById('arr-'+bodyId);
+  if(!body) return;
+  var open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if(arr) arr.style.transform = open ? 'rotate(-90deg)' : '';
 }
 
 function renderProcessSection(elId,challans,stage) {
