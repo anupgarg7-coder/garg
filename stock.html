@@ -994,10 +994,16 @@ function startRealtimeSync(uid) {
       const d = snap.data();
       // Only update if we're not mid-save (avoid feedback loops)
       if (d.updatedAt && data._lastSaveAt === d.updatedAt) return;
-      data.outputs = d.outputs || [];
-      data.inputs  = d.inputs  || [];
-      data.stock   = d.stock   || [];
-      data.salesReports = d.salesReports || [];
+      data.outputs        = d.outputs        || [];
+      data.inputs         = d.inputs         || [];
+      data.stock          = d.stock          || [];
+      data.salesReports   = d.salesReports   || [];
+      data.processList    = d.processList    || data.processList || ['Dyeing','Printing','Stitching','Embroidery','Washing'];
+      data.processChallans= d.processChallans|| data.processChallans || [];
+      data.stockTransfers = d.stockTransfers || data.stockTransfers || [];
+      data.outCounter     = d.outCounter     || data.outCounter || 1;
+      data.inCounter      = d.inCounter      || data.inCounter  || 1;
+      data.trCounter      = d.trCounter      || data.trCounter  || 1;
       // Re-render current tab
       const activeTab = document.querySelector('.tab.active');
       if (activeTab) {
