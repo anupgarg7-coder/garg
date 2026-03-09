@@ -577,7 +577,7 @@ select.item-type-sel.type-proc{background:#f0ebff;color:#6b21a8;border-color:#d8
         </select>
       </div>
       <div class="field">
-        <label>To M/s (Party Name)</label>
+        <label id="out-party-label">To M/s (Party Name)</label>
         <input id="out-party" type="text" placeholder="Auto-fills from process type or enter manually..." autocomplete="off" style="width:100%;box-sizing:border-box;">
       </div>
       <div class="items-header"><span class="items-label">Items Sent Out</span><button class="add-item-btn" onclick="addOutItem()">+ ADD ITEM</button></div>
@@ -618,7 +618,7 @@ select.item-type-sel.type-proc{background:#f0ebff;color:#6b21a8;border-color:#d8
         </select>
       </div>
       <div class="field" id="in-from-ms-row" style="display:none;">
-        <label>From M/s (Party Name)</label>
+        <label id="in-party-label">From M/s (Party Name)</label>
         <input id="in-party" type="text" placeholder="Auto-fills from process type..." autocomplete="off" style="width:100%;box-sizing:border-box;">
       </div>
       <div class="field" id="in-add-inventory-row" style="display:none;">
@@ -1167,7 +1167,11 @@ function startRealtimeSync(uid) {
       if (activeTab) {
         const tab = activeTab.className.replace('tab ','').replace(' active','').trim();
         if (tab==='out') renderOutputList();
-        if (tab==='in') { renderInputList(); refreshInProcessTypeOptions(); }
+        if (tab==='in') {
+        renderInputList(); refreshInProcessTypeOptions();
+        const inPt=document.getElementById('in-process-type');
+        if(inPt&&inPt.value) onInProcessTypeChange(inPt.value);
+      }
         if (tab==='book') renderBook();
         if (tab==='stock') renderStockRegister();
         if (tab==='report') { renderReportList(); renderFinalStock(); }
@@ -1251,7 +1255,13 @@ function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+tab).classList.add('active');
   document.querySelector('.tab.'+tab).classList.add('active');
-  if(tab==='out'){renderOutputList(); nextOutChallan(); refreshOutProcessTypeOptions();}
+  if(tab==='out'){
+    renderOutputList(); nextOutChallan();
+    refreshOutProcessTypeOptions();
+    // Re-trigger change to repopulate sub-process if a type was already selected
+    const outPt=document.getElementById('out-process-type');
+    if(outPt&&outPt.value) onOutProcessTypeChange(outPt.value);
+  }
   if(tab==='in'){renderInputList(); nextInChallan(); refreshInProcessTypeOptions(); if(!document.querySelector('#in-items-list .item-row'))addInItem();}
   if(tab==='book') renderBook();
   if(tab==='stock') { renderStockInputRows(); renderStockRegister(); }
@@ -1432,14 +1442,20 @@ function onInProcessTypeChange(val){
     if(field) field.style.display='none';
     if(subRow) subRow.style.display='none';
     if(fromRow) fromRow.style.display='none';
+    if(partyInp) partyInp.value='';
+    const inLbl2=document.getElementById('in-party-label');
+    if(inLbl2) inLbl2.textContent='From M/s (Party Name)';
     return;
   }
   if(field) field.style.display='block';
   if(fromRow) fromRow.style.display='block';
-  // Auto-fill From M/s from party
+  // Always auto-fill From M/s from saved party for this process type
   const pt=(getProcessTypes()||[]).find(p=>p.name===val);
-  if(pt && partyInp && !partyInp.value.trim()) partyInp.value=pt.party||'';
-  // Populate sub-processes
+  if(pt && partyInp) partyInp.value=pt.party||'';
+  // Update label to show process type context
+  const inLbl=document.getElementById('in-party-label');
+  if(inLbl) inLbl.textContent='From M/s — '+val+' Party';
+  // Populate sub-processes dropdown
   if(subSel){
     const subs=(pt&&pt.subProcesses)||[];
     subSel.innerHTML='<option value="">-- Select Sub-Process --</option>'
@@ -1449,7 +1465,6 @@ function onInProcessTypeChange(val){
   const saved=localStorage.getItem('in_add_inventory');
   setAddToInventory(saved===null?true:saved==='true');
   setInType(val==='packing'?'packing':'dyeing');
-  refreshInProcessTypeOptions();
 }
 
 
@@ -1469,12 +1484,18 @@ function onOutProcessTypeChange(val){
   const subSel=document.getElementById('out-sub-process');
   if(!val){
     if(subRow) subRow.style.display='none';
+    if(partyInp) partyInp.value='';
+    const lbl=document.getElementById('out-party-label');
+    if(lbl) lbl.textContent='To M/s (Party Name)';
     return;
   }
-  // Auto-fill party
   const pt=(getProcessTypes()||[]).find(p=>p.name===val);
-  if(pt && partyInp && !partyInp.value.trim()) partyInp.value=pt.party||'';
-  // Populate sub-processes
+  // Always auto-fill party from saved party for this process type
+  if(pt && partyInp) partyInp.value=pt.party||'';
+  // Update label to show process type context
+  const outLbl=document.getElementById('out-party-label');
+  if(outLbl) outLbl.textContent='To M/s — '+val+' Party';
+  // Populate sub-processes dropdown
   if(subSel){
     const subs=(pt&&pt.subProcesses)||[];
     subSel.innerHTML='<option value="">-- Select Sub-Process --</option>'
@@ -3344,8 +3365,9 @@ function buildChallanHtml(ch) {
     +'<div style="font-size:0.72rem;font-weight:700;letter-spacing:2px;color:#e879a0;margin-top:4px;">'+typeLabel+'</div></div>'
     +'<table style="width:100%;border-collapse:collapse;margin-bottom:10px;font-size:0.68rem;">'
     +'<tr><td><b>Ch. No.:</b> '+ch.challanNo+'</td><td style="text-align:right;"><b>Date:</b> '+ch.date+'</td></tr>'
-    +'<tr><td colspan="2"><b>'+partyLabel+':</b> '+partyVal+'</td></tr>'
-    +(subLabel?'<tr><td colspan="2"><b>Process:</b> '+subLabel+'</td></tr>':procLabel?'<tr><td colspan="2"><b>Process Type:</b> '+procLabel+'</td></tr>':'')
+    +'<tr><td colspan="2"><b>'+partyLabel+':</b> '+partyVal+(procLabel?' &nbsp;<span style="font-size:0.6rem;color:#888;">('+procLabel+')</span>':'')+'</td></tr>'
+    +(procLabel?'<tr><td colspan="2"><b>Process Type:</b> '+procLabel+'</td></tr>':'')
+    +(subLabel?'<tr><td colspan="2"><b>Sub-Process:</b> '+subLabel+'</td></tr>':'')
     +'</table>'
     +'<table style="width:100%;border-collapse:collapse;border:1px solid #e879a0;">'
     +'<thead><tr style="background:#fce4ec;"><th style="border:1px solid #e879a0;padding:6px 4px;font-size:0.62rem;width:10%;">Sr.</th><th style="border:1px solid #e879a0;padding:6px 8px;font-size:0.62rem;text-align:left;">Description</th><th style="border:1px solid #e879a0;padding:6px 4px;font-size:0.62rem;width:18%;">Qty</th></tr></thead>'
