@@ -945,7 +945,7 @@ async function loadUserData(uid) {
     const ref = getUserDocRef(uid); if(!ref){ throw new Error('no-db'); } const snap = await ref.get();
     if (snap.exists) {
       const d = snap.data();
-      return { outputs:d.outputs||[], inputs:d.inputs||[], stock:d.stock||[], salesReports:d.salesReports||[], processList:d.processList||['Dyeing','Printing','Stitching','Embroidery','Washing'], processChallans:d.processChallans||[], outCounter:d.outCounter||1, inCounter:d.inCounter||1 };
+      return { outputs:d.outputs||[], inputs:d.inputs||[], stock:d.stock||[], salesReports:d.salesReports||[], processList:d.processList||['Dyeing','Printing','Stitching','Embroidery','Washing'], processChallans:d.processChallans||[], stockTransfers:d.stockTransfers||[], outCounter:d.outCounter||1, inCounter:d.inCounter||1, trCounter:d.trCounter||1 };
     }
   } catch(e) { console.warn('Load error:', e); }
   // Fallback to localStorage
@@ -960,6 +960,7 @@ function save() {
   setSyncStatus('syncing');
   saveTimer = setTimeout(async () => {
     try {
+      const _saveTs = new Date().toISOString();
       await window._db.doc('users/'+currentUser+'/data/main').set({
         outputs: data.outputs,
         inputs: data.inputs,
@@ -971,8 +972,9 @@ function save() {
         inCounter: data.inCounter,
         trCounter: data.trCounter,
         stockTransfers: data.stockTransfers||[],
-        updatedAt: new Date().toISOString()
+        updatedAt: _saveTs
       }, {merge:true});
+      data._lastSaveAt = _saveTs;
       setSyncStatus('synced');
       // Also save to localStorage as backup
       localStorage.setItem('csm_data_v2_'+currentUser, JSON.stringify(data));
@@ -1009,10 +1011,12 @@ function startRealtimeSync(uid) {
       if (activeTab) {
         const tab = activeTab.className.replace('tab ','').replace(' active','').trim();
         if (tab==='out') renderOutputList();
-        if (tab==='in') renderInputList();
+        if (tab==='in') { renderInputList(); refreshInProcessTypeOptions(); }
         if (tab==='book') renderBook();
         if (tab==='stock') renderStockRegister();
         if (tab==='report') { renderReportList(); renderFinalStock(); }
+        if (tab==='process') { renderProcessTags(); renderProcessTracker(); }
+        if (tab==='transfer') renderTransferHistory();
       }
       setSyncStatus('synced');
     }, (err) => { console.warn('Sync error:', err); setSyncStatus('error'); });
